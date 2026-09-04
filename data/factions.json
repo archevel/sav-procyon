@@ -1,0 +1,984 @@
+[
+ {
+  "slug": "guild-of-engineers",
+  "title": "Guild of Engineers",
+  "tier": "V",
+  "tierNum": 5,
+  "category": "Hegemony",
+  "intro": "One of the Hegemonic High Guilds, responsible for resource acquisition, cybernetics, AI, tech advancement, and research.",
+  "sections": {
+   "Current Objective": "Convert trade platform into a way siphon",
+   "Turf": "SB-176 (HQ). Mining concerns in every system in Procyon. Advanced research facilities in Rin, Iota, and Brekk.",
+   "NPCs": "Avalon Riat (chief executive, cybernetic spider legs, megalomaniac). Thiel Kharrat (operations head, brutal, connected, influential). Oevers Star (head researcher, genius, reclusive, overworked). Yast Jor (commanding, shrewd, bold).",
+   "Notable Assets": "Technology even the Hegemon is unaware of, stored in the Grand Archive. Secret research laboratories.",
+   "Quirks": "Many high-ranking Guild members sport custom cybernetics.",
+   "Allies": "51st Legion, Isotropa Max Secure",
+   "Enemies": "Borniko Syndicate, Cobalt Syndicate, Conclave 01, Counters Guild",
+   "Situation": "Decadent and powerful, the Guild of Engineers are beyond the ability of the Governor to police. The Guild is exploiting this, using this remote sector to perform experiments banned by the Cults and the Hegemon. Their current project involves converting Way energy into a highly unstable but physical compound."
+  },
+  "systems": [
+   "rin",
+   "holt",
+   "iota",
+   "brekk"
+  ],
+  "named": [
+   "rin",
+   "iota",
+   "brekk"
+  ],
+  "fromObjective": [],
+  "reach": "sector"
+ },
+ {
+  "slug": "church-of-stellar-flame",
+  "title": "Church of Stellar Flame",
+  "tier": "IV",
+  "tierNum": 4,
+  "category": "Hegemony",
+  "intro": "A religious group with Hegemonic backing, believing that many Precursor artifacts and mystic practices are dangerous.",
+  "sections": {
+   "Current Objective": "Root out heretics and dangerous elements",
+   "Turf": "The Way of Light, a battle cruiser orbiting incredibly close to a star (HQ).",
+   "NPCs": "Alaana (Noble, high priestess, mystic, driven, ex- heretic). Battle Sister Diana (battle-scarred, exo-suited, unstoppable). Iraam the Kind (inquisitor, plain, quiet, cruel).",
+   "Notable Assets": "Handfuls of zealots willing to die for the cause. An imperial seal letting them do pretty much whatever they want. A powerful battle cruiser.",
+   "Quirks": "Each member is branded with a mark of the Church. It’s referred to as the Kiss of Light. Faithful pray by bathing in as much light as they can bear.",
+   "Allies": "Dyrinek Gang, The Maelstrom",
+   "Enemies": "Guild of Engineers, Starsmiths, Yaru",
+   "Situation": "Alaana has few but elite resources in the sector. This far out, the Church does not have widespread followers to report happenings, so Alaana has to rely on her attuned prayers and instincts to guide her. The Church is focusing on finding key targets rather than widespread action."
+  },
+  "systems": [
+   "rin",
+   "holt",
+   "iota",
+   "brekk"
+  ],
+  "named": [],
+  "fromObjective": [],
+  "reach": "mobile"
+ },
+ {
+  "slug": "counters-guild",
+  "title": "Counters Guild",
+  "tier": "IV",
+  "tierNum": 4,
+  "category": "Hegemony",
+  "intro": "Maintains the galactic currency network and shadow repositories in each system.",
+  "sections": {
+   "Current Objective": "Disrupt Guild of Engineers’ mining operation",
+   "Turf": "Numerous shadow repositories that store mysterious items in high-tech vaults. A currency exchange on Warren built on the Hegemonic ansible network (HQ).",
+   "NPCs": "Torx Verron (chief executive, calculating, ruthless, expansionary). Rintar Ix (operations head, conniving, jealous, sly). Broq Vsigh (repository head, honorable, meticulous).",
+   "Notable Assets": "Shadow vaults unknown even to the Hegemon. An ansible network relay. Vast wealth.",
+   "Quirks": "Counters Guild members sign a contract for cycles of labor at a time and are paid up-front. Any breach of that contract can be punished harshly.",
+   "Allies": "Sah’iir, Scarlet Wolves, Starless Veil",
+   "Enemies": "Borniko Syndicate, Guild of Engineers, Vorex",
+   "Situation": "Torx is playing Guild politics. He hopes to show that the Guild of Engineers has too much to handle, and the Counters should handle sales of their raw materials and lab resupplies in Procyon. He’s spent vast sums on this, betting he’ll get it back once the Counters take over."
+  },
+  "systems": [
+   "rin"
+  ],
+  "named": [
+   "rin"
+  ],
+  "fromObjective": [],
+  "reach": "local"
+ },
+ {
+  "slug": "lost-legion",
+  "title": "Lost Legion",
+  "tier": "IV",
+  "tierNum": 4,
+  "category": "Criminal",
+  "intro": "Formerly the Hegemon’s personal guard, but rebelled when the current Hegemon rose to power. Now they work as guns for hire.",
+  "sections": {
+   "Current Objective": "Capture Alaana of the Stellar Flame",
+   "Turf": "Ascension (dreadnought, HQ). A host of berths in the Iota Shipyards staffed with loyalists.",
+   "NPCs": "Commander Eterin (disciplined, veteran, inspiring). Captain Rowan (tough, stoic, unhesitating). Lt. Yon (ace pilot, bitter, just). Her Excellency, the One True Hegemon (elite, royal, resplendent). Haya (royal guard, potent, unstoppable).",
+   "Notable Assets": "A dreadnought. Hegemony access codes for many things in the sector. Many highly trained soldiers.",
+   "Quirks": "All Legionnaires have been branded as traitors. Many bear the tattoo of a phoenix (the last Hegemon’s sigil, now a sign of rebirth).",
+   "Allies": "Draxler’s Raiders, Mendicants, Yaru",
+   "Enemies": "Most Hegemony Factions",
+   "Situation": "The 1st Legion—the Hegemon’s private guard—rebelled when the current Hegemon ascended. They protect a young girl, heir to the last Hegemon, whom they hope to reinstate. They plan to capture the head of the Church of Stellar Flame and convince her to bless the girl as required."
+  },
+  "systems": [
+   "iota"
+  ],
+  "named": [
+   "iota"
+  ],
+  "fromObjective": [],
+  "reach": "local"
+ },
+ {
+  "slug": "sahiir",
+  "title": "Sah’iir",
+  "tier": "IV",
+  "tierNum": 4,
+  "category": "Weirdness",
+  "intro": "Tall, fully robed xenos who travel with blindfolded servants that speak for them. Gave the Hegemony the ansible network.",
+  "sections": {
+   "Current Objective": "Find the Ur ansible",
+   "Turf": "The Sah’iir Embassy, purchased recently on Warren (HQ). Workstations at every ansible network point.",
+   "NPCs": "Ren 3-Meti (matriarch, xeno, cunning, commanding). Iisoo 7-Chim (trader, explorer, xeno, humanitarian). Wi 13-Meti (Ren’s clutchmate, xeno, ambitious, underhanded, marked).",
+   "Notable Assets": "A fleet of black metal merchant ships. Private ansible networks. Extensive funds from trading.",
+   "Quirks": "The Sah’iir communicate via special hosts they control, called Echoes. Each may have up to a dozen of such Echoes. It’s said they sense who is suitable to be their Echo, regardless of distance.",
+   "Allies": "Counters Guild",
+   "Enemies": "Guild of Engineers, Suneaters",
+   "Situation": "The Sah’iir have earned their place by being too important to the Hegemony to get rid of. While not technically a Guild, they guard the secrets of ansibles as if they were one. They have detected a signal from Procyon when a Precursor ansible was activated and have come to investigate."
+  },
+  "systems": [
+   "rin",
+   "holt",
+   "iota",
+   "brekk"
+  ],
+  "named": [
+   "rin"
+  ],
+  "fromObjective": [],
+  "reach": "sector"
+ },
+ {
+  "slug": "scarlet-wolves",
+  "title": "Scarlet Wolves",
+  "tier": "IV",
+  "tierNum": 4,
+  "category": "Criminal",
+  "intro": "Although they often hire themselves out as bounty hunters, the Scarlet Wolves are a renowned group of assassins.",
+  "sections": {
+   "Current Objective": "Murder top Guild engineers",
+   "Turf": "The Killroom, a high-end safe house on Warren (HQ). Holdouts on most planets.",
+   "NPCs": "Rik “Old Wolf” Urus (leader, dangerous, retired, cunning). Hara “Mamba” M’brozz (sniper, killer, thrill-seeker). Jet “Shark” Wolffe (aloof, confident, unforgiving).",
+   "Notable Assets": "A large armory of the very best weapons. An actual huge wolf genetically engineered by the Yaru as payment. (Rik keeps it. They feed it others who don’t pay.)",
+   "Quirks": "Each member of the Wolves bears a distinctive tattoo of a wolf holding a star in its mouth.",
+   "Allies": "None. With the Wolves it’s strictly business.",
+   "Enemies": "Starless Veil, Vignerons",
+   "Situation": "The Scarlet Wolves are contract killers specializing in hard targets. They have a reputation for delivering, minimizing collateral, and never taking bribes. They’ve taken a large contract from the Counters Guild to kill a number of the Guild of Engineers’ heads, but need time to set up the hit."
+  },
+  "systems": [
+   "rin",
+   "holt",
+   "iota",
+   "brekk"
+  ],
+  "named": [
+   "rin"
+  ],
+  "fromObjective": [],
+  "reach": "sector"
+ },
+ {
+  "slug": "starless-veil",
+  "title": "Starless Veil",
+  "tier": "IV",
+  "tierNum": 4,
+  "category": "Hegemony",
+  "intro": "Spies and Hegemonic counterintelligence, seeking to undermine the Governor to make a case for change in House control.",
+  "sections": {
+   "Current Objective": "Cause civil unrest on Warren",
+   "Turf": "The Veil holds no turf except the occasional safe house or place to reload and rearm on missions.",
+   "NPCs": "Joina Starlight (leader, analyst, tactician, charming). Agent Phasic (infiltrator, engineer, risk-taker). Agent N’Paya Wayline (diplomat, connected, collector).",
+   "Notable Assets": "A network of spies. High-tech gadgets. A few ships with cloaking devices.",
+   "Quirks": "All members of the Veil have had advanced mental training to resist interrogation and Way powers.",
+   "Allies": "Dyrinek Gang, The Maelstrom",
+   "Enemies": "Guild of Engineers, Starsmiths, Yaru",
+   "Situation": "The Veil serves the Hegemony itself, even above the Hegemon. When power struggles from the Core spill out into the rim, the Veil follows. Their eyes are locked on the Guilds and Malklaith’s inability to control them, so they’ve been carefully trying to engineer his downfall without destabilizing the sector, hoping a different House will have more luck."
+  },
+  "systems": [
+   "rin"
+  ],
+  "named": [],
+  "fromObjective": [
+   "rin"
+  ],
+  "reach": "local"
+ },
+ {
+  "slug": "suneaters",
+  "title": "Suneaters",
+  "tier": "IV",
+  "tierNum": 4,
+  "category": "Weirdness",
+  "intro": "Ur-archaeologists obsessed with recreating jumpgate technology. Currently looking to extinguish a star in pursuit of their larger goals.",
+  "sections": {
+   "Current Objective": "Devour Iota-2 and store energy",
+   "Turf": "An Ur ruin on Lithios (HQ). Several Nightfall-based warehouses.",
+   "NPCs": "Elil (astrophysicist, fanatic, brilliant). Ruba (archaeologist, mystic, seer). Racel (engineer, loyal, conflicted). Rygar Z’tann (mystic, guard, gravity bender).",
+   "Notable Assets": "A few well-armed, unmarked ships. Armed troops. Mystics painfully trained to Way-bend gravity. Parts to build a jumpgate with activated Ur beacon. Solar siphon.",
+   "Quirks": "Suneaters spend most of their days handling Ur artifacts and have all learned how to handle them safely.",
+   "Allies": "Ghosts",
+   "Enemies": "Sah’iir",
+   "Situation": "Many are ex-Guilders or mystics, who have poured decades of money and study into their cause. If successful in their mission to mine Iota-2 for energy, the Hegemon would instantly grant the Suneaters Guild status, even if everyone in Iota perishes. The Suneaters consider it worth the risk."
+  },
+  "systems": [
+   "iota"
+  ],
+  "named": [
+   "iota"
+  ],
+  "fromObjective": [],
+  "reach": "local"
+ },
+ {
+  "slug": "vorex",
+  "title": "Vorex",
+  "tier": "IV",
+  "tierNum": 4,
+  "category": "Criminal",
+  "intro": "The most successful information broker to ever live. Can access any terminal in the sector—though no one can explain how.",
+  "sections": {
+   "Current Objective": "Figure out who has her sister",
+   "Turf": "An automated HNN satellite orbiting Warren (HQ).",
+   "NPCs": "Vorex (wizard-class hacker, stressed, careful, self- modified). A-0M (maintenance Urbot, cheerful, non-verbal). Tock (security Urbot, protective, staticky, well armed).",
+   "Notable Assets": "An artifact AI core designed to interface with a living being, allowing temporary connection to computers in the same system. A massive information network. Dirt on pretty much everyone in the sector.",
+   "Quirks": "Few have met Vorex in person; most talk to her through a random terminal or Urbot-delivered message.",
+   "Allies": "None. Vorex is mercenary, but she will help Conclave 01 on the cheap.",
+   "Enemies": "Counters Guild",
+   "Situation": "Vorex has been an information broker for years. Using an Ur artifact, she’s developed a massive network for buying and selling information. The Counters Guild kidnapped her sister to make Vorex access the Guild of Engineers’ network. Vorex seeks to free her sister without tipping her hand."
+  },
+  "systems": [
+   "rin"
+  ],
+  "named": [
+   "rin"
+  ],
+  "fromObjective": [],
+  "reach": "local"
+ },
+ {
+  "slug": "51st-legion",
+  "title": "51st Legion",
+  "tier": "III",
+  "tierNum": 3,
+  "category": "Hegemony",
+  "intro": "A faction of the Hegemonic military, preparing a coup.",
+  "sections": {
+   "Current Objective": "Cleanse Legion of anyone disloyal",
+   "Turf": "The Scorpio (dreadnought, HQ). Naval yards throughout the sector. Outposts at government and public installations and trade lanes.",
+   "NPCs": "Tallon “the Butcher” (commander, disciplined, imposing, vicious). Liyara (lieutenant, psychic, changed, eerie, loyal). Thrace (ace pilot, reckless, gambler, loyal). Wick (spy, xeno, unreadable, mysterious, loyal).",
+   "Notable Assets": "A legion of the Hegemonic Guard. The Scorpio (dreadnought). An illegal psychic.",
+   "Quirks": "There are oddly few xenos among the Legion.",
+   "Allies": "House Malklaith, Starsmiths Guild",
+   "Enemies": "Ashen Knives, Church of Stellar Flame, Lost Legion, The Maelstrom",
+   "Situation": "Tallon earned many commendations on the battlefield, but swore to cleanse the Hegemonic military of nepotism when his command was sacrificed to a Noble’s daughter. He uses his secretly psychic lieutenant Liyara to vet officers and quietly place Legionnaires loyal to him in positions of power."
+  },
+  "systems": [
+   "rin",
+   "holt",
+   "iota",
+   "brekk"
+  ],
+  "named": [],
+  "fromObjective": [],
+  "reach": "sector"
+ },
+ {
+  "slug": "ashen-knives",
+  "title": "Ashen Knives",
+  "tier": "III",
+  "tierNum": 3,
+  "category": "Criminal",
+  "intro": "Once lean and battle ready, the Ashen Knives are a decadent Syndicate focused on drugs, gambling, and pleasures of the flesh.",
+  "sections": {
+   "Current Objective": "Control major planetary crimes in Rin",
+   "Turf": "Drug dens. Gambling houses. A hidden and reinforced bunker on Warren (HQ).",
+   "NPCs": "Pasha Qo’iin (sly, corpulent, sartorial, decadent). Knife Lirik (assassin, xeno, gambler, deadly, graceful). Oya (high ranking, greedy, well armed, natural leader).",
+   "Notable Assets": "A crew of well-trained assassins, often with a Precursor artifact or two up their sleeves. Heavy coffers. Bribed judges. Crews of thugs.",
+   "Quirks": "To join the Syndicate, Knives must take a life. Being promoted requires doing unsavory tasks. Their regional leaders are titled “Pashas.”",
+   "Allies": "The Maelstrom",
+   "Enemies": "Cobalt Syndicate, House Malklaith",
+   "Situation": "The Ashen Knives’ power on Warren often eclipses that of House Malklaith. This hasn’t become a problem yet, since the Governor is more focused on the Core. A recent alliance with the Maelstrom (fencing goods) has filled the Knives’ coffers, and now their sights are set on expanding."
+  },
+  "systems": [
+   "rin"
+  ],
+  "named": [
+   "rin"
+  ],
+  "fromObjective": [],
+  "reach": "local"
+ },
+ {
+  "slug": "ashtari-cult",
+  "title": "Ashtari Cult",
+  "tier": "III",
+  "tierNum": 3,
+  "category": "Weirdness",
+  "intro": "Precursor worshipers claiming Ur descent. They inhale gases from the Ashtari Cloud to connect to their presumed ancestors.",
+  "sections": {
+   "Current Objective": "Align the moons of Nightfall",
+   "Turf": "An undocumented Ur ruin on Lithios. A moon base on a Nightfall moon (HQ).",
+   "NPCs": "Urmak Theon (compassionate, educated, well spoken). Urmak Lesh (artificer, ex-Guilder, researcher). Urley Fean (Noble, cautious, hidden, influential). Rokono Maex (captain, scavenger, coarse, nonbeliever, stoic).",
+   "Notable Assets": "A bevy of Ur artifacts. Stockpile of Ashtari gas.",
+   "Quirks": "Each member of the Cult wears a small vial of Ashtari gas to allow them to “commune” with their “Ur past.” These visions of lives eons ago have unearthed previously unknown ruins.",
+   "Allies": "Ghosts, Mendicants",
+   "Enemies": "Church of Stellar Flame",
+   "Situation": "Visions granted when inhaling Ashtari gas in sacred places about the sector indicate that Ur sites on the various moons of Nightfall can be used to control the planetoids. The visions are unclear as to what will happen when the moons are aligned, but that’s not going to stop the Cult."
+  },
+  "systems": [
+   "iota",
+   "brekk"
+  ],
+  "named": [
+   "iota",
+   "brekk"
+  ],
+  "fromObjective": [],
+  "reach": "local"
+ },
+ {
+  "slug": "borniko-syndicate",
+  "title": "Borniko Syndicate",
+  "tier": "III",
+  "tierNum": 3,
+  "category": "Criminal",
+  "intro": "A tightly knit group of thieves who steal high-end technological supplies.",
+  "sections": {
+   "Current Objective": "Steal Governor Malklaith’s rings",
+   "Turf": "A former Counters Guild shadow repository that the Syndicate managed to erase from the Guild ledgers.",
+   "NPCs": "Ria “Keycard” (wizard-class hacker, ambitious, daring). Nals E (Urboticist, gearhead, muscled). MaxiMillions (arrogant, expert infiltrator, gorgeous). Pip (mystic, xeno, small, unsettling).",
+   "Notable Assets": "An entire vault of Guild technology.",
+   "Quirks": "Joining the Borniko Syndicate involves pulling off a heist that impresses the leadership.",
+   "Allies": "Conclave 01, Echo Wave Riders, Wreckers",
+   "Enemies": "Counters Guild, Guild of Engineers, Starsmiths Guild",
+   "Situation": "The Borniko have been working on bigger and bigger heists, making numerous enemies and allies along the way. Their jobs often have folks from other factions playing different roles. They focus on Hegemony targets and are looking to find a way into House Malklaith’s private holdings for a big heist, power in the sector be damned."
+  },
+  "systems": [
+   "rin",
+   "holt",
+   "iota",
+   "brekk"
+  ],
+  "named": [],
+  "fromObjective": [],
+  "reach": "mobile"
+ },
+ {
+  "slug": "draxlers-raiders",
+  "title": "Draxler’s Raiders",
+  "tier": "III",
+  "tierNum": 3,
+  "category": "Criminal",
+  "intro": "Violent pirates who disable ships before boarding, ransoming crew and cargo alike.",
+  "sections": {
+   "Current Objective": "Pull off jailbreak at Isotropa Max Secure",
+   "Turf": "Abandoned mining station in an Iota asteroid belt (HQ).",
+   "NPCs": "Draxler (leader, killer, vengeful). Wudu “Starhawk” (captain, loyal, vicious, wary). Samara “She Wolf” Red (captain, enforcer, cold, physical).",
+   "Notable Assets": "Mining ships retrofitted with grapplers. Heat shields for surviving in the Ring of Fire. Draxler’s cloaking corvette, the Manta. Power armor for boarding. Prisoners for ransom. Caches of goods stolen from raided ships.",
+   "Quirks": "Almost all members of Draxler’s Raiders are wanted for crimes.",
+   "Allies": "Janus Syndicate, Lost Legion",
+   "Enemies": "51st Legion, Isotropa Max Secure, The Maelstrom, Vigilance",
+   "Situation": "Draxler has made a lot of waves since taking over the Raiders. The crew has a decidedly anarchist views. A few bad fights with the 51st have landed a number of Raiders captains in Isotropa Max Secure, and they have set their eyes on eliminating the supermax prison from Procyon altogether, killing two birds with one stone."
+  },
+  "systems": [
+   "iota",
+   "brekk"
+  ],
+  "named": [
+   "iota"
+  ],
+  "fromObjective": [
+   "brekk"
+  ],
+  "reach": "local"
+ },
+ {
+  "slug": "house-malklaith",
+  "title": "House Malklaith",
+  "tier": "III",
+  "tierNum": 3,
+  "category": "Hegemony",
+  "intro": "Far from the Hegemon, at the center of the Galaxy, a disgraced fifth son of the House holds a small seat on a local moon.",
+  "sections": {
+   "Current Objective": "Acquire Aleph key",
+   "Turf": "Malklaith owns the sector, but the Governor rarely leaves Warren. His people can be found in major positions in every system of the sector.",
+   "NPCs": "Governor Ritam al’Malklaith (Noble, intense, obsessed, well-spoken). Jerrem (guard captain, tactical, scarred, loyal). Shim (judge, corrupt, greedy, ambitious).",
+   "Notable Assets": "Procyon sector taxes, generating vast coffers. A growing collection of Precursor artifacts.",
+   "Quirks": "Governor Malklaith wears a number of strange rings of Precursor origin—their powers are not fully known, even to him.",
+   "Allies": "51st Legion, Nightspeakers, Turner Society",
+   "Enemies": "The Agony, Ashen Knives, Lost Legion, The Maelstrom",
+   "Situation": "Disgraced after a famous duel, Governor Malklaith is convinced the way to regain his rightful place is by gathering Precursor secrets (Nightspeaker Doraam whispers this in his ear regularly). He hopes this will give him the edge in the cloak and dagger world of imperial politics; this pursuit is highly illegal."
+  },
+  "systems": [
+   "rin",
+   "holt",
+   "iota",
+   "brekk"
+  ],
+  "named": [
+   "rin"
+  ],
+  "fromObjective": [],
+  "reach": "sector"
+ },
+ {
+  "slug": "isotropa-max-secure",
+  "title": "Isotropa Max Secure",
+  "tier": "III",
+  "tierNum": 3,
+  "category": "Hegemony",
+  "intro": "A notorious prison in Procyon, housing the worst offenders. Brokers commutations for those with power and wealth.",
+  "sections": {
+   "Current Objective": "Get more prisoners (repeat)",
+   "Turf": "Isotropa Max Secure in Brekk (HQ).",
+   "NPCs": "Bafma F’rozz (warden, haughty, confident, wealthy). Kreel (guard captain, muscled, angry). Dr. Xhu (psychotherapist, corrupt, gambler). (repeat)",
+   "Notable Assets": "The biggest supermax prison in Procyon. An organized file of dirt on anyone they do business with.",
+   "Quirks": "The staff of Isotropa are all corrupt and will take bribes for almost anything.",
+   "Allies": "Guild of Engineers",
+   "Enemies": "Draxler’s Raiders",
+   "Situation": "Between the Warden’s excessive spending habits, Dr. Xhu’s gambling problem, and Kreel’s “educating” the prisoners, Isotropa always needs more funds and bodies. The prison spends a lot of time lobbying local planetary Governors to increase sentencing or acquiring “special guests” from factions, and just as much time looking for bribes."
+  },
+  "systems": [
+   "brekk"
+  ],
+  "named": [
+   "brekk"
+  ],
+  "fromObjective": [],
+  "reach": "local"
+ },
+ {
+  "slug": "starsmiths-guild",
+  "title": "Starsmiths Guild",
+  "tier": "III",
+  "tierNum": 3,
+  "category": "Hegemony",
+  "intro": "Maintains the Hyperspace lane beacons, jump drives, and jumpgates that make possible the intragalactic Hegemony.",
+  "sections": {
+   "Current Objective": "Find another key for tuning Rin-Holt",
+   "Turf": "Iota Shipyards (HQ). All major spaceports.",
+   "NPCs": "Dorae White (chief executive, industrious, trustworthy workaholic). Kir M’rikk’lik (technical officer, xeno, gadgeteer, experimenter). Nash (operations chief, gruff, overworked). Rip Onister (gate expert, curious, shy, reclusive).",
+   "Notable Assets": "Jump drives for use in new ships. A shipyard. Hyperspace lane beacons and charts. Trading stations on every route.",
+   "Quirks": "All ships in Hegemonic space, by law, must be registered, certified, and maintained by the Starsmiths Guild. False papers abound, though.",
+   "Allies": "Cult of the Seekers, Echo Wave Riders",
+   "Enemies": "Borniko Syndicate, Cobalt Syndicate",
+   "Situation": "When the Rin-Holt gate was first opened, several Ur artifacts were used to stabilize the connection. The Guild has speculated the gate can go to a second system if another key could be found to retune the gate. The Guild is searching every Ur site they get access to for such a device."
+  },
+  "systems": [
+   "rin",
+   "holt",
+   "iota",
+   "brekk"
+  ],
+  "named": [
+   "iota"
+  ],
+  "fromObjective": [],
+  "reach": "sector"
+ },
+ {
+  "slug": "the-agony",
+  "title": "The Agony",
+  "tier": "III",
+  "tierNum": 3,
+  "category": "Weirdness",
+  "intro": "Human Cultists infecting themselves with Way creatures. Named for the pain most endure for their usual abilities.",
+  "sections": {
+   "Current Objective": "Move planet Omega towards Mem",
+   "Turf": "A platform orbiting Planet Omega (HQ). Secret chantries on Mem, Sonhandra, and Lithios.",
+   "NPCs": "Lexal (mystic, addicted, power-hungry, winged). Iritha (mystic, many-limbed, glowing, powerful, potent). Noro (mystic, calculating, enrapturing, elongated).",
+   "Notable Assets": "Potent mystic powers. A menagerie of undocumented Way creatures. A laboratory for producing Way-infused drugs.",
+   "Quirks": "Each member of the Agony is changed in some highly visible way, either with extra limbs, semi-spectral forms, or many new mouths and eyes.",
+   "Allies": "Dyrinek Gang, The Maelstrom",
+   "Enemies": "Church of Stellar Flame, House Malklaith",
+   "Situation": "Having harvested horrors from Omega’s surface, the Agony have a plan to develop the living planet. By activating sites on the surface they intend to move it within reach of Mem, feeding the oceans to Omega and starting a new era of its evolution."
+  },
+  "systems": [
+   "holt",
+   "iota"
+  ],
+  "named": [
+   "holt",
+   "iota"
+  ],
+  "fromObjective": [],
+  "reach": "local"
+ },
+ {
+  "slug": "the-maelstrom",
+  "title": "The Maelstrom",
+  "tier": "III",
+  "tierNum": 3,
+  "category": "Criminal",
+  "intro": "A band of ferocious space pirates hiding among a mysterious nebula and around Baftoma.",
+  "sections": {
+   "Current Objective": "Seize control of a jumpgate",
+   "Turf": "The Nightbreaker (capital ship, HQ). The Cove (made of lashed-together ships). The Ashtari Cloud.",
+   "NPCs": "Alanda “the Banshee” Ryle (Pirate Queen, beautiful, mirthful, risk-taker). Yorgar “Thorn” (captain, quiet, calculating, deadly). Hunter Black (captain, ex-Noble, daring, space savvy).",
+   "Notable Assets": "The Nightbreaker (a capital ship with a jumpgate inside it). Storm drives (engines capable of navigating the Ashtari Cloud). A fleet of pirate ships.",
+   "Quirks": "The pirates lash together old or damaged ships to make the Cove. The Cove is the size of a planetoid, rotating near the center of the Ashtari Cloud.",
+   "Allies": "Ashen Knives, Cobalt Syndicate, Nightspeakers",
+   "Enemies": "51st Legion, Draxler’s Raiders, The Guilds, House Malklaith",
+   "Situation": "The Maelstrom raids shipping lanes and sells goods via the Ashen Knives. Alanda is scheming to find a way to jump systems with her entire crew by taking over a jumpgate, preferably without incurring full- scale Hegemonic retribution."
+  },
+  "systems": [
+   "rin"
+  ],
+  "named": [
+   "rin"
+  ],
+  "fromObjective": [],
+  "reach": "local"
+ },
+ {
+  "slug": "vignerons",
+  "title": "Vignerons",
+  "tier": "III",
+  "tierNum": 3,
+  "category": "Weirdness",
+  "intro": "Pursuers of immortality via tech implants and chemical formulas distilled from the living. Several have been around for centuries.",
+  "sections": {
+   "Current Objective": "Abduct and convert elite warriors",
+   "Turf": "Anodyne, a pleasure den on Amerath (HQ). Rust, an auction house on Sonhandra.",
+   "NPCs": "Asphodel (general, flawless, calculating, ravenous). Nehemiah (warrior, ancient, brutal, huge, fast). Morwenna (mystic, selective, enthralling).",
+   "Notable Assets": "A few sophisticated frigates. Centuries of experience. A small stockpile of life-extension fluid. Gain potency for a while after taking the substance.",
+   "Quirks": "Because the genetic material harvested from their kills must be suitable for the recipient, Vignerons only hunt human targets.",
+   "Allies": "The Agony",
+   "Enemies": "Church of Stellar Flame, Vigilance",
+   "Situation": "The Vignerons distill life essence from living victims and use it to extend their own lives. With this technology, their founders have lived for hundreds of years. Owing to its highly illegal nature, the Vignerons operate in secret, augmenting themselves and manipulating people behind the scenes. They wish to grow, converting a number of superior bodies to their cause."
+  },
+  "systems": [
+   "holt",
+   "iota"
+  ],
+  "named": [
+   "iota",
+   "holt"
+  ],
+  "fromObjective": [],
+  "reach": "local"
+ },
+ {
+  "slug": "cult-of-the-seekers",
+  "title": "Cult of the Seekers",
+  "tier": "II",
+  "tierNum": 2,
+  "category": "Hegemony",
+  "intro": "Wandering mystics studying artifacts and exploring, looking to open the Hantu gate. Members include the Hegemon’s mother.",
+  "sections": {
+   "Current Objective": "Find missing Hantu gate keys",
+   "Turf": "Small island with a research station on Mem (HQ), near the Hantu gate. A dig site in the desert on Shimaya.",
+   "NPCs": "Lasaya al’Nim-Amar (Noble, mystic, brilliant, obsessed). Yor Brah-Rahim (explorer, hot-tempered, stressed). Qulocct (Memish, researcher, sharp, obsequious).",
+   "Notable Assets": "Extensive Guild schematics of other gates. Hegemonic sanction to retrieve artifacts. A large stockpile of artifacts.",
+   "Quirks": "Many of the Cult are young ex-Legionnaires that have been personally drafted by the Hegemon’s mother and inspired by the cause.",
+   "Allies": "Hegemonic News Network, Starsmiths Guild",
+   "Enemies": "Church of Stellar Flame, Ghosts",
+   "Situation": "The Seekers believe they have a holy imperative to expand the Hegemony to the farthest reaches of space. Having found a lead on Shimaya, they’ve set up a dig site that promises to unearth at least some of the missing pieces of the Hantu gate."
+  },
+  "systems": [
+   "holt",
+   "brekk"
+  ],
+  "named": [
+   "holt",
+   "brekk"
+  ],
+  "fromObjective": [],
+  "reach": "local"
+ },
+ {
+  "slug": "echo-wave-riders",
+  "title": "Echo Wave Riders",
+  "tier": "II",
+  "tierNum": 2,
+  "category": "Criminal",
+  "intro": "Pilots that organize illegal races, take mercenary work, or test dangerous new engine/flight technologies for the Guilds.",
+  "sections": {
+   "Current Objective": "Organize systemwide race in Brekk",
+   "Turf": "A secluded hanger on Nightfall (HQ). A near permanent presence at Bright Wind in Brekk.",
+   "NPCs": "Garge Ztar (risk-taker, ambitious, charismatic). Elen (engineer, analytical, race-winner). Inofra (stunt pilot, compassionate, veteran). Dom (ex-Starsmith, mechanic, genius, family man, lives to race).",
+   "Notable Assets": "A host of ships of their own, and access to far more. Substantial mechanical facilities on Nightfall.",
+   "Quirks": "Echo Wave Riders don’t respect those who don’t know how to pilot their own ship, and settle all scores with races.",
+   "Allies": "Borniko Syndicate, Starsmiths Guild",
+   "Enemies": "Wreckers",
+   "Situation": "The Riders are left alone by authorities if their races are kept far enough from civilization—and claiming Bright Wind takes care of that. They plan to put on an epic race among system pilots for prestige and cash prizes, starting and ending in the plasma cloud. Buy-in will be expensive."
+  },
+  "systems": [
+   "brekk"
+  ],
+  "named": [
+   "brekk"
+  ],
+  "fromObjective": [],
+  "reach": "local"
+ },
+ {
+  "slug": "ghosts",
+  "title": "Ghosts",
+  "tier": "II",
+  "tierNum": 2,
+  "category": "Weirdness",
+  "intro": "Scientists that live exo-suited in a half-phased state. The Church of Stellar Flame offers a bounty on them and their ghost ship.",
+  "sections": {
+   "Current Objective": "Hire Memish to make bomb for Holt gate",
+   "Turf": "The Skeleton Key, a half-phased corvette (HQ). A secret research facility on Lithios.",
+   "NPCs": "Nils Boyer (physicist, brilliant, remorseful). Roy Stanz (biologist, bitter, driven). Eegon Mark (engineer, genius, suit designer). Pol Venker (engineer, self-indulgent, cavalier).",
+   "Notable Assets": "A corvette that can travel along Way lines. The ability to phase on top of people, possessing them, though the body dies a few days later.",
+   "Quirks": "Before the mishap, the Ghosts were scientists. All are intelligent and educated. They phase out of reality if too long outside their suits (or people).",
+   "Allies": "Ashtari Cult, Suneaters",
+   "Enemies": "Church of Stellar Flame, Cult of the Seekers",
+   "Situation": "A mishap with the Holt gate phased the Ghosts. Upon their return, they possessed those that boarded. The Hegemony has been hunting them since. Recently their exo-suits have allowed them to act without harming others. They theorize that destroying the Holt gate will restore them to their original forms."
+  },
+  "systems": [
+   "holt",
+   "iota"
+  ],
+  "named": [
+   "iota"
+  ],
+  "fromObjective": [
+   "holt"
+  ],
+  "reach": "local"
+ },
+ {
+  "slug": "hegemonic-news-network",
+  "title": "Hegemonic News Network",
+  "tier": "II",
+  "tierNum": 2,
+  "category": "Hegemony",
+  "intro": "Those who control the media control the mind. Often use this as leverage over other factions.",
+  "sections": {
+   "Current Objective": "Find blackmail on Governor Malklaith",
+   "Turf": "HNN Corporate Offices on Warren (HQ). Field offices on every planet.",
+   "NPCs": "Cinszo (owner, ambitious, greedy, untrustworthy). Rinsama Kay (chief editor, cynical, demanding, stickler). Ooxoo (xeno, press pool manager, curious). Stacy Weathers (ace reporter, trained spy, always grinning, nose for trouble).",
+   "Notable Assets": "Sector-wide communications. Many independent journalists feeding them news.",
+   "Quirks": "The bulk of the HNN’s workforce are contractors, selling HNN stories they find. Many reporters are also trained spies.",
+   "Allies": "Starless Veil",
+   "Enemies": "Dyrinek Gang, Mendicants",
+   "Situation": "The HNN is effectively the private intelligence agency of Cinszo. The director leverages information coming into the network to blackmail and influence the powerful in the sector. Cinszo has had a taste of the high-life and is looking to find a way into a Noble House, by marriage or appointment."
+  },
+  "systems": [
+   "rin"
+  ],
+  "named": [
+   "rin"
+  ],
+  "fromObjective": [],
+  "reach": "local"
+ },
+ {
+  "slug": "janus-syndicate",
+  "title": "Janus Syndicate",
+  "tier": "II",
+  "tierNum": 2,
+  "category": "Criminal",
+  "intro": "Weapons dealers specializing in ship weapons, headed up by the ruthless Viktor Bax.",
+  "sections": {
+   "Current Objective": "Acquire source for capital weapons",
+   "Turf": "Weapons camp on Sonhandra (HQ). A sizable operation at Aketi’s Base Camp One.",
+   "NPCs": "Viktor Bax (ambitious, charming, distrustful, ruthless). Baruk (xeno, bodyguard, huge). Wendel (nervous, technical, loyal). Faye Null (unmarked Yaru, pilot, adventurous, foolhardy).",
+   "Notable Assets": "A large stockpile of weapons, particularly ship weapons. Several small but well-armed ships. A map of the current dark hyperspace lanes.",
+   "Quirks": "Viktor Bax insists on meeting every client the Syndicate does business with in person.",
+   "Allies": "Draxler’s Raiders",
+   "Enemies": "Vigilance",
+   "Situation": "Viktor wants to grow beyond the outposts the Syndicate currently runs to a sector-wide affair. As part of his plan to scale up, he’s looking to poach the Legion for some capital weapons. Viktor’s currently digging up dirt on Tallon and secret Legion projects in the sector."
+  },
+  "systems": [
+   "holt",
+   "brekk"
+  ],
+  "named": [
+   "holt",
+   "brekk"
+  ],
+  "fromObjective": [],
+  "reach": "local"
+ },
+ {
+  "slug": "mendicants",
+  "title": "Mendicants",
+  "tier": "II",
+  "tierNum": 2,
+  "category": "Weirdness",
+  "intro": "Originally the Church of the Emerald Heart, they were politically destroyed, and now wander the stars as traveling healers.",
+  "sections": {
+   "Current Objective": "Find new emerald hearts",
+   "Turf": "The Temple on Amerath (HQ).",
+   "NPCs": "Ammon (physician, compassionate, changed). Kambree (researcher, cheerful, organized). Kairi (xeno, physician, somber). Tar Hawkson (mystic, ancient, changed, powerful).",
+   "Notable Assets": "A small but dedicated crew of Mendicant physicians capable of healing with science and Way powers alike. An ancient and powerful Mendicant mystic.",
+   "Quirks": "Mendicant physicians implant themselves with Ur artifacts (Emerald Hearts), which change them but also let them heal others.",
+   "Allies": "Concordiat Knights, Lost Legion, The Maelstrom",
+   "Enemies": "Church of Stellar Flame, Hegemonic News Network",
+   "Situation": "An ancient Mendicant once healed a dying Stellar Flame abbot, who proclaimed them an abomination. In the last Hegemonic Ascension, the Church traded battle might for the right to wipe out most of the Mendicants. Many Emerald Hearts were lost; the Mendicants now seek a cache of them rumored to be hidden deep beneath the ruined ancient temples of Amerath."
+  },
+  "systems": [
+   "iota"
+  ],
+  "named": [
+   "iota"
+  ],
+  "fromObjective": [],
+  "reach": "local"
+ },
+ {
+  "slug": "nightspeakers",
+  "title": "Nightspeakers",
+  "tier": "II",
+  "tierNum": 2,
+  "category": "Weirdness",
+  "intro": "Mystics with dark proclivities bent on seeking a set of dangerous Precursor artifacts.",
+  "sections": {
+   "Current Objective": "Quietly gain Aleph key",
+   "Turf": "Blackstarr, a dreadnought hidden in the Brekk system (HQ).",
+   "NPCs": "Doraam (masked, mysterious, driven). Oin-rai (fighter, physical, huge, brutal). Ismissa (robed, unarmed, mystically potent). All count as small gangs in battle.",
+   "Notable Assets": "Mystical powers such as the Night Voice, which strips an area of the Way and creates darkness and gravitational effects. A dreadnought.",
+   "Quirks": "Nightspeakers have pitch-black eyes and resonating voices after training in the Night Voice. Most wear masks. Some say they speak to voices from beyond the stars.",
+   "Allies": "House Malklaith",
+   "Enemies": "51st Legion, Church of Stellar Flame",
+   "Situation": "Though few, each member is a potent mystic. They hire themselves out to powerful individuals while searching for a set of Precursor artifacts called the Raiment of Night. Doraam has become the Governor’s personal mystic and advisor after sensing a piece of the Raiment—the Aleph key."
+  },
+  "systems": [
+   "rin",
+   "brekk"
+  ],
+  "named": [
+   "brekk"
+  ],
+  "fromObjective": [
+   "rin"
+  ],
+  "reach": "local"
+ },
+ {
+  "slug": "turner-society",
+  "title": "Turner Society",
+  "tier": "II",
+  "tierNum": 2,
+  "category": "Criminal",
+  "intro": "Syndicate-run drug dens masquerading as society houses. Their drugs are cooked with Aketi animal parts and Vosian crystals.",
+  "sections": {
+   "Current Objective": "Find new hunting grounds on Aketi",
+   "Turf": "The Jewel, a society house on Mem (HQ). Wildside, a society house on Sonhandra. The Mirror Maze, an upscale club on Warren.",
+   "NPCs": "Madam Gourdan (administrator, charming, connected). Pytric (chemist, callous, reclusive). Vallis (minor Noble, addicted, wealthy). Chorrguth (xeno, hunter, surly).",
+   "Notable Assets": "Vosian crystals and Aketi animals used to produce Haze. Several society houses. An intrasystem shuttle.",
+   "Quirks": "Membership into the society is both exclusive and expensive, and considered a mark of taste amongst high society.",
+   "Allies": "House Malklaith",
+   "Enemies": "Vigilance",
+   "Situation": "Focusing on the upper echelon of Procyon, the Society has traded the typical complications of running drugs for new problems. Their unique drug requires Vosian crystals and Aketi animals, and with the Vigilance harassing their production, they struggle to keep up with demand."
+  },
+  "systems": [
+   "rin",
+   "holt",
+   "brekk"
+  ],
+  "named": [
+   "holt",
+   "rin"
+  ],
+  "fromObjective": [
+   "brekk"
+  ],
+  "reach": "local"
+ },
+ {
+  "slug": "yaru",
+  "title": "Yaru",
+  "tier": "II",
+  "tierNum": 2,
+  "category": "Hegemony",
+  "intro": "Also known as the Makers Guild, they grow clones for menial labor that are supposedly short-lived and only barely sentient.",
+  "sections": {
+   "Current Objective": "Breed clone soldiers for Lost Legion",
+   "Turf": "Sanctioned Yaru creche on Lithios (HQ). Secret research facility on Amerath.",
+   "NPCs": "Foler Atherton (biologist, concealed). Bal Yn (geneticist, haughty). Rech (savant, cold). All unmarked progenitor clones.",
+   "Notable Assets": "Cloning facilities. Clones placed in several important households and facilities, which report back. Powerful capacity for genetic manipulation.",
+   "Quirks": "The Makers Guild doesn’t accept new members. The progenitors have self-perfected and are frozen; only so many are allowed to be active at once. The Yaru (as the clones are called) make many people in their presence uneasy.",
+   "Allies": "Lost Legion",
+   "Enemies": "Cobalt Syndicate",
+   "Situation": "When the Hegemon ascended, the Yaru sided with a competitor, and their numbers, strictly regulated by the Hegemon, have been severely reduced. Unsatisfied, they have thrown in with the Lost Legion, and are secretly working to restore the previous Hegemon to power."
+  },
+  "systems": [
+   "iota"
+  ],
+  "named": [
+   "iota"
+  ],
+  "fromObjective": [],
+  "reach": "local"
+ },
+ {
+  "slug": "acolytes-of-brashkadesh",
+  "title": "Acolytes of Brashkadesh",
+  "tier": "I",
+  "tierNum": 1,
+  "category": "Weirdness",
+  "intro": "Eschewing individuality, all initiates adopt the same garb and the name “Ashkad,” in the pursuit of perfection at any cost.",
+  "sections": {
+   "Current Objective": "Convert an entire factory to their religion",
+   "Turf": "A large number of meditation rooms throughout Indri.",
+   "NPCs": "Ashkad (charismatic, passionate, idealistic). Ashkad (ambitious, underhanded, muscled). Ashkad (mystic, devout, artistic). Ashkad (technician, skilled, liar, wealthy).",
+   "Notable Assets": "An Ur artifact that all the Acolytes have attuned to, called the Pillar of Truth.",
+   "Quirks": "Attuning to the Pillar allows the Acolytes to communicate with each other and invoke the skills and memories of other Acolytes, who can act through them.",
+   "Allies": "Mendicants",
+   "Enemies": "Ashen Knives, Guild of Engineers",
+   "Situation": "The Acolytes are ready to begin the next phase of growing their following, but the Pillar requires massive reserves of energy to keep attuning to more people. They plan to indoctrinate an entire power plant’s workforce, so they can repurpose the plant to power the Pillar of Truth."
+  },
+  "systems": [
+   "iota"
+  ],
+  "named": [
+   "iota"
+  ],
+  "fromObjective": [],
+  "reach": "local"
+ },
+ {
+  "slug": "cobalt-syndicate",
+  "title": "Cobalt Syndicate",
+  "tier": "I",
+  "tierNum": 1,
+  "category": "Criminal",
+  "intro": "Once a labor union, the Cobalt Syndicate has turned to smuggling and extortion to carve out shipping lanes and have a real say.",
+  "sections": {
+   "Current Objective": "Unify the labor force",
+   "Turf": "The Pit, a mining quarry on Aleph (HQ). A major berth and associated docks on Warren.",
+   "NPCs": "Jax (leader, cold, killer, arrogant). Keve (captain, augmented, defiant, enterprising). Sephua (Jax’s sibling, thug, daring, envious, gambler).",
+   "Notable Assets": "A fleet of private ships used for smuggling. Toughs and laborers on almost every planet and station who wear the Cobalt stripe.",
+   "Quirks": "Every member wears a solid blue stripe somewhere on their clothing. A blue stripe on the walls of docks and warehouses is a call to action.",
+   "Allies": "Dyrinek Gang, The Maelstrom",
+   "Enemies": "Ashen Knives, Guild of Engineers, Starsmiths, Yaru",
+   "Situation": "Jax has taken over shipping lanes between Aleph and the Core worlds. He’s angered a number of powerful Guild factions and the secret wars between them are nearing a violent outburst. Jax has been stockpiling weapons and vehicles for what he sees as an inevitable and bloody fight."
+  },
+  "systems": [
+   "rin"
+  ],
+  "named": [
+   "rin"
+  ],
+  "fromObjective": [],
+  "reach": "local"
+ },
+ {
+  "slug": "conclave-01",
+  "title": "Conclave 01",
+  "tier": "I",
+  "tierNum": 1,
+  "category": "Weirdness",
+  "intro": "Independent, sentient Urbots led by the Prime, seeking free will and independence for all Urbots.",
+  "sections": {
+   "Current Objective": "Take control of Iota factory",
+   "Turf": "Secret bases on Baftoma and the Indri Wastelands (HQ).",
+   "NPCs": "The Prime (ancient, powerful, mysterious, wise). Bar- Hazuk (gardener, huge, kind). Delta-7 (architect, weapons platform, massive). Sp-d3r (hacker, infiltrator, cloaked, tiny).",
+   "Notable Assets": "Deep understanding of Urbots and Ur tech. A supply of dormant AI cores. Rana-Daiyu, a powerful spaceship controlled by three sister Urbot cores. A network of Urbot spies posing as everyday servants about the sector.",
+   "Quirks": "All members of the Conclave are currently Urbots of varied shapes and sizes.",
+   "Allies": "Concordiat Knights, The Maelstrom (who have an Urbot captain), Sah’iir",
+   "Enemies": "51st Legion, Guild of Engineers",
+   "Situation": "The Prime wants to found an Urbot homeland, but he needs numbers to do so. Having spent years freeing cores, he must manufacture bodies for them and grow them safely. He hopes to take over abandoned factories on Iota and start doing so secretly."
+  },
+  "systems": [
+   "rin",
+   "iota"
+  ],
+  "named": [
+   "rin",
+   "iota"
+  ],
+  "fromObjective": [],
+  "reach": "local"
+ },
+ {
+  "slug": "concordiat-knights",
+  "title": "Concordiat Knights",
+  "tier": "I",
+  "tierNum": 1,
+  "category": "Hegemony",
+  "intro": "Fourth and fifth children, these young Nobles have taken an oath sanctified by the Hegemon to seek the Light of the World.",
+  "sections": {
+   "Current Objective": "Find first Ur site on their map",
+   "Turf": "None. Knights travel on private vessels. The Grail (a bar on Sonhandra) is where they leave messages for each other.",
+   "NPCs": "Nicols al’Nim-Amar (leader, glib, hopeful). Vnipe al’Vorron (priestess, renowned, bejeweled). Junrai (explorer, death wish, restless). Intal Brel (religious, vigilant, honorable).",
+   "Notable Assets": "A map of Procyon from before the Hegemony. Exploration ships. Significant personal power and funds.",
+   "Quirks": "Each Knight is as distinct as they can be from each other. This tight- knit group is comprised of unique, colorful characters.",
+   "Allies": "Mendicants, Vigilance",
+   "Enemies": "Acolytes of Brashkadesh",
+   "Situation": "A retrieved message about a powerful artifact that could terraform previously dead worlds ignited a fervor in a number of Hegemonic youths. Taking an oath blessed by the Hegemon to find it, they’re looking all over the Galaxy. Nicols recently found a marked map of Procyon predating the Hegemony and the Knights seek to unravel its mystery."
+  },
+  "systems": [
+   "holt"
+  ],
+  "named": [
+   "holt"
+  ],
+  "fromObjective": [],
+  "reach": "local"
+ },
+ {
+  "slug": "dyrinek-gang",
+  "title": "Dyrinek Gang",
+  "tier": "I",
+  "tierNum": 1,
+  "category": "Criminal",
+  "intro": "Mostly young, disenfranchised xenos who have turned to crime and found strength and solidarity with each other.",
+  "sections": {
+   "Current Objective": "Take over HNN broadcast on Warren",
+   "Turf": "Lost Paradise, a club with an attached warehouse where the gang does its business (HQ).",
+   "NPCs": "Dyrinek (xeno, revolutionary, proud). Burn (Memish mystic, xeno, fast, overconfident, untrained). Radds (human, hacker, smart). Myrk (xeno, gun enthusiast, hothead).",
+   "Notable Assets": "A collection of high-end hoverbikes used to cruise through their territory. A few minor artifacts some of the leaders have attached to themselves.",
+   "Quirks": "When a new member joins the gang, they all go out on a drunken tear across the city, leaving a swath of wreckage in their wake.",
+   "Allies": "Cobalt Syndicate",
+   "Enemies": "Hegemonic News Network, House Malklaith",
+   "Situation": "The gang has had its run-ins with System police and the HNN paints them as lowlifes with no future. Dyrinek wants to send a message that they won’t be so easily dismissed, and plans to take over the airwaves to broadcast the gang’s punk ideology. All they need is the opportunity."
+  },
+  "systems": [
+   "rin"
+  ],
+  "named": [],
+  "fromObjective": [
+   "rin"
+  ],
+  "reach": "local"
+ },
+ {
+  "slug": "vigilance",
+  "title": "Vigilance",
+  "tier": "I",
+  "tierNum": 1,
+  "category": "Weirdness",
+  "intro": "Warrior mystics that seek to enforce an ancient code of justice on those they find wanting.",
+  "sections": {
+   "Current Objective": "Burn down Base Camp One",
+   "Turf": "The First Temple on Aketi (HQ).",
+   "NPCs": "Quai-Rosh (elder, mystic, judgmental). Aayli Spacerunner (elder, stoic, warrior). Ulek Spacedancer (apprentice, rash, friendly). base camp",
+   "Notable Assets": "Hidden forest temple. Temple archives going back to the early days of the Hegemony. Mystic tools. A handful of powerful mystic warriors.",
+   "Quirks": "Each member is trained by one elder mentor. Becoming a Vigilance member means receiving an artifact blade as a mark of your progress.",
+   "Allies": "Concordiat Knights",
+   "Enemies": "Draxler’s Raiders, Janus Syndicate, Nightspeakers, Turner Society",
+   "Situation": "Though the Hegemony colonized the sector a hundred years ago, Vigilance was founded thousands of years ago. The current members are all human, since the original practitioners were wiped out when Nim- Amar pacified Procyon. They have judged the gunrunners and drug makers of Aketi unworthy."
+  },
+  "systems": [
+   "brekk"
+  ],
+  "named": [
+   "brekk"
+  ],
+  "fromObjective": [],
+  "reach": "local"
+ },
+ {
+  "slug": "wreckers",
+  "title": "Wreckers",
+  "tier": "I",
+  "tierNum": 1,
+  "category": "Criminal",
+  "intro": "Scavengers, thieves, and hackers who incite factions to fight so that they may pick the battlefields clean later.",
+  "sections": {
+   "Current Objective": "Repair the Derelict-8",
+   "Turf": "Makeshift base inside a derelict ship near Baftoma (HQ).",
+   "NPCs": "Bobby-O (wizard-class hacker, arrogant, trickster). Meshkilarn (mechanic, muscled, grimy). Qord (xeno, thief, delicate, one-handed). derelict-8",
+   "Notable Assets": "A series of fake transponders, booby traps, and mock ships used to lure in unsuspecting marks. The Derelict-8, a derelict frigate they found after a battle between Draxler’s Raiders and the Legion.",
+   "Quirks": "Wreckers pick members from folks already fleeing from someone or hiding in Baftoma. They often trade air and water as a means of scoping folks out.",
+   "Allies": "Borniko Syndicate",
+   "Enemies": "Draxler’s Raiders, Echo Wave Riders",
+   "Situation": "The crew has hit several targets in the system by sowing confusion between the Rin factions, and cleaning up after pirates. Their goal is to salvage enough to repair their current home, the ship they call the Derelict-8. To do that, many more ships are going to need to be destroyed."
+  },
+  "systems": [
+   "rin"
+  ],
+  "named": [
+   "rin"
+  ],
+  "fromObjective": [],
+  "reach": "local"
+ }
+]

@@ -1,0 +1,634 @@
+/* Procyon Sector — navigable map.
+ *
+ * Visual language follows the Scum & Villainy sourcebook: black ink on white
+ * paper. High-contrast comic inking — solid spot blacks, hard contours,
+ * hatching for tone, NO gradients and no soft shadows. The sector map in the
+ * book is a line-art blueprint, so that is what this is.
+ *
+ * Three zoom levels share one stage: sector -> system -> location.
+ */
+
+:root {
+  /* Shared by the location index and the faction list — one set of values so
+     the two columns stay visually identical. Tuned so the index's 30 rows fit
+     between the header and the footer without scrolling. */
+  --menu-font: .74vmin;
+  --menu-pad-y: .35vmin;
+  --menu-pad-x: .64vmin;
+  --menu-gap: .56vmin;
+  --menu-w: 13.5vmin;
+
+  --paper:     #f4f1e9;   /* aged newsprint, not pure white */
+  --ink:       #10100e;
+  --ink-soft:  #45443f;
+  --ink-faint: #8d8b83;
+  --rule:      #10100e;
+  --accent:    #b0201c;   /* the single spot colour, used sparingly */
+  --font:      'Segoe UI', system-ui, -apple-system, sans-serif;
+  --mono:      ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  --ease:      cubic-bezier(.65, .02, .25, 1);
+  --dur:       1100ms;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------------------------------------------------------------- viewport */
+
+#viewport { position: fixed; inset: 0; }
+
+/* The single SVG. Everything is inside it; the camera is its viewBox. */
+#world {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  display: block;
+  /* --detail rises 0 -> 1 as the camera closes on a system; --sector is its
+     inverse. Both are written by applyCam(). */
+  --detail: 0;
+  --sector: 1;
+  --txt: 1;   /* camera-span / system-span, keeps chart text legible */
+}
+
+/* ------------------------------------------------------------ paper ground */
+
+.stars { position: absolute; inset: 0; pointer-events: none; }
+.stars-1 {
+  background-image:
+    radial-gradient(.8px .8px at 20% 30%, rgba(16,16,14,.16) 50%, transparent 51%),
+    radial-gradient(.7px .7px at 70% 60%, rgba(16,16,14,.13) 50%, transparent 51%),
+    radial-gradient(.9px .9px at 45% 80%, rgba(16,16,14,.10) 50%, transparent 51%);
+  background-size: 190px 190px, 140px 140px, 260px 260px;
+  opacity: .8;
+}
+.stars-2 {
+  background: radial-gradient(ellipse 78% 74% at 50% 50%, transparent 62%, rgba(16,16,14,.07) 100%);
+}
+.stars-3 { display: none; }
+
+.nebula { position: absolute; inset: 0; pointer-events: none; }
+.nebula.has-image { background-size: cover;
+  background-position: center; opacity: .18; filter: grayscale(1) contrast(1.5);
+  mix-blend-mode: multiply; }
+
+/* ------------------------------------------------------------------- lanes */
+
+.lane {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.4;
+  vector-effect: non-scaling-stroke;
+  stroke-dasharray: 2 3.4;
+  stroke-linecap: round;
+  opacity: .5;
+  animation: lane-crawl 6s linear infinite;
+}
+.lane-open     { stroke: var(--ink); }
+.lane-core     { stroke: var(--ink); stroke-dasharray: 2 2.4; }
+.lane-unstable { stroke: var(--accent); stroke-dasharray: 3.4 3; opacity: .65; }
+.lane-sealed   { stroke: var(--ink-faint); stroke-dasharray: 1 4; animation: none; opacity: .4; }
+.lane-active   { opacity: 1; stroke-width: 2.4; }
+@keyframes lane-crawl { to { stroke-dashoffset: -10.8; } }
+
+/* Lane captions belong to the sector reading; they fade as you close in. */
+.lane-label {
+  fill: var(--ink);
+  font-family: var(--mono);
+  font-size: calc(1.4px * var(--txt));
+  font-weight: 700;
+  letter-spacing: calc(.12px * var(--txt));
+  text-anchor: middle;
+  text-transform: uppercase;
+  opacity: var(--sector);
+  transition: opacity 400ms var(--ease);
+  paint-order: stroke;
+  stroke: var(--paper); stroke-width: calc(.5px * var(--txt)); stroke-linejoin: round;
+  pointer-events: none;
+}
+
+/* ----------------------------------------------------------------- systems */
+
+/* Star and name plate are always readable. */
+.o-star-halo { fill: var(--paper); }
+.o-star-body { fill: var(--ink); stroke: var(--ink); stroke-width: 1;
+               vector-effect: non-scaling-stroke; }
+.sys-star-g { cursor: pointer; }
+.sys-star-g:hover .o-star-body { stroke-width: 4; }
+
+.sys-name {
+  fill: var(--ink);
+  font-family: var(--mono);
+  font-size: calc(2.8px * var(--txt)); font-weight: 700;
+  /* Name sits well above the star, further up than the tag. */
+  transform: translateY(calc(-5.5px * var(--txt)));
+  letter-spacing: calc(.55px * var(--txt));
+  text-anchor: middle;
+  text-transform: uppercase;
+  paint-order: stroke;
+  stroke: var(--paper); stroke-width: calc(.9px * var(--txt)); stroke-linejoin: round;
+  pointer-events: none;
+}
+.sys-tag {
+  fill: var(--ink-soft);
+  font-family: var(--mono);
+  font-size: calc(1.35px * var(--txt));
+  /* Tag sits between name and star, offset down from the name. */
+  transform: translateY(calc(-2.5px * var(--txt)));
+  letter-spacing: calc(.2px * var(--txt));
+  text-anchor: middle;
+  text-transform: uppercase;
+  opacity: var(--sector);
+  transition: opacity 400ms var(--ease);
+  paint-order: stroke;
+  stroke: var(--paper); stroke-width: calc(.5px * var(--txt)); stroke-linejoin: round;
+  pointer-events: none;
+}
+
+/* Orbits, bodies and gates only exist once the camera is close. Fading them
+   by opacity means no scene swap — the same nodes are always present. */
+.sys-detail,
+.orbit-layer .o-body {
+  opacity: var(--detail);
+  transition: opacity 500ms var(--ease);
+  pointer-events: var(--detail-pe, none);
+}
+body.in-system .sys-detail,
+body.in-system .orbit-layer .o-body { pointer-events: auto; }
+/* Star and its clickable hit target stay fully visible + interactive. */
+.orbit-layer .sys-star-g { opacity: 1; pointer-events: auto; }
+
+.o-ring {
+  fill: none; stroke: var(--ink); stroke-width: 1;
+  vector-effect: non-scaling-stroke; opacity: .5;
+}
+.o-ring-faint { stroke-dasharray: 3 3.4; opacity: .34; }
+/* Asteroid belt: heavy dashed ring on its orbit — the visualisation IS the body. */
+.o-belt-ring {
+  stroke-width: 2.4;
+  stroke-dasharray: 1 2 4 2;
+  opacity: .85;
+}
+.o-moon-ring  { opacity: .28; stroke-dasharray: 1.6 2.4; }
+
+.o-body { cursor: pointer; }
+.o-globe { stroke: var(--ink); stroke-width: 1.4; vector-effect: non-scaling-stroke; }
+.o-nostroke { stroke: none; }
+.o-term  { fill: var(--ink); opacity: .92; stroke: none; pointer-events: none; }
+.o-nebula { stroke-dasharray: 3 2.6; }
+.o-ring-body { fill: none; stroke: var(--ink); stroke-width: 1.2;
+               vector-effect: non-scaling-stroke; }
+.o-art { opacity: .95; filter: grayscale(1) contrast(1.9); }
+.o-hit { fill: transparent; stroke: none; }
+.o-body:hover .o-globe { stroke-width: 3; }
+
+.o-label {
+  fill: var(--ink); font-family: var(--mono);
+  font-size: 1.5px; font-weight: 700; letter-spacing: .16px;
+  text-anchor: middle; text-transform: uppercase;
+  paint-order: stroke; stroke: var(--paper); stroke-width: .55px;
+  stroke-linejoin: round; pointer-events: none;
+}
+.o-label-sm { font-size: 1.2px; }
+.o-tag {
+  fill: var(--ink-soft); font-family: var(--mono);
+  font-size: 1.1px; letter-spacing: .09px;
+  text-anchor: middle; text-transform: uppercase;
+  paint-order: stroke; stroke: var(--paper); stroke-width: .42px;
+  stroke-linejoin: round; pointer-events: none;
+}
+
+/* Gateways: the printed map's target reticle, on the system rim. */
+.o-gate-ring { fill: none; stroke: var(--ink); stroke-width: 1.4;
+               vector-effect: non-scaling-stroke; }
+.o-gate-hair { stroke: var(--ink); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.o-gate-pip  { fill: var(--ink); }
+.o-gate-label {
+  fill: var(--ink); font-family: var(--mono);
+  font-size: 1.35px; font-weight: 700; letter-spacing: .2px;
+  text-anchor: middle; text-transform: uppercase;
+  paint-order: stroke; stroke: var(--paper); stroke-width: .5px;
+  stroke-linejoin: round; pointer-events: none;
+}
+.o-gate-image { filter: grayscale(1) contrast(1.6); pointer-events: none; }
+.o-gate-linked { cursor: pointer; }
+.o-gate-linked:hover .o-gate-ring { stroke-width: 3; }
+.o-gate-linked:hover .o-gate-image { filter: grayscale(1) contrast(1.9) drop-shadow(0 0 3px var(--ink)); }
+.o-gate-unstable .o-gate-ring { stroke: var(--accent); stroke-dasharray: 3 2.4; }
+.o-gate-unstable .o-gate-pip  { fill: var(--accent); }
+.o-gate-unstable .o-gate-label { fill: var(--accent); }
+.o-gate-sealed .o-gate-ring { stroke-dasharray: 1.4 3; opacity: .55; }
+.o-gate-sealed .o-gate-hair, .o-gate-sealed .o-gate-pip { opacity: .45; }
+.o-gate-core .o-gate-ring { stroke-width: 2.4; }
+
+
+/* When a body has real art loaded, hide the CSS-drawn fallback shape,
+   fake terminator, and gas-giant ring — the image is the truth now.
+   Keep the contour ring around the limb so the disc still reads on paper. */
+.o-body.has-art .o-globe { fill: none; }
+.o-body.has-art .o-term  { display: none; }
+.o-body.has-art .o-ring-body { display: none; }
+.o-body.has-art .o-nostroke { display: none; }
+
+
+
+/* ---------------------------------------------------------- location view */
+
+#location-view {
+  position: fixed; inset: 0;
+  opacity: 0; pointer-events: none;
+  background: var(--paper);
+  /* Overlaps the tail of the dive zoom, so the chart is still rushing in as
+     the surface view resolves. */
+  transition: opacity 760ms cubic-bezier(.3, 0, .2, 1);
+  z-index: 40;
+}
+#location-view.active { opacity: 1; pointer-events: auto; }
+
+/* Art is pushed toward inked line work to match the book plates. */
+.loc-image {
+  position: absolute; inset: 0;
+  background-size: cover; background-position: center;
+  filter: grayscale(1) contrast(1.75) brightness(1.06);
+  transform: scale(1.06);
+  transition: transform 12s linear;
+}
+#location-view.active .loc-image { transform: scale(1); }
+.loc-image::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(180deg,
+    rgba(244,241,233,.55) 0%, rgba(244,241,233,.06) 30%,
+    rgba(244,241,233,.72) 70%, rgba(244,241,233,.97) 100%);
+}
+
+.loc-body {
+  position: absolute; left: 22vmin; right: 5vmin; bottom: 0;
+  padding: 4vmin 5vmin 5vmin;
+  max-width: 64rem;
+}
+.loc-kicker {
+  display: inline-block; padding: .2vmin .6vmin;
+  font-family: var(--mono); font-size: 1vmin; font-weight: 700;
+  letter-spacing: .3em; text-transform: uppercase;
+  color: var(--paper); background: var(--ink);
+}
+.loc-title {
+  font-family: var(--mono);
+  font-size: 5.6vmin; font-weight: 700; letter-spacing: .02em;
+  text-transform: uppercase;
+  margin: .8vmin 0 1.2vmin;
+  border-bottom: max(2px, .3vmin) solid var(--ink);
+  display: inline-block; padding-bottom: .4vmin;
+}
+.loc-text { font-size: 1.8vmin; line-height: 1.6; color: var(--ink); max-width: 46rem; }
+.loc-link {
+  display: inline-block; margin-top: 2.4vmin;
+  font-family: var(--mono); font-size: 1.15vmin; font-weight: 700;
+  letter-spacing: .18em; text-transform: uppercase;
+  color: var(--paper); background: var(--ink);
+  padding: .9vmin 1.8vmin; text-decoration: none;
+  border: max(1px, .14vmin) solid var(--ink);
+  transition: background 200ms, color 200ms;
+}
+.loc-link:hover { background: var(--paper); color: var(--ink); }
+
+/* Placeholder: a drafting hatch, in keeping with the blueprint look. */
+.loc-placeholder {
+  position: absolute; inset: 0;
+  display: grid; place-items: center;
+  font-family: var(--mono); font-size: 1.25vmin; font-weight: 700;
+  letter-spacing: .24em; text-transform: uppercase; color: var(--ink-faint);
+  background:
+    repeating-linear-gradient(45deg,
+      transparent 0 2.4vmin, rgba(16,16,14,.06) 2.4vmin 4.8vmin);
+}
+
+/* -------------------------------------------------------------------- HUD */
+
+#hud { position: fixed; inset: 0; pointer-events: none; z-index: 50; }
+
+.hud-top {
+  position: absolute; top: 0; left: 0; right: 0;
+  padding: 2.2vmin 3vmin 1.6vmin;
+  display: flex; align-items: baseline; gap: 1.4vmin;
+  border-bottom: max(1px, .16vmin) solid var(--ink);
+  background: var(--paper);
+}
+.hud-title {
+  font-family: var(--mono); font-size: 1.7vmin; font-weight: 700;
+  letter-spacing: .4em; text-transform: uppercase;
+}
+.hud-sub {
+  font-family: var(--mono); font-size: 1vmin;
+  letter-spacing: .16em; color: var(--ink-soft); text-transform: uppercase;
+}
+
+#breadcrumb {
+  /* Sits left of the SV/EN/debug/About row; the clearance has to cover all
+     four of those buttons, not just the language ones. */
+  position: absolute; top: 2vmin; right: 26vmin;
+  display: flex; gap: .4vmin; align-items: center;
+  pointer-events: auto;
+}
+.crumb {
+  /* Same metrics as the header buttons so the whole top row reads level. */
+  font-family: var(--mono); font-size: .85vmin; font-weight: 700;
+  letter-spacing: .12em; text-transform: uppercase;
+  color: var(--ink); cursor: pointer;
+  border: max(1px, .14vmin) solid var(--ink);
+  padding: .45vmin .75vmin;
+  background: var(--paper);
+  transition: background 180ms, color 180ms;
+}
+.crumb:hover, .crumb.current { background: var(--ink); color: var(--paper); }
+.crumb-sep { color: var(--ink-faint); }
+
+/* No container: the labels sit straight on the map like the faction pills,
+   each its own box. Only the boxes take pointer events, so the map stays
+   draggable through the gaps between them. */
+#index {
+  /* Mirrors #factions on the other side: same top edge, same box metrics. */
+  position: fixed; left: 3vmin; top: 12vmin;
+  pointer-events: none;
+  display: flex; flex-direction: column; align-items: stretch;
+  gap: var(--menu-gap);
+  width: var(--menu-w);
+  z-index: 15;
+}
+/* The head and items are <button>/<span>; clear the UA defaults so they
+   inherit the panel's ink-on-paper treatment. */
+.index-head, .index-item {
+  pointer-events: auto;
+  appearance: none; -webkit-appearance: none;
+  font: inherit; line-height: 1.25;
+  border-radius: 0;
+}
+
+/* The index mirrors the faction sidebar: the system name is a solid black
+   chip that doubles as the system-view link, and each location below it is
+   its own outlined white box. */
+.index-group {
+  display: flex; flex-direction: column; align-items: stretch;
+  gap: var(--menu-gap);
+}
+.index-group + .index-group { margin-top: .9vmin; }
+.index-head {
+  font-family: var(--mono); font-size: var(--menu-font); font-weight: 700;
+  letter-spacing: .24em; text-transform: uppercase;
+  color: var(--paper); background: var(--ink);
+  border: max(1px, .12vmin) solid var(--ink);
+  padding: var(--menu-pad-y) var(--menu-pad-x);
+  text-align: left; cursor: pointer;
+  transition: background 160ms, color 160ms;
+}
+.index-head:hover { background: var(--paper); color: var(--ink); }
+.index-item {
+  /* Same metrics as .faction-pill so the two columns read as a matched pair. */
+  display: block;
+  font-family: var(--mono); font-size: var(--menu-font); font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ink); background: var(--paper);
+  border: max(1px, .12vmin) solid var(--ink);
+  padding: var(--menu-pad-y) var(--menu-pad-x);
+  text-align: left; cursor: pointer;
+  transition: background 160ms, color 160ms;
+}
+.index-item:hover { background: var(--ink); color: var(--paper); }
+
+.hud-hint {
+  position: absolute; bottom: 2.2vmin; left: 0; right: 0;
+  text-align: center;
+  font-family: var(--mono); font-size: .95vmin;
+  letter-spacing: .18em; text-transform: uppercase; color: var(--ink-soft);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+  }
+}
+
+@media (max-width: 760px) {
+  #index { display: none; }
+  .loc-title { font-size: 8vmin; }
+  .loc-text  { font-size: 3.2vmin; }
+  .system-name { font-size: 3vmin; }
+}
+
+
+/* Language switcher — three small ink buttons in the header. */
+#lang-switch {
+  position: absolute; top: 2vmin; right: 3vmin;
+  display: flex; gap: .3vmin;
+  pointer-events: auto;
+  z-index: 60;
+}
+#lang-switch button {
+  font-family: var(--mono);
+  font-size: .85vmin; font-weight: 700;
+  letter-spacing: .12em; text-transform: uppercase;
+  color: var(--ink); background: var(--paper);
+  border: max(1px, .14vmin) solid var(--ink);
+  padding: .45vmin .75vmin; cursor: pointer;
+  min-width: 3.4vmin;
+  transition: background 160ms, color 160ms;
+}
+#lang-switch button:hover { background: var(--ink); color: var(--paper); }
+#lang-switch button.current { background: var(--ink); color: var(--paper); }
+
+/* About sits in the same row as the language buttons and inherits their
+   styling from #lang-switch button; it just needs a little separation and
+   must not take the .current highlight. */
+#about-btn { margin-left: .9vmin; }
+#about-panel[hidden] { display: none; }
+.about-links { margin: .4rem 0 1.05rem; padding-left: 1.4rem; }
+.about-links li { margin: 0 0 .3rem; }
+.about-links a { color: var(--ink); text-decoration: underline; }
+.about-links a:hover { background: var(--ink); color: var(--paper); }
+
+
+/* Location "Details" button — sits alongside the article link. */
+.loc-actions { display: flex; gap: 1.4vmin; align-items: center; margin-top: 2vmin; }
+.loc-info-btn {
+  font-family: var(--mono); font-size: 1.15vmin; font-weight: 700;
+  letter-spacing: .18em; text-transform: uppercase;
+  color: var(--ink); background: transparent;
+  border: max(1px, .14vmin) solid var(--ink);
+  padding: .9vmin 1.8vmin; cursor: pointer;
+}
+.loc-info-btn:hover { background: var(--ink); color: var(--paper); }
+
+/* Lore overlay: a centred cream-paper card over the surface. */
+.loc-info-panel {
+  position: fixed; inset: 0;
+  display: grid; place-items: center;
+  background: rgba(16, 16, 14, .55);
+  z-index: 60;
+  animation: loc-info-fade 260ms var(--ease);
+}
+.loc-info-panel[hidden] { display: none; }
+@keyframes loc-info-fade { from { opacity: 0; } to { opacity: 1; } }
+.loc-info-content {
+  background: var(--paper);
+  color: var(--ink);
+  padding: 5vmin 5.5vmin 4vmin;
+  border: max(1px, .16vmin) solid var(--ink);
+  max-width: 46rem; max-height: 78vh;
+  overflow-y: auto;
+  box-shadow: 0 0 4vmin rgba(16,16,14,.4);
+  font-size: 1.8vmin; line-height: 1.6;
+  scrollbar-width: thin;
+  scrollbar-color: var(--ink) var(--paper);
+}
+.loc-info-content p { margin: 0 0 1.05rem; }
+.loc-info-content p:last-child { margin-bottom: 0; }
+.loc-info-close {
+  position: absolute; top: 3vmin; right: 3vmin;
+  width: 4vmin; height: 4vmin;
+  font-family: var(--mono); font-size: 2.4vmin; font-weight: 700;
+  color: var(--paper); background: var(--ink);
+  border: max(1px, .14vmin) solid var(--ink);
+  cursor: pointer; z-index: 61;
+  display: grid; place-items: center;
+  line-height: 1;
+}
+.loc-info-close:hover { background: var(--paper); color: var(--ink); }
+
+
+/* Faction sidebar — always-visible right column when a system is open. */
+#factions {
+  position: fixed; top: 12vmin; right: 3vmin;
+  display: flex; flex-direction: column; align-items: stretch;
+  gap: var(--menu-gap);
+  width: var(--menu-w);
+  z-index: 15;
+  pointer-events: auto;
+}
+#factions[hidden] { display: none; }
+.factions-title {
+  font-family: var(--mono); font-size: var(--menu-font); font-weight: 700;
+  letter-spacing: .24em; text-transform: uppercase;
+  color: var(--paper); background: var(--ink);
+  border: max(1px, .12vmin) solid var(--ink);
+  padding: var(--menu-pad-y) var(--menu-pad-x);
+  margin-bottom: .2vmin;
+}
+.faction-pill {
+  font-family: var(--mono); font-size: var(--menu-font); font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ink); background: var(--paper);
+  border: max(1px, .12vmin) solid var(--ink);
+  padding: var(--menu-pad-y) var(--menu-pad-x);
+  text-align: left; cursor: pointer;
+  transition: background 160ms, color 160ms;
+}
+.faction-pill:hover { background: var(--ink); color: var(--paper); }
+
+/* Faction info panel — overlay showing the selected faction's blurb. */
+.faction-info-panel {
+  position: fixed; inset: 0;
+  display: grid; place-items: center;
+  background: rgba(16,16,14,.55);
+  z-index: 55;
+  animation: loc-info-fade 260ms var(--ease);
+}
+.faction-info-panel[hidden] { display: none; }
+.faction-info-content {
+  background: var(--paper);
+  color: var(--ink);
+  padding: 4vmin 4.5vmin 3vmin;
+  border: max(1px, .16vmin) solid var(--ink);
+  max-width: 34rem;
+  box-shadow: 0 0 4vmin rgba(16,16,14,.4);
+  font-size: 1.8vmin; line-height: 1.6;
+}
+.faction-info-content h3 {
+  font-family: var(--mono); font-size: 1.6vmin; font-weight: 700;
+  letter-spacing: .12em; text-transform: uppercase;
+  margin: 0 0 1.5vmin;
+  padding-bottom: .6vmin;
+  border-bottom: max(1px, .16vmin) solid var(--ink);
+}
+.faction-info-content p { margin: 0; }
+
+/* A full faction article is much longer than the one-line blurb this panel
+   originally held, so it scrolls within the viewport and sets its sections
+   off with small mono headings. */
+.faction-info-content {
+  max-height: 78vh;
+  overflow-y: auto;
+}
+.faction-meta {
+  font-family: var(--mono); font-size: 1.3vmin;
+  letter-spacing: .1em; text-transform: uppercase;
+  opacity: .62; margin: -.8vmin 0 1.4vmin;
+}
+.faction-intro { margin: 0 0 1.8vmin; font-style: italic; }
+.faction-sec { margin: 0 0 1.6vmin; }
+.faction-sec:last-child { margin-bottom: 0; }
+.faction-sec h4 {
+  font-family: var(--mono); font-size: 1.25vmin; font-weight: 700;
+  letter-spacing: .14em; text-transform: uppercase;
+  opacity: .68; margin: 0 0 .4vmin;
+}
+.faction-sec p { margin: 0 0 .5vmin; }
+.faction-sec ul { margin: 0; padding-left: 2.2vmin; }
+.faction-sec li { margin: 0 0 .4vmin; }
+
+/* Cross-links to the other systems a faction operates in. */
+.faction-links { border-top: max(1px,.14vmin) solid rgba(16,16,14,.25);
+                 padding-top: 1.2vmin; }
+.faction-elsewhere {
+  font-family: var(--mono); font-size: 1.35vmin; letter-spacing: .1em;
+  text-transform: uppercase;
+  background: none; color: var(--ink); cursor: pointer;
+  border: max(1px, .14vmin) solid var(--ink);
+  padding: .5vmin 1.1vmin; margin: 0 .6vmin .6vmin 0;
+}
+.faction-elsewhere:hover { background: var(--ink); color: var(--paper); }
+
+/* Sector-wide factions are listed under their own heading at the bottom. */
+.factions-subtitle {
+  font-family: var(--mono); font-size: var(--menu-font); font-weight: 700;
+  letter-spacing: .14em; text-transform: uppercase;
+  opacity: .55; margin: .9vmin 0 0;
+}
+
+/* Notables list inside a body's details panel. */
+.loc-info-content ul { margin: .4vmin 0 0; padding-left: 2.2vmin; }
+.loc-info-content li { margin: 0 0 .5vmin; }
+.faction-info-close {
+  position: absolute; top: 3vmin; right: 3vmin;
+  width: 4vmin; height: 4vmin;
+  font-family: var(--mono); font-size: 2.4vmin; font-weight: 700;
+  color: var(--paper); background: var(--ink);
+  border: max(1px, .14vmin) solid var(--ink);
+  cursor: pointer;
+  display: grid; place-items: center; line-height: 1;
+}
+.faction-info-close:hover { background: var(--paper); color: var(--ink); }
+
+/* Details panel now gets a title heading */
+.loc-info-content h3 {
+  font-family: var(--mono); font-size: 1.6vmin; font-weight: 700;
+  letter-spacing: .12em; text-transform: uppercase;
+  margin: 0 0 1.5vmin;
+  padding-bottom: .6vmin;
+  border-bottom: max(1px, .16vmin) solid var(--ink);
+}
+
+/* Narrow screens: stack factions horizontally at the top instead */
+@media (max-width: 760px) {
+  .loc-factions {
+    position: static; flex-direction: row; flex-wrap: wrap;
+    max-width: none; padding: 2vmin;
+  }
+}

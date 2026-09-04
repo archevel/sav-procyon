@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Procyonsektorn IE-21 — sektorkarta</title>
+<meta name="description" content="Navigerbar karta över Procyonsektorn IE-21.">
+<link rel="stylesheet" href="css/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='7' fill='%23ffb454'/></svg>">
+</head>
+<body>
+
+<div id="viewport">
+  <div class="nebula"></div>
+  <div class="stars stars-1"></div>
+  <div class="stars stars-2"></div>
+  <div class="stars stars-3"></div>
+
+  <!-- One SVG holds the entire sector: every system at its chart position,
+       joined by curved gate lanes. Navigation is only ever a camera move. -->
+  <svg id="world" preserveAspectRatio="xMidYMid meet">
+    <g id="camera"></g>
+  </svg>
+</div>
+
+<!-- Faction sidebar (shows only in system view). -->
+<aside id="factions" hidden></aside>
+
+<!-- Credits for the material this map is built from. -->
+<div id="about-panel" class="loc-info-panel" hidden>
+  <button id="about-close" class="loc-info-close" aria-label="Close">×</button>
+  <div id="about-content" class="loc-info-content"></div>
+</div>
+
+<!-- Location level: full-bleed surface view. -->
+<div id="location-view"></div>
+
+<div id="hud">
+  <div class="hud-top">
+    <span class="hud-title" data-i18n="hud.title">Procyonsektorn</span>
+    <span class="hud-sub" data-i18n="hud.subtitle">IE-21 · Hegemonins utkant</span>
+    <div id="lang-switch">
+      <button data-lang="sv">SV</button>
+      <button data-lang="en">EN</button>
+      <button data-lang="debug" title="Debug — show i18n keys">⚙</button>
+      <button id="about-btn" data-i18n="about.button">Om</button>
+    </div>
+  </div>
+  <div id="breadcrumb"></div>
+  <div id="index"></div>
+  <div class="hud-hint" data-i18n="hud.hint">Klicka på ett system för att zooma in · Esc för att backa</div>
+</div>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

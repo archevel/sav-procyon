@@ -1,0 +1,796 @@
+/* Procyon Sector — one SVG, one camera.
+ *
+ * Everything lives in a single <svg>: all four systems drawn at their sector
+ * coordinates, joined by curved gate lanes. There is no scene swapping and no
+ * second renderer — navigation is only ever a camera move over that one world,
+ * so travel between systems is genuinely continuous.
+ *
+ *   sector view  = camera pulled back over the whole chart
+ *   system view  = camera pushed in on one star
+ *   travel       = camera slides along the curved lane joining two stars
+ *
+ * Detail is faded by CSS on <g> class, so planets simply disappear when the
+ * camera is far out rather than being torn down and rebuilt.
+ */
+
+import { SECTOR } from '../data/sector.js';
+import { BLURBS } from '../data/blurbs.js';
+
+const svgRoot = document.getElementById('world');
+const camera  = document.getElementById('camera');
+const locView = document.getElementById('location-view');
+const crumbs  = document.getElementById('breadcrumb');
+const indexEl = document.getElementById('index');
+
+const SVGNS = 'http://www.w3.org/2000/svg';
+
+/* World units. The sector occupies 0..100 in the data; we scale it up so a
+   single system has room for orbits without fractional coordinates. */
+const W      = 12;             // world units per sector percent
+const TILT   = 0.46;           // vertical squash of every orbital plane
+const SYS_R  = 62;             // world radius a system's chart occupies
+
+/* Camera framing at each level, as a half-width in world units. */
+const ZOOM_SECTOR = 660;               // fallback if sectorHalf() not yet computed
+let CURRENT_SECTOR = ZOOM_SECTOR;      // updated whenever sectorHalf() runs
+const ZOOM_SYSTEM = 96;
+const ZOOM_BODY   = 15;
+
+let view = { level: 'sector' };
+const ORBITERS = [];
+const DEPTH_LAYERS = [];
+const NODE_ORBIT = new WeakMap();
+let rafId = null;
+
+/* ------------------------------------------------------------------ utils */
+
+function svgEl(name, attrs = {}) {
+  const el = document.createElementNS(SVGNS, name);
+  for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+  return el;
+}
+
+const imgCache = new Map();
+function imageExists(path) {
+  if (imgCache.has(path)) return imgCache.get(path);
+  const p = new Promise(res => {
+    const im = new Image();
+    im.onload = () => res(true);
+    im.onerror = () => res(false);
+    im.src = path;
+  });
+  imgCache.set(path, p);
+  return p;
+}
+
+/* rAF is suspended in background tabs; fall back so a flight always finishes. */
+function schedule(fn) {
+  return document.hidden ? setTimeout(() => fn(performance.now()), 16)
+                         : requestAnimationFrame(fn);
+}
+
+/** Sector percent -> world coordinates. */
+const wx = p => p * W;
+const wy = p => p * W;
+
+/* --------------------------------------------------------------- patterns */
+
+function buildDefs() {
+  const defs = svgEl('defs');
+  const line = (id, angle, gap, w) => {
+    const p = svgEl('pattern', { id, width: gap, height: gap,
+      patternUnits: 'userSpaceOnUse', patternTransform: `rotate(${angle})` });
+    p.appendChild(svgEl('rect', { width: gap, height: gap, fill: 'var(--paper)' }));
+    p.appendChild(svgEl('line', { x1: 0, y1: 0, x2: 0, y2: gap,
+      stroke: 'var(--ink)', 'stroke-width': w }));
+    return p;
+  };
+  const cross = (id, gap, w) => {
+    const p = svgEl('pattern', { id, width: gap, height: gap, patternUnits: 'userSpaceOnUse' });
+    p.appendChild(svgEl('rect', { width: gap, height: gap, fill: 'var(--paper)' }));
+    p.appendChild(svgEl('path', { d: `M0 0 L${gap} ${gap} M${gap} 0 L0 ${gap}`,
+      stroke: 'var(--ink)', 'stroke-width': w, fill: 'none' }));
+    return p;
+  };
+  const dots = (id, gap, r, inv) => {
+    const p = svgEl('pattern', { id, width: gap, height: gap, patternUnits: 'userSpaceOnUse' });
+    p.appendChild(svgEl('rect', { width: gap, height: gap,
+      fill: inv ? 'var(--ink)' : 'var(--paper)' }));
+    p.appendChild(svgEl('circle', { cx: gap / 2, cy: gap / 2, r,
+      fill: inv ? 'var(--paper)' : 'var(--ink)' }));
+    return p;
+  };
+  [ line('h-planet', 38, 2.2, .55),  line('h-ocean', 90, 1.8, .6),
+    line('h-giant',   0, 2.6, 1.0),  cross('h-husk', 2.4, .45),
+    cross('h-crystal', 3.2, .4),     cross('h-industrial', 1.9, .5),
+    dots('h-lush', 2.8, .45),        line('h-ice', 115, 3.4, .42),
+    line('h-desert', 12, 3.2, .42),  dots('h-neon', 2.4, .5, true),
+    cross('h-jungle', 2.0, .58),     dots('h-nebula', 3.8, .4),
+  ].forEach(p => defs.appendChild(p));
+  return defs;
+}
+
+const FILL = {
+  planet: 'url(#h-planet)', ocean: 'url(#h-ocean)', giant: 'url(#h-giant)',
+  husk: 'url(#h-husk)', crystal: 'url(#h-crystal)', industrial: 'url(#h-industrial)',
+  lush: 'url(#h-lush)', ice: 'url(#h-ice)', desert: 'url(#h-desert)',
+  neon: 'url(#h-neon)', jungle: 'url(#h-jungle)', nebula: 'url(#h-nebula)',
+  dead: 'var(--ink)', locked: 'var(--paper)',
+  station: 'var(--paper)', ship: 'var(--ink)'
+};
+
+/* ------------------------------------------------------------ world build */
+
+/** Curved lane between two points, bowed perpendicular to the run. */
+function lanePath(ax, ay, bx, by, bow = .16) {
+  const dx = bx - ax, dy = by - ay;
+  const len = Math.hypot(dx, dy) || 1;
+  const mx = (ax + bx) / 2, my = (ay + by) / 2;
+  const cx = mx - (dy / len) * len * bow;
+  const cy = my + (dx / len) * len * bow;
+  return { d: `M ${ax} ${ay} Q ${cx} ${cy} ${bx} ${by}`, cx, cy };
+}
+
+function endpointOf(id) {
+  return SECTOR.systems[id]
+    ? { x: SECTOR.systems[id].x, y: SECTOR.systems[id].y }
+    : SECTOR.endpoints[id];
+}
+
+const LANES = new Map();          // "a|b" -> <path>
+
+async function buildWorld() {
+  camera.innerHTML = '';
+  svgRoot.querySelector('defs')?.remove();
+  svgRoot.insertBefore(buildDefs(), svgRoot.firstChild);
+
+  // --- gate lanes, curved, drawn once and kept visible at every zoom -------
+  const laneLayer = svgEl('g', { class: 'lane-layer' });
+  camera.appendChild(laneLayer);
+
+  for (const g of SECTOR.gates) {
+    const a = endpointOf(g.from), b = endpointOf(g.to);
+    if (!a || !b) continue;
+    const p = lanePath(wx(a.x), wy(a.y), wx(b.x), wy(b.y));
+    const path = svgEl('path', { d: p.d, class: `lane lane-${g.status}`,
+      id: `lane-${g.from}-${g.to}` });
+    laneLayer.appendChild(path);
+    LANES.set(`${g.from}|${g.to}`, path);
+    LANES.set(`${g.to}|${g.from}`, path);
+
+    const label = svgEl('text', { class: 'lane-label' });
+    const tp = svgEl('textPath', { href: `#lane-${g.from}-${g.to}`, startOffset: '50%' });
+    tp.textContent = g.label;
+    label.appendChild(tp);
+    laneLayer.appendChild(label);
+  }
+
+  // --- every system, at its sector position -------------------------------
+  for (const [id, s] of Object.entries(SECTOR.systems)) {
+    camera.appendChild(await buildSystemGroup(id, s));
+  }
+}
+
+/** One system: star, orbits, bodies, gate reticles — all at world scale. */
+async function buildSystemGroup(id, s) {
+  const g = svgEl('g', { class: 'system-group', 'data-system': id,
+    transform: `translate(${wx(s.x)} ${wy(s.y)})` });
+
+  const maxOrbit = Math.max(...s.bodies.map(b => b.orbit));
+  const K = SYS_R / maxOrbit;              // orbit units -> world units
+
+  // Orbit rings — part of the "detail" layer, faded out at sector zoom.
+  const detail = svgEl('g', { class: 'sys-detail' });
+  g.appendChild(detail);
+
+  for (const b of s.bodies) {
+    let cls = 'o-ring';
+    if (b.type === 'nebula') cls += ' o-ring-faint';
+    if (b.type === 'belt')   cls += ' o-belt-ring';
+    // Optional per-body eccentricity (0=circular, e.g. .7=elongated) and
+    // per-body armTilt in degrees (rotates the entire orbit around the star).
+    const R = b.orbit * K;
+    const ecc = b.ecc || 0;
+    const rx = R;
+    const ry = R * TILT * (1 - ecc);
+    // Star sits at the near focus of the orbit ellipse (Kepler I), so we
+    // shift the ellipse along its major axis by a*ecc. cx becomes the offset.
+    const cx = R * ecc;
+    const attrs = { cx, cy: 0, rx, ry, class: cls };
+    if (b.armTilt) attrs.transform = `rotate(${b.armTilt})`;
+    detail.appendChild(svgEl('ellipse', attrs));
+  }
+
+  // Gate reticles sit exactly ON the lane leaving this system. Rather than
+  // trusting a bearing (which drifts, because the lanes are bowed curves and
+  // the orbital plane is squashed), walk the real path until we are rimR out.
+  const rimR = SYS_R * 1.16;
+  for (const gt of (s.gates || [])) {
+    const lane = LANES.get(`${id}|${gt.to}`);
+    let gx, gy;
+    if (lane) {
+      const L = lane.getTotalLength();
+      const fwd = lane.id.startsWith(`lane-${id}-`);
+      let lo = 0, hi = L;
+      for (let i = 0; i < 24; i++) {                 // bisect to rimR
+        const mid = (lo + hi) / 2;
+        const pt = lane.getPointAtLength(fwd ? mid : L - mid);
+        if (Math.hypot(pt.x - wx(s.x), pt.y - wy(s.y)) < rimR) lo = mid; else hi = mid;
+      }
+      const pt = lane.getPointAtLength(fwd ? lo : L - lo);
+      gx = pt.x - wx(s.x); gy = pt.y - wy(s.y);
+    } else {
+      const a = gt.bearing * Math.PI / 180;
+      gx = Math.cos(a) * rimR; gy = Math.sin(a) * rimR;
+    }
+    const gg = svgEl('g', {
+      class: `o-gate o-gate-${gt.status}` + (SECTOR.systems[gt.to] ? ' o-gate-linked' : ''),
+      transform: `translate(${gx} ${gy})`
+    });
+    // Every gate gets its Precursor ring image. Sealed gates use their own
+    // (gate-hantu.png shows the missing-components, dead-interior variant).
+    const gr = 8;                                    // ring radius in world units
+    const gateImg = gt.status === 'sealed' ? 'img/gate-hantu.png' : 'img/gate.png';
+    gg.appendChild(svgEl('image', { href: gateImg,
+      x: -gr, y: -gr, width: gr * 2, height: gr * 2,
+      class: 'o-gate-image' }));
+    const lbl = svgEl('text', { y: 8, class: 'o-gate-label' });
+    lbl.textContent = gt.label;
+    gg.appendChild(lbl);
+    gg.appendChild(svgEl('circle', { r: 10, class: 'o-hit' }));
+    if (SECTOR.systems[gt.to]) {
+      gg.addEventListener('click', e => { e.stopPropagation(); travelTo(gt.to); });
+    } else if (gt.status === 'sealed') {
+      // Sealed gate — no travel; show its own location view instead.
+      gg.classList.add('o-gate-linked');
+      gg.addEventListener('click', e => { e.stopPropagation();
+        openLocation(id, {
+          id: `gate-${gt.to}`, name: gt.label,
+          surface: `gate-${gt.to}`,
+          tag: 'Förseglad port',
+          blurb: 'Hegemonin har aldrig lyckats aktivera denna port. Jämfört med de fungerande portarna verkar den sakna små men avgörande delar. Föregångarna tros ha låst porten och gömt nycklarna — varför, vet ingen.',
+          article: null
+        });
+      });
+    }
+    const t = svgEl('title'); t.textContent = `Port mot ${gt.label}`; gg.appendChild(t);
+    detail.appendChild(gg);
+  }
+
+  // Bodies and the star share one layer whose paint order is re-sorted by
+  // depth each frame (SVG has no z-index; later siblings paint on top).
+  // orbitLayer sits OUTSIDE .sys-detail because the star must stay visible
+  // at every zoom. Bodies and gates handle their own fade via their classes.
+  const orbitLayer = svgEl('g', { class: 'orbit-layer' });
+  g.appendChild(orbitLayer);
+  const depthNodes = [];
+  for (const b of s.bodies) {
+    const node = await makeBody(b, id, K);
+    orbitLayer.appendChild(node);
+    // Attach the orbit record we just pushed for this body so the depth sort
+    // can read its Y directly without parsing SVG attributes.
+    NODE_ORBIT.set(node, ORBITERS[ORBITERS.length - 1]);
+    depthNodes.push(node);
+  }
+
+  // Star + name plate stay visible at every zoom.
+  const starG = svgEl('g', { class: 'sys-star-g' });
+  starG.appendChild(svgEl('circle', { r: 10.4, class: 'o-star-halo' }));
+  starG.appendChild(svgEl('circle', { r: 8.4, class: 'o-star-body' }));
+  if (s.star.class === 'star-binary') {
+    const comp = svgEl('circle', { r: 3.7, cx: 13, cy: -4, class: 'o-star-body' });
+    const an = svgEl('animateTransform', { attributeName: 'transform', type: 'rotate',
+      from: '0 0 0', to: '360 0 0', dur: '190s', repeatCount: 'indefinite' });
+    comp.appendChild(an);
+    starG.appendChild(comp);
+  }
+  starG.addEventListener('click', e => {
+    e.stopPropagation();
+    if (view.level === 'sector' || view.id !== id) {
+      enterSystem(id);
+    } else {
+      // Already inside this system: clicking the star opens its own view.
+      openLocation(id, {
+        id: `star-${id}`,
+        name: s.name + '-stjärnan',
+        surface: `star-${id}`,
+        tag: s.tag,
+        blurb: s.blurb || '',
+        article: null
+      });
+    }
+  });
+  starG.appendChild(svgEl('circle', { r: 12, class: 'o-hit' }));
+  orbitLayer.appendChild(starG);
+  depthNodes.push(starG);
+  DEPTH_LAYERS.push({ layer: orbitLayer, nodes: depthNodes, star: starG });
+
+  const plate = svgEl('g', { class: 'sys-plate' });
+  const nm = svgEl('text', { y: 0, class: 'sys-name' });
+  nm.textContent = s.name;
+  plate.appendChild(nm);
+  const tg = svgEl('text', { y: 0, class: 'sys-tag' });
+  tg.textContent = s.tag;
+  plate.appendChild(tg);
+  g.appendChild(plate);
+
+  return g;
+}
+
+async function makeBody(b, sysId, K) {
+  const g = svgEl('g', { class: 'o-body', 'data-id': b.id });
+  const r = Math.max(5.4, b.size * K / 4.375) * (b.scale || 1);
+  const R = b.orbit * K;
+  const inner = svgEl('g');
+  g.appendChild(inner);
+
+  if (b.type === 'station') {
+    inner.appendChild(svgEl('rect', { x: -r, y: -r, width: r * 2, height: r * 2,
+      class: 'o-globe', fill: FILL.station }));
+    inner.appendChild(svgEl('rect', { x: -r * .5, y: -r * .5, width: r, height: r,
+      class: 'o-globe', fill: 'none' }));
+  } else if (b.type === 'ship') {
+    inner.appendChild(svgEl('path', {
+      d: `M${-r} 0 L${r * .5} ${-r * .8} L${r * 1.3} 0 L${r * .5} ${r * .8} Z`,
+      class: 'o-globe', fill: FILL.ship }));
+  } else if (b.type === 'nebula') {
+    inner.appendChild(svgEl('ellipse', { rx: r * 1.6, ry: r,
+      class: 'o-globe o-nebula', fill: FILL.nebula }));
+  } else if (b.type === 'belt') {
+    // Asteroid belt: no globe. The body's orbit ring is the visualisation.
+    // We draw a thicker, denser dashed ellipse ON the orbit itself.
+    // (The normal orbit ring is already drawn earlier; here we add emphasis.)
+    // The inner group carries only the label + hit target — position handles it.
+  } else {
+    inner.appendChild(svgEl('circle', { r, class: 'o-globe', fill: FILL[b.type] || FILL.planet }));
+    if (b.type === 'locked') {
+      inner.appendChild(svgEl('path', { d: `M0 ${-r} A ${r} ${r} 0 0 1 0 ${r} Z`,
+        fill: 'var(--ink)', class: 'o-nostroke' }));
+    }
+    inner.appendChild(svgEl('path', {
+      d: `M0 ${-r} A ${r} ${r} 0 0 1 0 ${r} A ${r * .58} ${r} 0 0 0 0 ${-r} Z`,
+      class: 'o-term' }));
+    if (b.type === 'giant') {
+      inner.appendChild(svgEl('ellipse', { rx: r * 2.1, ry: r * .5,
+        class: 'o-ring-body', transform: 'rotate(-16)' }));
+    }
+  }
+
+  const imgName = b.type === 'station' ? `station-${b.id}`
+                : b.type === 'ship'    ? `ship-${b.id}`
+                : b.type === 'nebula'  ? `planet-${b.id}`
+                : b.type === 'belt'    ? null
+                : `planet-${b.id}`;
+  if (imgName && await imageExists(`img/${imgName}.png`)) {
+    g.classList.add('has-art');
+    const cid = `clip-${sysId}-${b.id}`;
+    const cp = svgEl('clipPath', { id: cid });
+    if (b.type === 'nebula') {
+      cp.appendChild(svgEl('ellipse', { rx: r * 1.6, ry: r }));
+    } else {
+      cp.appendChild(svgEl('circle', { r }));
+    }
+    inner.appendChild(cp);
+    const iw = b.type === 'nebula' ? r * 3.2 : r * 2;
+    const ih = b.type === 'nebula' ? r * 2   : r * 2;
+    inner.appendChild(svgEl('image', { href: `img/${imgName}.png`,
+      x: -iw / 2, y: -ih / 2, width: iw, height: ih,
+      'clip-path': `url(#${cid})`, class: 'o-art' }));
+  }
+
+  const lab = svgEl('text', { y: r + 3.2, class: 'o-label' });
+  lab.textContent = b.name;
+  inner.appendChild(lab);
+  const tag = svgEl('text', { y: r + 5.2, class: 'o-tag' });
+  tag.textContent = b.tag;
+  inner.appendChild(tag);
+  inner.appendChild(svgEl('circle', { r: Math.max(r * 1.35, 7), class: 'o-hit' }));
+  const t = svgEl('title'); t.textContent = `${b.name} — ${b.tag}`; inner.appendChild(t);
+
+  g.addEventListener('click', e => { e.stopPropagation(); diveTo(sysId, b, inner); });
+
+  const moons = [];
+  for (const m of (b.moons || [])) {
+    const mr = Math.max(3.8, m.size * K / 4.375) * (m.scale || 1);
+    const mR = m.orbit * K;
+    inner.appendChild(svgEl('ellipse', { rx: mR, ry: mR * TILT, class: 'o-ring o-moon-ring' }));
+    const mg = svgEl('g', { class: 'o-body', 'data-id': m.id });
+    mg.appendChild(svgEl('circle', { r: mr, class: 'o-globe', fill: FILL.planet }));
+    mg.appendChild(svgEl('path', {
+      d: `M0 ${-mr} A ${mr} ${mr} 0 0 1 0 ${mr} A ${mr * .58} ${mr} 0 0 0 0 ${-mr} Z`,
+      class: 'o-term' }));
+    if (await imageExists(`img/planet-${m.id}.png`)) {
+      mg.classList.add('has-art');
+      const mcid = `clip-${sysId}-${m.id}`;
+      const mcp = svgEl('clipPath', { id: mcid });
+      mcp.appendChild(svgEl('circle', { r: mr }));
+      mg.appendChild(mcp);
+      mg.appendChild(svgEl('image', { href: `img/planet-${m.id}.png`,
+        x: -mr, y: -mr, width: mr * 2, height: mr * 2,
+        'clip-path': `url(#${mcid})`, class: 'o-art' }));
+    }
+    const ml = svgEl('text', { y: mr + 2.6, class: 'o-label o-label-sm' });
+    ml.textContent = m.name;
+    mg.appendChild(ml);
+    mg.appendChild(svgEl('circle', { r: mr * 1.25, class: 'o-hit' }));
+    const mt = svgEl('title'); mt.textContent = `${m.name} — ${m.tag}`; mg.appendChild(mt);
+    mg.addEventListener('click', e => { e.stopPropagation(); diveTo(sysId, m, mg); });
+    inner.appendChild(mg);
+    moons.push({ el: mg, R: mR, period: m.period, phase: m.phase });
+  }
+
+  ORBITERS.push({ inner, R, period: b.period, phase: b.phase, moons,
+    ecc: b.ecc || 0, armTilt: (b.armTilt || 0) * Math.PI / 180 });
+  return g;
+}
+
+/* ------------------------------------------------------------- orbit loop */
+
+function tick(now) {
+  const t = now / 1000;
+  for (const o of ORBITERS) {
+    // Mean anomaly — advances uniformly with time.
+    const M = (o.phase * Math.PI / 180) + (t / o.period) * Math.PI * 2;
+    let px, py;
+    if (o.ecc > 0) {
+      // Kepler's second law: solve M = E − e·sin(E) for eccentric anomaly E
+      // by Newton's method (3 iterations is plenty for eccentricity < 0.9).
+      let E = M;
+      for (let i = 0; i < 4; i++) E -= (E - o.ecc * Math.sin(E) - M) / (1 - o.ecc * Math.cos(E));
+      // Position on the ellipse in orbital-plane coords; star sits at the near
+      // focus (the (-e·a, 0) offset makes cos(E) go from 1-e at perihelion to
+      // -(1+e) at aphelion, both measured from the star).
+      px = o.R * (Math.cos(E) - o.ecc);
+      py = o.R * Math.sqrt(1 - o.ecc * o.ecc) * Math.sin(E);
+      // Squash to the tilted viewing plane.
+      py *= TILT;
+      // Flip sign of px so perihelion is on the same side as before (matches
+      // the ring drawn with cx = +R·e).
+      px = -px;
+    } else {
+      // Fast path for circular orbits.
+      px = Math.cos(M) * o.R;
+      py = Math.sin(M) * o.R * TILT;
+    }
+    // Then rotate that plane by armTilt around the star.
+    if (o.armTilt) {
+      const c = Math.cos(o.armTilt), sn = Math.sin(o.armTilt);
+      const nx = px * c - py * sn, ny = px * sn + py * c;
+      px = nx; py = ny;
+    }
+    o.y = py;
+    o.inner.setAttribute('transform', `translate(${px.toFixed(2)} ${py.toFixed(2)})`);
+    for (const m of o.moons) {
+      const ma = (m.phase * Math.PI / 180) + (t / m.period) * Math.PI * 2;
+      m.el.setAttribute('transform',
+        `translate(${(Math.cos(ma) * m.R).toFixed(2)} ${(Math.sin(ma) * m.R * TILT).toFixed(2)})`);
+    }
+  }
+  // Re-sort each system's orbit layer by Y so anything below the star's
+  // centerline paints ON TOP of the star (SVG has no z-index — later
+  // siblings win). Only touch the DOM when the order has actually changed;
+  // appendChild forces layout, so blindly re-appending every frame is what
+  // caused the tab to hang.
+  for (const dl of DEPTH_LAYERS) {
+    dl.nodes.sort((a, b) => nodeY(a) - nodeY(b));
+    let changed = false;
+    for (let i = 0; i < dl.nodes.length; i++) {
+      if (dl.nodes[i] !== dl.layer.childNodes[i]) { changed = true; break; }
+    }
+    if (changed) for (const n of dl.nodes) dl.layer.appendChild(n);
+  }
+  rafId = requestAnimationFrame(tick);
+}
+
+function nodeY(el) {
+  if (el.classList.contains('sys-star-g')) return 0;
+  const o = NODE_ORBIT.get(el);
+  return o ? (o.y || 0) : 0;
+}
+function startOrbits() { if (rafId === null) rafId = requestAnimationFrame(tick); }
+function stopOrbits()  { if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null; } }
+
+/* ---------------------------------------------------------------- camera */
+/* The only thing that ever moves. viewBox is set directly, so a "zoom" and a
+   "pan" are the same operation and can be interpolated continuously. */
+
+let cam = { x: 50 * W, y: 50 * W, half: 660 /* placeholder, overwritten on first applyCam */ };
+let camAnim = null;
+
+function applyCam() {
+  const ar = svgRoot.clientWidth / Math.max(1, svgRoot.clientHeight);
+  const hw = cam.half, hh = cam.half / (ar || 1);
+  svgRoot.setAttribute('viewBox',
+    `${(cam.x - hw).toFixed(2)} ${(cam.y - hh).toFixed(2)} ${(hw * 2).toFixed(2)} ${(hh * 2).toFixed(2)}`);
+  // Detail fades in as the camera closes; one CSS variable drives it.
+  const k = Math.max(0, Math.min(1, (CURRENT_SECTOR - cam.half) / (CURRENT_SECTOR - ZOOM_SYSTEM)));
+  svgRoot.style.setProperty('--detail', k.toFixed(3));
+  svgRoot.style.setProperty('--sector', (1 - k).toFixed(3));
+  // Chart labels are sized in world units, so they must scale inversely with
+  // the camera or they vanish when zoomed out and swamp the view zoomed in.
+  svgRoot.style.setProperty('--txt', (cam.half / ZOOM_SYSTEM).toFixed(3));
+}
+
+/** Animate the camera. `path` optionally supplies (t)->{x,y} to follow. */
+function moveCam(to, ms, { path = null, ease = easeInOut, done = null } = {}) {
+  if (camAnim) camAnim.cancelled = true;
+  const from = { ...cam };
+  const a = { cancelled: false };
+  camAnim = a;
+  const t0 = performance.now();
+  const step = now => {
+    if (a.cancelled) return;
+    const k = Math.min(1, (now - t0) / ms);
+    const e = ease(k);
+    if (path) {
+      const p = path(e);
+      cam.x = p.x; cam.y = p.y;
+    } else {
+      cam.x = from.x + (to.x - from.x) * e;
+      cam.y = from.y + (to.y - from.y) * e;
+    }
+    cam.half = from.half + (to.half - from.half) * e;
+    applyCam();
+    if (k < 1) schedule(step);
+    else { camAnim = null; done && done(); }
+  };
+  schedule(step);
+}
+
+const easeInOut = k => k < .5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+
+/* ------------------------------------------------------------ navigation */
+
+/** System-view half that guarantees the gate rim fits at the current aspect.
+    Wide windows have less vertical room, so `half` must be at least
+    rim * aspect to keep gates on-screen top and bottom. */
+/** Sector-view half that guarantees every system + its rim fits at the
+    current aspect, with a small margin. */
+function sectorHalf() {
+  const ar = svgRoot.clientWidth / Math.max(1, svgRoot.clientHeight);
+  // Bounding box of everything on the chart, in world units.
+  const xs = [...Object.values(SECTOR.systems).map(s => s.x),
+              ...Object.values(SECTOR.endpoints || {}).map(e => e.x)];
+  const ys = [...Object.values(SECTOR.systems).map(s => s.y),
+              ...Object.values(SECTOR.endpoints || {}).map(e => e.y)];
+  const w = (Math.max(...xs) - Math.min(...xs)) * W;
+  const h = (Math.max(...ys) - Math.min(...ys)) * W;
+  // Half-widths needed: horizontal half >= w/2, vertical half = half/ar >= h/2.
+  const needed = Math.max(w / 2, (h / 2) * ar) + 120;
+  CURRENT_SECTOR = needed;
+  return needed;
+}
+
+function systemHalfFor(id) {
+  const ar = svgRoot.clientWidth / Math.max(1, svgRoot.clientHeight);
+  const rim = SYS_R * 1.16 + 13;              // rim + reticle/label margin
+  // half applies to width; vertical half = half / aspect. To fit rim
+  // vertically we need half / aspect >= rim, i.e. half >= rim * aspect.
+  // To fit rim horizontally we need half >= rim.
+  const needed = Math.max(rim, rim * ar);
+  return Math.max(ZOOM_SYSTEM, needed);
+}
+
+function enterSystem(id) {
+  const s = SECTOR.systems[id];
+  view = { level: 'system', id };
+  document.body.classList.add('in-system');
+  moveCam({ x: wx(s.x), y: wy(s.y), half: systemHalfFor(id) }, 1100);
+  updateChrome();
+}
+
+function backToSector() {
+  view = { level: 'sector' };
+  document.body.classList.remove('in-system');
+  locView.classList.remove('active');
+  moveCam({ x: 50 * W, y: 50 * W, half: sectorHalf() }, 1100);
+  updateChrome();
+}
+
+/* Travel: the camera slides along the actual curved lane joining the two
+   stars. Because every system lives in the same SVG there is nothing to swap —
+   we simply fly there, passing through open space in between. */
+function travelTo(toId) {
+  const fromId = view.id;
+  const from = SECTOR.systems[fromId], to = SECTOR.systems[toId];
+  if (!from || !to) return enterSystem(toId);
+
+  const lane = LANES.get(`${fromId}|${toId}`);
+  if (lane) lane.classList.add('lane-active');
+  view = { level: 'system', id: toId };
+  updateChrome();
+
+  const L = lane ? lane.getTotalLength() : 0;
+  const fwd = !lane || lane.id.startsWith(`lane-${fromId}-`);
+  const follow = e => {
+    if (!lane) {
+      return { x: wx(from.x + (to.x - from.x) * e), y: wy(from.y + (to.y - from.y) * e) };
+    }
+    const pt = lane.getPointAtLength(fwd ? e * L : (1 - e) * L);
+    return { x: pt.x, y: pt.y };
+  };
+
+  // Zoom profile: push IN toward the gate, hold close while running the lane
+  // fast, then pull back out on arrival. (Zooming out to see the whole sector
+  // and back in again reads as a scene change; staying low reads as travel.)
+  const CLOSE = ZOOM_SYSTEM * .42;             // tight on the lane in transit
+  const half = e => {
+    const target = systemHalfFor(view.id);
+    if (e < .18) return target + (CLOSE - target) * (e / .18);
+    if (e > .82) return CLOSE + (target - CLOSE) * ((e - .82) / .18);
+    return CLOSE;
+  };
+
+  // Distance eases slowly out of the departure system, sprints along the
+  // middle of the lane, then eases into the destination.
+  const dist = k => {
+    if (k < .18) { const t = k / .18; return .06 * t * t; }
+    if (k > .82) { const t = (k - .82) / .18; return .94 + .06 * (1 - (1 - t) * (1 - t)); }
+    return .06 + (k - .18) / .64 * .88;
+  };
+
+  const t0 = performance.now();
+  const MS = 1150;    // full flight time from gate click to arrival
+  if (camAnim) camAnim.cancelled = true;
+  const a = { cancelled: false };
+  camAnim = a;
+  const step = now => {
+    if (a.cancelled) return;
+    const k = Math.min(1, (now - t0) / MS);
+    const p = follow(dist(k));
+    cam.x = p.x; cam.y = p.y; cam.half = half(k);
+    applyCam();
+    if (k < 1) schedule(step);
+    else {
+      camAnim = null;
+      if (lane) lane.classList.remove('lane-active');
+    }
+  };
+  schedule(step);
+}
+
+/* Diving into a body: continue the same camera move all the way down to the
+   body itself, then cross-fade to the surface image partway through. */
+function diveTo(sysId, b, node) {
+  const sys = SECTOR.systems[sysId];
+  const m = /translate\(([-\d.]+) ([-\d.]+)\)/.exec(node.getAttribute('transform') || '');
+  let ox = 0, oy = 0;
+  if (m) { ox = parseFloat(m[1]); oy = parseFloat(m[2]); }
+  // A moon's transform is relative to its parent body.
+  const parentInner = node.parentNode?.closest?.('.o-body')?.firstElementChild;
+  if (parentInner && parentInner !== node) {
+    const pm = /translate\(([-\d.]+) ([-\d.]+)\)/.exec(parentInner.getAttribute('transform') || '');
+    if (pm) { ox += parseFloat(pm[1]); oy += parseFloat(pm[2]); }
+  }
+
+  stopOrbits();                                  // hold the target still
+  moveCam({ x: wx(sys.x) + ox, y: wy(sys.y) + oy, half: ZOOM_BODY }, 700,
+          { ease: k => k * k });
+  setTimeout(() => openLocation(sysId, b), 850); // fade starts near the end of the zoom
+}
+
+/* ------------------------------------------------------------- location */
+
+async function openLocation(sysId, b) {
+  view = { level: 'location', sysId, bodyId: b.id };
+  const surface = b.surface ? `img/surface-${b.surface}.jpg` : null;
+  const has = surface ? await imageExists(surface) : false;
+  const prose = (b.article && BLURBS[b.article]) || b.blurb || b.tag;
+  const article = b.article
+    ? `<a class="loc-link" href="${articleHref(b.article)}">Läs artikeln →</a>` : '';
+
+  locView.innerHTML = `
+    ${has ? `<div class="loc-image" style="background-image:url(${surface})"></div>`
+          : `<div class="loc-placeholder">bild saknas — ${b.surface || b.id}</div>`}
+    <div class="loc-body">
+      <div class="loc-kicker">${sysId ? SECTOR.systems[sysId].name + '-systemet' : 'Sektorn'}</div>
+      <h2 class="loc-title">${b.name}</h2>
+      <p class="loc-text">${prose}</p>
+      ${article}
+    </div>`;
+  locView.classList.add('active');
+  updateChrome();
+}
+
+function closeLocation() {
+  locView.classList.remove('active');
+  const sysId = view.sysId;
+  if (sysId) {
+    view = { level: 'system', id: sysId };
+    const s = SECTOR.systems[sysId];
+    startOrbits();
+    moveCam({ x: wx(s.x), y: wy(s.y), half: systemHalfFor(sysId) }, 900);
+  } else {
+    backToSector();
+  }
+  updateChrome();
+}
+
+function articleHref(rel) { return `articles/${rel}.html`; }
+
+/* ------------------------------------------------------------------ chrome */
+
+function updateChrome() {
+  let html = `<span class="crumb ${view.level === 'sector' ? 'current' : ''}" data-go="sector">Sektorn</span>`;
+  const sid = view.id || view.sysId;
+  if (sid && SECTOR.systems[sid]) {
+    html += `<span class="crumb-sep">/</span>
+             <span class="crumb ${view.level === 'system' ? 'current' : ''}" data-go="system:${sid}">${SECTOR.systems[sid].name}</span>`;
+  }
+  if (view.level === 'location') html += `<span class="crumb-sep">/</span><span class="crumb current">Plats</span>`;
+  crumbs.innerHTML = html;
+  crumbs.querySelectorAll('.crumb[data-go]').forEach(c => {
+    c.addEventListener('click', () => {
+      const g = c.dataset.go;
+      if (g === 'sector') backToSector();
+      else if (g.startsWith('system:')) {
+        locView.classList.remove('active');
+        startOrbits();
+        enterSystem(g.split(':')[1]);
+      }
+    });
+  });
+}
+
+function buildIndex() {
+  let html = '';
+  for (const [id, s] of Object.entries(SECTOR.systems)) {
+    html += `<div class="index-group"><div class="index-head">${s.name}</div>`;
+    html += `<span class="index-item" data-sys="${id}">Systemvy</span>`;
+    for (const b of s.bodies) {
+      html += `<span class="index-item" data-sys="${id}" data-body="${b.id}">${b.name}</span>`;
+      for (const m of (b.moons || []))
+        html += `<span class="index-item" data-sys="${id}" data-body="${m.id}">${m.name}</span>`;
+    }
+    html += `</div>`;
+  }
+  indexEl.innerHTML = html;
+  indexEl.querySelectorAll('.index-item').forEach(it => {
+    it.addEventListener('click', () => {
+      const sid = it.dataset.sys, bid = it.dataset.body;
+      locView.classList.remove('active');
+      startOrbits();
+      if (!bid) return enterSystem(sid);
+      const s = SECTOR.systems[sid];
+      let b = s.bodies.find(x => x.id === bid);
+      if (!b) for (const p of s.bodies) {
+        const mm = (p.moons || []).find(x => x.id === bid);
+        if (mm) b = mm;
+      }
+      if (!b) return;
+      enterSystem(sid);
+      setTimeout(() => {
+        const node = camera.querySelector(`.system-group[data-system="${sid}"] .o-body[data-id="${bid}"]`);
+        diveTo(sid, b, node?.firstElementChild || node);
+      }, 1150);
+    });
+  });
+}
+
+/* --------------------------------------------------------------- controls */
+
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  if (view.level === 'location') closeLocation();
+  else if (view.level === 'system') backToSector();
+});
+
+window.addEventListener('resize', () => {
+  if (view.level === 'system') cam.half = systemHalfFor(view.id);
+  else if (view.level === 'sector') cam.half = sectorHalf();
+  applyCam();
+});
+
+/* ------------------------------------------------------------------- boot */
+
+(async () => {
+  await buildWorld();
+  cam.half = sectorHalf();      // fit-to-viewport, aspect-aware
+  applyCam();
+  startOrbits();
+  buildIndex();
+  updateChrome();
+  if (await imageExists('img/bg-sector.jpg')) {
+    document.querySelector('.nebula')?.classList.add('has-image');
+  }
+})();
