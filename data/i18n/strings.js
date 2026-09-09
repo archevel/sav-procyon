@@ -186,6 +186,7 @@ export const STRINGS = {
   'share.ships':     { sv: 'skepp',         en: 'ships' },
   'share.characters':{ sv: 'rollpersoner',  en: 'characters' },
   'share.notes':     { sv: 'anteckningar',  en: 'notes' },
+  'share.factions':  { sv: 'fraktioner',    en: 'factions' },
   'share.size':      { sv: '%n valda · %i bild(er)', en: '%n selected · %i image(s)' },
   'share.png':       { sv: 'Spara valda',   en: 'Save selected' },
   'share.importTitle':{ sv: 'Importera',    en: 'Import' },

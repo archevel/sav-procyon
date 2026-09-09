@@ -26,9 +26,9 @@
  */
 
 const DB_NAME = 'procyon';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
-export const RECORD_STORES = ['characters', 'ships', 'notes'];
+export const RECORD_STORES = ['characters', 'ships', 'notes', 'factions'];
 const ALL_STORES = [...RECORD_STORES, 'imports', 'assets'];
 
 /** Current shape of a record. Bump when a migration becomes necessary; the
@@ -48,7 +48,10 @@ function open() {
       /* v1 — initial schema. Later versions must branch on e.oldVersion
          rather than assuming an empty database. */
       if (e.oldVersion < 1) {
-        for (const name of RECORD_STORES) {
+        /* The v1 store list is frozen here, NOT taken from RECORD_STORES: on
+           a fresh install every branch below runs in sequence, so a list
+           that grows with later versions would create their stores twice. */
+        for (const name of ['characters', 'ships', 'notes']) {
           const s = db.createObjectStore(name, { keyPath: 'id' });
           s.createIndex('originId', 'originId', { unique: false });
           s.createIndex('updatedAt', 'updatedAt', { unique: false });
@@ -64,6 +67,14 @@ function open() {
         /* Assets are keyed by content hash, which is what makes importing
            the same image twice a no-op instead of a duplicate. */
         db.createObjectStore('assets', { keyPath: 'id' });
+      }
+      /* v2 — player state for the canon factions: clocks, mainly. Keyed by
+         the faction's slug rather than a uid, so the same faction is the
+         same record in every browser and imports line up on it naturally. */
+      if (e.oldVersion < 2) {
+        const s = db.createObjectStore('factions', { keyPath: 'id' });
+        s.createIndex('originId', 'originId', { unique: false });
+        s.createIndex('updatedAt', 'updatedAt', { unique: false });
       }
     };
     req.onsuccess = () => resolve(req.result);
@@ -211,7 +222,8 @@ function assertRecordStore(store) {
   }
 }
 
-const singular = s => ({ characters: 'character', ships: 'ship', notes: 'note' }[s] || s);
+const singular = s => ({ characters: 'character', ships: 'ship', notes: 'note',
+                         factions: 'faction' }[s] || s);
 
 /* --------------------------------------------------------------- assets */
 

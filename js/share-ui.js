@@ -56,7 +56,7 @@ async function showExport() {
   body.appendChild(el('p', 'fleet-hint', t('share.exportHint')));
 
   const rows = [];
-  for (const s of ['ships', 'characters', 'notes']) {
+  for (const s of ['ships', 'characters', 'notes', 'factions']) {
     for (const rec of await store.all(s)) rows.push({ store: s, record: rec });
   }
   if (!rows.length) {
@@ -189,8 +189,11 @@ async function showImport(payload) {
       t('share.status.' + row.status)));
 
     /* Only a conflict needs a decision. Keep-both is preselected: replacing
-       is the one action here that can lose work. */
-    if (row.status === 'conflict') {
+       is the one action here that can lose work. Factions are the exception —
+       they are keyed by slug, so a second copy of the Cobalt Syndicate is
+       invisible to the UI; the only meaningful choices are replace or skip,
+       and the checkbox is the skip. */
+    if (row.status === 'conflict' && row.store !== 'factions') {
       const pick = el('select', 'share-pick');
       for (const [val, key] of [['copy', 'share.keepBoth'], ['replace', 'share.replace']]) {
         const o = el('option', null, t(key));

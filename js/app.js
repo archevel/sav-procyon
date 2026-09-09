@@ -27,7 +27,8 @@ import { setBodyPos, clearPositions, bodyPos, bodyAt, anchorTargets,
          describeAnchor, anchorEllipse, PARK_ECC, targetName,
          GATE_PREFIX, isGatePath, gateParkRadius } from './fleet.js';
 import { renderPlaceNotes, placePath, notesIndex,
-         splitPath } from './notes-ui.js';
+         splitPath, isFactionTarget } from './notes-ui.js';
+import { renderFactionExtras } from './factions-ui.js';
 
 /* Sourcebook text is authored per map key in both languages, and takes
    precedence over the hand-written strings in strings.js.
@@ -796,6 +797,7 @@ async function markNoteBadges() {
 
   camera.querySelectorAll('.o-note-badge').forEach(n => n.remove());
   for (const path of paths) {
+    if (isFactionTarget(path)) continue;       // factions have no chart node
     const { sysId, bodyPath } = splitPath(path);
     const group = camera.querySelector(`.system-group[data-system="${sysId}"]`);
     if (!group) continue;
@@ -1395,6 +1397,12 @@ function renderFactions() {
       const f = FACTIONS.find(x => x.slug === btn.dataset.faction);
       if (!f) return;
       content.innerHTML = factionHTML(f, view.id);
+      /* The player's own clocks and notes for this faction, rendered below
+         the sourcebook text. Async, so the panel opens at once and the
+         player section fills in as the store answers. */
+      const extras = document.createElement('div');
+      content.appendChild(extras);
+      renderFactionExtras(extras, f);
       // Cross-links jump to another system and re-open this faction there.
       content.querySelectorAll('.faction-elsewhere').forEach(link => {
         link.addEventListener('click', () => {

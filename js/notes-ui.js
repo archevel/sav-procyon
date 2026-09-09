@@ -10,7 +10,8 @@
  * wrote about it.
  */
 
-import { t } from '../data/i18n.js';
+import { t, getLang } from '../data/i18n.js';
+import { FACTIONS } from '../data/factions-data.js';
 import { SECTOR } from '../data/sector.js';
 import * as store from './store.js';
 import { el, note as noteControl, newNote } from './sheet-parts.js';
@@ -21,6 +22,14 @@ export function placePath(sysId, bodyPath = null) {
   return bodyPath ? `${sysId}/${bodyPath}` : sysId;
 }
 
+/* Faction notes live in the same store under a `faction:<slug>` target. The
+   prefix keeps them out of the place namespace, which is split on '/'. These
+   helpers live here rather than in factions-ui because this module owns the
+   target vocabulary — and importing the other way would be a cycle. */
+export const factionTarget = slug => `faction:${slug}`;
+export const isFactionTarget = target => String(target || '').startsWith('faction:');
+export const factionSlugOf = target => String(target).slice('faction:'.length);
+
 /** Split a stored path back into its system and body parts. */
 export function splitPath(path) {
   const i = String(path).indexOf('/');
@@ -30,6 +39,11 @@ export function splitPath(path) {
 
 /** Human-readable place name, or null when the path no longer resolves. */
 export function describePlace(path, tr = t) {
+  if (isFactionTarget(path)) {
+    const f = FACTIONS.find(x => x.slug === factionSlugOf(path));
+    return f ? { system: tr('panel.factions.title'),
+                 detail: f.title?.[getLang()] || f.title?.en || f.slug } : null;
+  }
   const { sysId, bodyPath } = splitPath(path);
   const sys = SECTOR.systems[sysId];
   if (!sys) return null;

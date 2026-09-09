@@ -103,24 +103,40 @@ export async function planImport(payload) {
 
     let status = 'new';
     if (mine) status = sameContent(mine, incoming) ? 'identical' : 'conflict';
+    /* Factions are slug-keyed singletons: a kept-both copy would be invisible
+       to the faction panel, which looks the slug up directly. Their conflicts
+       therefore default to replace — still snapshotted, still undoable. */
+    const conflictAction = item.store === 'factions' ? 'replace' : 'copy';
     plan.push({
       store: item.store, incoming, mine, status,
       /* Non-destructive by default: a conflict keeps both unless the
          recipient deliberately asks for a replacement. */
-      action: status === 'identical' ? 'skip' : status === 'new' ? 'add' : 'copy',
+      action: status === 'identical' ? 'skip' : status === 'new' ? 'add' : conflictAction,
       include: status !== 'identical'
     });
   }
   return plan;
 }
 
-/** Content equality ignoring the bookkeeping that always differs. */
+/** Content equality ignoring the bookkeeping that always differs.
+ *
+ * The obvious one-liner — stringify with the sorted key list as a replacer —
+ * is wrong: a replacer ARRAY filters keys at every depth, so nested state
+ * like a clock's `filled` or an action's rating vanished from the comparison
+ * and records differing only there read as identical. Keys are sorted
+ * recursively instead. */
 function sameContent(a, b) {
-  const strip = r => {
-    const { id, rev, createdAt, updatedAt, ...rest } = r;
-    return JSON.stringify(rest, Object.keys(rest).sort());
-  };
+  const strip = ({ id, rev, createdAt, updatedAt, ...rest }) => canonical(rest);
   return strip(a) === strip(b);
+}
+
+function canonical(v) {
+  if (Array.isArray(v)) return '[' + v.map(canonical).join(',') + ']';
+  if (v && typeof v === 'object') {
+    return '{' + Object.keys(v).sort()
+      .map(k => JSON.stringify(k) + ':' + canonical(v[k])).join(',') + '}';
+  }
+  return JSON.stringify(v) ?? 'null';
 }
 
 /**
@@ -152,9 +168,13 @@ export async function applyImport(payload, plan) {
       await store.put(row.store, merged, { keepRev: true });
     } else {
       /* 'add' and 'copy' are the same write: a fresh local id, the origin
-         preserved so a future import can still match it. */
+         preserved so a future import can still match it. Factions keep their
+         incoming id — it IS the slug, and a uid would orphan the record from
+         the panel that looks factions up by slug. */
+      const keepId = row.store === 'factions';
       const rec = await store.put(row.store,
-        { ...row.incoming, id: undefined }, { keepRev: true });
+        { ...row.incoming, id: keepId ? row.incoming.id : undefined },
+        { keepRev: true });
       created.push({ store: row.store, id: rec.id, rev: rec.rev });
     }
   }

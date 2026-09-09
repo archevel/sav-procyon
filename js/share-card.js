@@ -271,6 +271,7 @@ function contents(g, items) {
   if (n('ships'))      counts.push(`${n('ships')} ${t('share.ships')}`);
   if (n('characters')) counts.push(`${n('characters')} ${t('share.characters')}`);
   if (n('notes'))      counts.push(`${n('notes')} ${t('share.notes')}`);
+  if (n('factions'))   counts.push(`${n('factions')} ${t('share.factions')}`);
   if (!counts.length) return;
   g.fillStyle = SOFT;
   g.font = `13px ${MONO}`;
