@@ -1093,3 +1093,139 @@ body.in-system .orbit-layer .o-body { pointer-events: auto; }
 .portrait-modal-actions { display: flex; gap: .8vmin; margin: 1.6vmin 0 0; }
 .portrait-modal-actions input[type=file] { display: none; }
 .portrait-modal-actions label { cursor: pointer; }
+
+/* ------------------------------------------------------------------ mobile */
+/* The whole interface is sized in vmin, which on a tall phone is the NARROW
+   edge — so a control that reads well on a laptop lands at six or eight
+   pixels here. Nothing structural is wrong: the sheet already fits, the grids
+   already collapse, and nothing scrolls sideways. What follows is almost
+   entirely about making things big enough to touch.
+   44px is the usual floor for a tap target. */
+@media (max-width: 760px) {
+  /* Sector chrome ------------------------------------------------------- */
+  /* The header is two rows on a phone: title, then the buttons under it.
+     Grown to a tappable size they no longer fit beside the title, and
+     shrinking the title to make room defeats the point. */
+  .hud-top { flex-wrap: wrap; padding: 2.5vmin 3vmin 2vmin; row-gap: 2vmin; }
+  .hud-title { font-size: 4.4vmin; width: 100%; }
+  .hud-sub   { display: none; }        /* the subtitle is the first thing to go */
+  #lang-switch {
+    position: static; gap: 1vmin; width: 100%;
+  }
+  #lang-switch button {
+    flex: 1; font-size: 3vmin; padding: 2.6vmin 1vmin; min-width: 0;
+  }
+  #about-btn { margin-left: 0; }
+  .hud-hint  { font-size: 2.4vmin; left: 3vmin; right: 3vmin; bottom: 14vmin; }
+
+  #player-switch { left: 3vmin; right: 3vmin; bottom: 3vmin; gap: 1.4vmin; }
+  #player-switch button {
+    flex: 1; font-size: 2.8vmin; padding: 3vmin 1vmin; letter-spacing: .08em;
+  }
+
+  #breadcrumb { font-size: 3vmin; }
+  .crumb { padding: 1.4vmin 1vmin; }
+
+  /* Panels take the screen. A centred card with margins wastes width that a
+     sheet badly needs. */
+  .loc-info-content, #crew-panel .fleet-content, #fleet-panel .fleet-content {
+    max-width: none; width: 100vw; max-height: 100vh; height: 100vh;
+    padding: 14vmin 4vmin 6vmin; border: 0; font-size: 3.4vmin;
+  }
+  .loc-info-close { width: 11vmin; height: 11vmin; font-size: 5vmin;
+                    top: 2.5vmin; right: 2.5vmin; }
+
+  /* Sheets --------------------------------------------------------------- */
+  .sheet-name { font-size: 5vmin; padding: 1.5vmin 0; }
+  .sheet-back { font-size: 3vmin; padding: 2vmin 2.6vmin; }
+  .sheet-section-title { font-size: 3.2vmin; padding: 3vmin 0; }
+  .sheet-field-label, .sheet-dots-label, .sheet-track-label { font-size: 2.6vmin; }
+  .sheet-field-input, .sheet-harm-slot, .sheet-note-title, .sheet-note-body,
+  .sheet-clock-name, .sheet-extra-key, .sheet-extra-val, .sheet-clock-size {
+    font-size: 3.4vmin; padding: 2.4vmin 2vmin;
+  }
+  .sheet-sub, .sheet-hint, .sheet-picks-note { font-size: 2.8vmin; }
+  .sheet-attr-name { font-size: 3vmin; }
+
+  /* The dots and pips are the real problem: 6px is untappable. Grown well
+     past the floor, and given room to breathe so neighbours are not hit by
+     mistake. */
+  .sheet-dots, .sheet-track { gap: 2vmin; flex-wrap: wrap; }
+  .sheet-dots-label, .sheet-track-label { min-width: 100%; }
+  /* 44px is the floor for a finger. These are sized in absolute units rather
+     than vmin because the requirement is physical, not proportional — a dot
+     must be tappable on a 360px phone as much as on a 430px one. */
+  .sheet-dots-row, .sheet-track-row { gap: 8px; flex-wrap: wrap; }
+  .sheet-dot { width: 40px; height: 40px; flex: none; }
+  /* Tracks run to nine pips; at a tappable width that is wider than a phone,
+     so they wrap rather than pushing the sheet sideways. */
+  .sheet-pip { width: 30px; height: 40px; flex: none; }
+  .sheet-track-xp .sheet-pip { height: 30px; }
+  .sheet-dots, .sheet-track { max-width: 100%; }
+  .sheet-condition, .sheet-kit, .sheet-attrs, .sheet-systems { max-width: 100%; }
+
+  .sheet-pick { padding: 1.4vmin 0; }
+  .sheet-pick-label { font-size: 3.2vmin; }
+  .sheet-pick input[type=checkbox] { width: 26px; height: 26px; }
+  .sheet-pick { min-height: 44px; align-items: center; }
+
+  .sheet-x { width: 8vmin; height: 8vmin; font-size: 4vmin; }
+  .sheet-add { font-size: 3vmin; padding: 2.4vmin 3vmin; }
+  .sheet-damage { font-size: 2.4vmin; padding: 1.4vmin 2vmin; }
+
+  .sheet-harm-row { flex-wrap: wrap; }
+  .sheet-harm-slot { flex: 1 1 100%; }
+  .sheet-system { flex-wrap: wrap; }
+  .sheet-clock { min-width: 100%; }
+  .sheet-clock-face { width: 18vmin; height: 18vmin; }
+  .sheet-images, .sheet-image, .sheet-image-add { }
+  .sheet-image, .sheet-image-add { width: 20vmin; height: 20vmin; }
+  .sheet-portrait-current { width: 26vmin; height: 26vmin; }
+  .sheet-portrait-hint { font-size: 2.6vmin; }
+
+  /* Rosters and the fleet list ------------------------------------------- */
+  .crew-open { font-size: 4vmin; padding: 2vmin 0; }
+  .fleet-row { padding: 3vmin; }
+  .fleet-x { width: 9vmin; height: 9vmin; font-size: 4.5vmin; }
+  .fleet-where { font-size: 2.6vmin; }
+  .fleet-place, .fleet-sprite { font-size: 3vmin; padding: 2.4vmin 1.6vmin; }
+  .fleet-go, .loc-info-btn { font-size: 3vmin; padding: 2.6vmin 3.4vmin; }
+  .fleet-hint { font-size: 2.8vmin; }
+  .fleet-row-controls { flex-direction: column; }
+
+  /* Portrait chooser ----------------------------------------------------- */
+  .portrait-modal-box {
+    max-width: none; width: 100vw; height: 100vh; max-height: 100vh;
+    padding: 5vmin 4vmin;
+  }
+  .portrait-grid { grid-template-columns: repeat(auto-fill, minmax(26vmin, 1fr)); }
+  .portrait-modal-head h3 { font-size: 4vmin; }
+
+  /* Share ---------------------------------------------------------------- */
+  .share-row { flex-wrap: wrap; padding: 2vmin 0; }
+  .share-kind { font-size: 2.4vmin; min-width: 0; }
+  .share-label { font-size: 3vmin; flex: 1 1 60%; }
+  .share-status { font-size: 2.4vmin; padding: 1vmin 1.6vmin; }
+  .share-pick { font-size: 2.8vmin; padding: 1.6vmin; flex: 1 1 100%; }
+  .share-row input[type=checkbox] { width: 26px; height: 26px; }
+  .share-size, .share-warn, .share-ok, .share-receive-text { font-size: 2.8vmin; }
+  .share-actions { flex-direction: column; }
+  .share-actions .loc-info-btn { width: 100%; text-align: center; }
+  .share-list { max-height: 46vh; }
+
+  /* Location view -------------------------------------------------------- */
+  .loc-notes-title { font-size: 2.8vmin; }
+  .loc-actions { flex-wrap: wrap; }
+
+  /* The faction sidebar is a fixed column on the right, which on a phone
+     covers the system it is describing and reaches the player buttons. It
+     becomes a wrapping row along the top instead, where it reads as a legend
+     rather than as something in the way. */
+  #factions {
+    top: auto; bottom: 14vmin; left: 3vmin; right: 3vmin;
+    width: auto; flex-direction: row; flex-wrap: wrap; gap: 1.2vmin;
+    max-height: 22vh; overflow-y: auto;
+  }
+  .factions-title { width: 100%; font-size: 2.6vmin; padding: 1.6vmin 2vmin; }
+  .faction-pill { font-size: 2.6vmin; padding: 2vmin 2.4vmin; }
+}
