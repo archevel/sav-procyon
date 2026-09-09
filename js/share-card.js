@@ -17,9 +17,24 @@ import { savName } from './sheet-parts.js';
 import { shipArt } from './sheet-ship.js';
 import { SECTOR } from '../data/sector.js';
 
-const W = 1000, H = 560;
+/* Proportions of the card. Shorter than it was: the old height left a band of
+   empty paper under the ratings on almost every sheet, because content flows
+   from the top while the footer is pinned to the bottom. */
+const W = 1000, H = 430;
+
+/* The portrait column, and where the text column starts beside it. The card's
+   height follows from these: portrait, then the blurb band, then the footer. */
+const PAD = 40, PIC = 232;
+const COL = PAD + PIC + 30;
+const BLURB_Y = PAD + PIC + 30;      // top of the full-width blurb band
+const FOOT_Y  = H - 74;              // top of the footer band
+const RULE_Y  = H - 88;              // the hairline above it
 const PAPER = '#f4f1e8', INK = '#12120f', SOFT = '#6d6a5e', WARN = '#a4442e';
 const MONO = '"SF Mono", "DejaVu Sans Mono", Menlo, Consolas, monospace';
+
+/* Exposed so a test can find the portrait box without restating its
+   geometry — a layout change should move the check with it. */
+export const CARD = { W, H, PAD, PIC, COL };
 
 /** Render a character card. Returns a PNG Blob. */
 export async function characterCard(rec) {
@@ -27,48 +42,54 @@ export async function characterCard(rec) {
   const g = c.getContext('2d');
 
   const pic = pictureOf(rec);
-  const x = 56 + (pic ? 340 : 0);
-  await drawPicture(g, pic, 56, 56, 300, 300);
+  await drawPicture(g, pic, PAD, PAD, PIC, PIC);
+  const x = pic ? COL : PAD;
 
-  heading(g, rec.name || '—', x, 108);
+  heading(g, rec.name || '—', x, PAD + 42);
   /* Every one of these is an id in the record; the card shows them in the
      reader's language like anywhere else. */
   sub(g, [rec.playbook, rec.heritage, rec.background]
-        .filter(Boolean).map(savName).join(' · '), x, 142);
+        .filter(Boolean).map(savName).join(' · '), x, PAD + 70);
 
-  let y = 190;
-  if (rec.blurb) y = paragraph(g, rec.blurb, x, y, W - x - 56) + 18;
+  /* The blurb goes UNDER the portrait once the ratings have taken the column
+     beside it, so it uses the width the old layout left empty. */
+  ratingColumns(g, ratedActions(rec), x, PAD + 108, W - x - PAD);
 
-  /* Action ratings, by attribute, showing only what has dots. A card is a
-     glance, not a sheet: empty rows would crowd out what matters. */
-  for (const attr of SAV.ATTRIBUTES) {
-    const rated = attr.actions.filter(a => (rec.actions?.[a] || 0) > 0);
-    if (!rated.length) continue;
-    label(g, t('attr.' + attr.id), x, y);
-    y += 22;
-    for (const a of rated) {
-      g.fillStyle = INK;
-      g.font = `15px ${MONO}`;
-      g.fillText(t('action.' + a), x + 12, y);
-      dots(g, x + 190, y - 5, rec.actions[a], SAV.MAX_ACTION_RATING);
-      y += 22;
-    }
-    y += 8;
-  }
+  const footTop = footerTop();
+  /* The blurb has its own band under the portrait, so it neither chases the
+     ratings up the card nor runs into the footer. */
+  if (rec.blurb) paragraph(g, rec.blurb, PAD, BLURB_Y, W - PAD * 2, 2);
 
   /* Stress and trauma are the state that changes between sessions, so they
      earn their place even on a card this small. */
-  const footY = H - 62;
-  label(g, t('sheet.stress'), 56, footY - 22);
-  pips(g, 56, footY - 14, rec.stress || 0, SAV.STRESS_MAX, WARN);
+  label(g, t('sheet.stress'), PAD, footTop);
+  pips(g, PAD, footTop + 8, rec.stress || 0, SAV.STRESS_MAX, WARN);
   if (rec.trauma?.length) {
     g.fillStyle = WARN;
-    g.font = `bold 14px ${MONO}`;
-    g.fillText(rec.trauma.map(savName).join(' · ').toUpperCase(), 300, footY - 4);
+    g.font = `bold 13px ${MONO}`;
+    g.fillText(clip(g, rec.trauma.map(savName).join(' · ').toUpperCase(), 420),
+               PAD + 230, footTop + 22);
   }
 
   frame(g);
   return toBlob(c);
+}
+
+/** Actions with at least one dot, grouped by attribute and flattened to rows
+    the column layout can place. A card is a glance, not a sheet: an unrated
+    action would only crowd out what the player actually invested in. */
+function ratedActions(rec) {
+  const rows = [];
+  for (const attr of SAV.ATTRIBUTES) {
+    const rated = attr.actions.filter(a => (rec.actions?.[a] || 0) > 0);
+    if (!rated.length) continue;
+    rows.push({ heading: t('attr.' + attr.id) });
+    for (const a of rated) {
+      rows.push({ name: t('action.' + a), value: rec.actions[a],
+                  max: SAV.MAX_ACTION_RATING });
+    }
+  }
+  return rows;
 }
 
 /** Render a ship card. */
@@ -78,34 +99,34 @@ export async function shipCard(rec) {
 
   /* A vessel with no uploaded portrait still has its frame's chart art. */
   const pic = pictureOf(rec);
-  const x = 56 + (pic ? 340 : 0);
-  await drawPicture(g, pic, 56, 56, 300, 300);
+  await drawPicture(g, pic, PAD, PAD, PIC, PIC);
+  const x = pic ? COL : PAD;
 
-  heading(g, rec.name || '—', x, 108);
+  heading(g, rec.name || '—', x, PAD + 42);
   sub(g, [rec.frame ? savName(rec.frame) : null, rec.look]
-        .filter(Boolean).join(' · '), x, 142);
-
-  let y = 190;
-  if (rec.blurb) y = paragraph(g, rec.blurb, x, y, W - x - 56) + 18;
+        .filter(Boolean).join(' · '), x, PAD + 70);
 
   const damaged = new Set(rec.damaged || []);
-  for (const s of SAV.SHIP_SYSTEMS) {
-    const v = rec.systems?.[s] || 0;
-    if (!v && !damaged.has(s)) continue;
-    g.fillStyle = damaged.has(s) ? WARN : INK;
-    g.font = `15px ${MONO}`;
-    g.fillText(t('ship.' + s) + (damaged.has(s) ? ' ✕' : ''), x + 12, y);
-    dots(g, x + 190, y - 5, v, SAV.MAX_SYSTEM_RATING, damaged.has(s) ? WARN : INK);
-    y += 22;
+  const rows = [];
+  for (const sys of SAV.SHIP_SYSTEMS) {
+    const v = rec.systems?.[sys] || 0;
+    if (!v && !damaged.has(sys)) continue;
+    rows.push({ name: t('ship.' + sys) + (damaged.has(sys) ? ' ✕' : ''),
+                value: v, max: SAV.MAX_SYSTEM_RATING,
+                colour: damaged.has(sys) ? WARN : INK });
   }
+  ratingColumns(g, rows, x, PAD + 108, W - x - PAD);
+
+  const footTop = footerTop();
+  if (rec.blurb) paragraph(g, rec.blurb, PAD, BLURB_Y, W - PAD * 2, 2);
 
   const upgrades = [...(rec.upgrades || []), ...(rec.crewUpgrades || [])];
   if (upgrades.length) {
-    const footY = H - 62;
-    label(g, t('sheet.upgrades'), 56, footY - 22);
+    label(g, t('sheet.upgrades'), PAD, footTop);
     g.fillStyle = SOFT;
     g.font = `13px ${MONO}`;
-    g.fillText(clip(g, upgrades.map(savName).join(' · '), W - 112), 56, footY - 2);
+    g.fillText(clip(g, upgrades.map(savName).join(' · '), W - PAD * 2),
+               PAD, footTop + 22);
   }
 
   frame(g);
@@ -142,13 +163,16 @@ async function crewCard(crew, items) {
   /* Cap the row rather than shrinking indefinitely: past six, portraits are
      too small to recognise and the count says more than the faces would. */
   const shown = crew.slice(0, 6);
-  const gap = 24;
-  const cell = Math.min(220, (W - 112 - gap * (shown.length - 1)) / shown.length);
+  const gap = 20;
+  /* Sized to leave room for the name and kind beneath each portrait, above
+     the footer band. */
+  const cell = Math.min(176, (W - PAD * 2 - gap * (shown.length - 1)) / shown.length,
+                        RULE_Y - (PAD + 62) - 52);
   const totalW = cell * shown.length + gap * (shown.length - 1);
   const x0 = (W - totalW) / 2;
-  const y0 = 132;
+  const y0 = PAD + 58;
 
-  heading(g, t('share.cardTitle'), 56, 88);
+  heading(g, t('share.cardTitle'), PAD, PAD + 34);
 
   for (let i = 0; i < shown.length; i++) {
     const it = shown[i];
@@ -161,7 +185,7 @@ async function crewCard(crew, items) {
     g.font = `bold 15px ${MONO}`;
     g.textAlign = 'center';
     g.fillText(clip(g, (it.record.name || '—').toUpperCase(), cell),
-               x + cell / 2, y0 + cell + 26);
+               x + cell / 2, y0 + cell + 24);
 
     /* The one line that says what this is: a frame for a ship, a playbook for
        a character. */
@@ -171,7 +195,7 @@ async function crewCard(crew, items) {
     if (kind) {
       g.fillStyle = SOFT;
       g.font = `13px ${MONO}`;
-      g.fillText(clip(g, kind.toUpperCase(), cell), x + cell / 2, y0 + cell + 46);
+      g.fillText(clip(g, kind.toUpperCase(), cell), x + cell / 2, y0 + cell + 42);
     }
     g.textAlign = 'left';
   }
@@ -181,7 +205,7 @@ async function crewCard(crew, items) {
     g.font = `14px ${MONO}`;
     g.textAlign = 'center';
     g.fillText(t('share.andMore').replace('%n', crew.length - shown.length),
-               W / 2, y0 + cell + 76);
+               W / 2, y0 + cell + 64);
     g.textAlign = 'left';
   }
 
@@ -199,7 +223,7 @@ async function crewCard(crew, items) {
 async function sectorCard(items) {
   const c = base();
   const g = c.getContext('2d');
-  heading(g, t('share.cardTitle'), 56, 88);
+  heading(g, t('share.cardTitle'), PAD, PAD + 34);
 
   const systems = Object.values(SECTOR.systems);
   const xs = systems.map(s => s.x), ys = systems.map(s => s.y);
@@ -207,7 +231,7 @@ async function sectorCard(items) {
   const minY = Math.min(...ys), maxY = Math.max(...ys);
   /* Fit the chart to the space left below the heading, preserving its shape
      so the sector is recognisable rather than stretched. */
-  const boxX = 90, boxY = 150, boxW = W - 180, boxH = H - 260;
+  const boxX = 110, boxY = PAD + 62, boxW = W - 220, boxH = RULE_Y - PAD - 90;
   const scale = Math.min(boxW / Math.max(1, maxX - minX),
                          boxH / Math.max(1, maxY - minY));
   const px = s => boxX + (s.x - minX) * scale + (boxW - (maxX - minX) * scale) / 2;
@@ -250,7 +274,7 @@ function contents(g, items) {
   g.fillStyle = SOFT;
   g.font = `13px ${MONO}`;
   g.textAlign = 'center';
-  g.fillText(counts.join('  ·  ').toUpperCase(), W / 2, H - 58);
+  g.fillText(counts.join('  ·  ').toUpperCase(), W / 2, FOOT_Y + 20);
   g.textAlign = 'left';
 }
 
@@ -265,6 +289,65 @@ function placeholder(g, x, y, w, h, glyph) {
   g.textAlign = 'center'; g.textBaseline = 'middle';
   g.fillText(glyph, x + w / 2, y + h / 2);
   g.textAlign = 'left'; g.textBaseline = 'alphabetic';
+}
+
+/**
+ * Lay rating rows into as many columns as the width allows.
+ *
+ * A single column left most of the card empty on any sheet with more than a
+ * few rated actions, while a long one ran past the footer. Flowing into
+ * columns fills the space that is actually there.
+ *
+ * Returns the y after the last row.
+ */
+function ratingColumns(g, rows, x, y, width) {
+  if (!rows.length) return y;
+
+  const ROW = 21, HEAD = 19, COLW = 250;
+  const cols = Math.max(1, Math.min(2, Math.floor(width / COLW)));
+
+  /* Split on GROUP boundaries, never mid-group: a column that opened on an
+     attribute's actions without its heading left them floating under the
+     wrong one. Groups are kept whole and dealt out to whichever column is
+     currently shortest. */
+  const groups = [];
+  for (const row of rows) {
+    if (row.heading || !groups.length) groups.push([]);
+    groups[groups.length - 1].push(row);
+  }
+  /* Rows with no headings at all — ship systems — form one long group, which
+     would defeat the columns. Split those evenly instead. */
+  if (groups.length === 1 && !groups[0][0]?.heading && cols > 1) {
+    const per = Math.ceil(groups[0].length / cols);
+    const flat = groups.pop();
+    for (let i = 0; i < flat.length; i += per) groups.push(flat.slice(i, i + per));
+  }
+
+  const colY = new Array(cols).fill(y);
+  for (const grp of groups) {
+    let c = 0;
+    for (let i = 1; i < cols; i++) if (colY[i] < colY[c]) c = i;
+    const cx = x + c * COLW;
+    for (const row of grp) {
+      if (row.heading) {
+        label(g, row.heading, cx, colY[c]);
+        colY[c] += HEAD;
+      } else {
+        g.fillStyle = row.colour || INK;
+        g.font = `14px ${MONO}`;
+        g.fillText(row.name, cx + 10, colY[c]);
+        dots(g, cx + 150, colY[c] - 4, row.value, row.max, row.colour || INK, 17, 5);
+        colY[c] += ROW;
+      }
+    }
+    colY[c] += 6;                 // a little air between groups
+  }
+  return Math.max(...colY);
+}
+
+/** Where the footer band begins — everything below this belongs to it. */
+function footerTop() {
+  return FOOT_Y;
 }
 
 /* ------------------------------------------------------------- primitives */
@@ -284,14 +367,20 @@ function frame(g) {
   g.strokeStyle = INK;
   g.lineWidth = 2;
   g.strokeRect(18, 18, W - 36, H - 36);
+  /* A hairline above the footer band, so the card reads as two areas rather
+     than as content that happened to stop. */
+  g.strokeStyle = SOFT; g.lineWidth = 1;
+  g.beginPath();
+  g.moveTo(PAD, RULE_Y); g.lineTo(W - PAD, RULE_Y);
+  g.stroke();
   g.fillStyle = SOFT;
   g.font = `11px ${MONO}`;
-  g.fillText('PROCYON IE-21', 56, H - 32);
+  g.fillText('PROCYON IE-21', PAD, H - 26);
 }
 
 function heading(g, text, x, y) {
   g.fillStyle = INK;
-  g.font = `bold 42px ${MONO}`;
+  g.font = `bold 36px ${MONO}`;
   g.fillText(clip(g, text.toUpperCase(), W - x - 56), x, y);
 }
 
@@ -326,10 +415,10 @@ function paragraph(g, text, x, y, width, maxLines = 3) {
   return y;
 }
 
-function dots(g, x, y, value, max, colour = INK) {
+function dots(g, x, y, value, max, colour = INK, gap = 20, r = 6) {
   for (let i = 0; i < max; i++) {
     g.beginPath();
-    g.arc(x + i * 20, y, 6, 0, Math.PI * 2);
+    g.arc(x + i * gap, y, r, 0, Math.PI * 2);
     g.strokeStyle = colour; g.lineWidth = 1.6;
     if (i < value) { g.fillStyle = colour; g.fill(); }
     g.stroke();

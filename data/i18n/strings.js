@@ -275,6 +275,8 @@ export const STRINGS = {
   'sheet.position':  { sv: 'Position',     en: 'Position' },
   'sheet.blurb':     { sv: 'Kort beskrivning — visas när skeppet delas.',
                        en: 'Short description — shown when the ship is shared.' },
+  'sheet.blurbCharacter': { sv: 'Kort beskrivning — visas när rollpersonen delas.',
+                            en: 'Short description — shown when the character is shared.' },
 
   /* Attributes and actions */
   'attr.insight':    { sv: 'Insikt',       en: 'Insight' },

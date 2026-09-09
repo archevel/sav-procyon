@@ -22,7 +22,7 @@ import { el, dots, track, clock, newClock, note, newNote, imageStrip,
 export function blankCharacter(name) {
   return {
     name, alias: '', playbook: '', heritage: '', background: '', vice: '',
-    look: '',
+    look: '', blurb: '',
     actions: Object.fromEntries(SAV.ACTIONS.map(a => [a, 0])),
     stress: 0, trauma: [],
     harm: { severe: ['', ''], moderate: ['', ''], lesser: ['', ''] },
@@ -91,6 +91,15 @@ function identity(rec, save) {
     v => save({ vice: v })));
   grid.appendChild(field(t('sheet.look'), rec.look, v => save({ look: v })));
 
+  /* A line or two in the player's own words. It is the one part of a sheet
+     that says who this person is rather than what they can do, which is why
+     the share card leads with it. */
+  const blurb = el('textarea', 'sheet-note-body');
+  blurb.value = rec.blurb || '';
+  blurb.rows = 3;
+  blurb.placeholder = t('sheet.blurbCharacter');
+  blurb.addEventListener('blur', () => save({ blurb: blurb.value }));
+
   const portrait = el('div', 'sheet-portrait');
   portrait.appendChild(imageStrip(rec.portrait ? [rec.portrait] : [], {
     onAddImage: async file => {
@@ -100,7 +109,7 @@ function identity(rec, save) {
     onRemoveImage: () => save({ portrait: null })
   }));
 
-  const body = section(t('sheet.identity'), grid, portrait);
+  const body = section(t('sheet.identity'), grid, blurb, portrait);
   /* The playbook's starting action is worth stating: it is the one dot the
      player did not choose, and it is easy to forget which it was. */
   if (pb) {
