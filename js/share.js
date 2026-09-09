@@ -1,11 +1,15 @@
 /* Sharing.
  *
- * One payload shape, three transports:
+ * One payload shape, two transports out:
  *
  *   link   #d=<deflated base64>   small, text only, images left behind
  *   png    a card with the payload in a tEXt chunk — previews in a chat AND
  *          imports here, which is the reason this format exists
- *   json   plain .procyon.json, for when a picture is beside the point
+ *
+ * There is deliberately no second file format. The PNG carries everything a
+ * plain JSON export would, so offering both would only ask the sender to
+ * choose between two files with identical contents. Import still ACCEPTS
+ * JSON, so a file exported before this stays usable.
  *
  * Import never overwrites without being told to. Every incoming record is
  * matched by `originId`, which survives export, and the recipient chooses per
@@ -96,15 +100,13 @@ export async function sharePng(items, payload) {
   return new Blob([await embed(bytes, payload)], { type: 'image/png' });
 }
 
-export function shareJson(payload) {
-  return new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-}
-
 /**
  * Read a payload out of a dropped or chosen file.
  *
- * Accepts either transport. A PNG with no payload is a picture someone
- * dropped by mistake, and says so rather than failing obscurely.
+ * PNG is what this app writes; JSON is accepted because a file exported by an
+ * older version, or hand-written, should still import. A PNG with no payload
+ * is a picture someone dropped by mistake, and says so rather than failing
+ * obscurely.
  */
 export async function readFile(file) {
   const bytes = new Uint8Array(await file.arrayBuffer());

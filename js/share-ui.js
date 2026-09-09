@@ -120,16 +120,13 @@ async function showExport() {
         .replace('%n', items.length)
         .replace('%b', formatBytes(link.bytes))));
 
-    /* The PNG is offered first: it is the only file that both previews in a
-       chat and imports here, which is what most shares actually want. */
+    /* The PNG is the file format: it previews in a chat AND imports here, so
+       offering a second one would only ask the player to choose between two
+       files that carry identical data. */
     button(actions, t('share.png'), async () => {
       const blob = await share.sharePng(items, withImages);
       share.download(blob, share.shareName(items, 'png'));
     }, true);
-
-    button(actions, t('share.json'), async () => {
-      share.download(share.shareJson(withImages), share.shareName(items, 'procyon.json'));
-    });
 
     if (link.ok) {
       button(actions, imageCount ? t('share.linkNoImages') : t('share.link'), async () => {
