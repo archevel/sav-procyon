@@ -16,9 +16,10 @@ export const STRINGS = {
 
 
   /* --------------- Scum & Villainy vocabulary ---------------------------
-     Keyed by the ids in data/sav.js. Playbook and frame names are the book's
-     own and stay as they are in both locales; everything a player picks from
-     is translated. Rules TEXT is deliberately absent — see data/sav.js. */
+     Keyed by the ids in data/sav.js. Playbooks carry the group's own Swedish
+     names rather than a transliteration of the book's; frames keep theirs in
+     both locales, being the names of specific vessels. Rules TEXT is
+     deliberately absent — see data/sav.js. */
   'sav.academic':                     { sv: 'Akademiker', en: 'Academic' },
   'sav.ace':                          { sv: 'Ess', en: 'Ace' },
   'sav.alchemist':                    { sv: 'Alkemist', en: 'Alchemist' },
@@ -87,7 +88,7 @@ export const STRINGS = {
   'sav.long-range-array':             { sv: 'Långdistansantenn', en: 'Long-Range Array' },
   'sav.lucky-charm':                  { sv: 'Lyckoamulett', en: 'Lucky Charm' },
   'sav.luxury':                       { sv: 'Lyx', en: 'Luxury' },
-  'sav.mechanic':                     { sv: 'Mekaniker', en: 'Mechanic' },
+  'sav.mechanic':                     { sv: 'Skruvare', en: 'Mechanic' },
   'sav.med-patch':                    { sv: 'Medplåster', en: 'Med Patch' },
   'sav.medical-bay':                  { sv: 'Sjukavdelning', en: 'Medical Bay' },
   'sav.medkit':                       { sv: 'Sjukvårdsväska', en: 'Medkit' },
@@ -95,8 +96,8 @@ export const STRINGS = {
   'sav.military':                     { sv: 'Militär', en: 'Military' },
   'sav.missiles':                     { sv: 'Missiler', en: 'Missiles' },
   'sav.mule':                         { sv: 'Packåsna', en: 'Mule' },
-  'sav.muscle':                       { sv: 'Muskel', en: 'Muscle' },
-  'sav.mystic':                       { sv: 'Mystiker', en: 'Mystic' },
+  'sav.muscle':                       { sv: 'Knutte', en: 'Muscle' },
+  'sav.mystic':                       { sv: 'Mysko', en: 'Mystic' },
   'sav.nav-charts':                   { sv: 'Navigationskartor', en: 'Nav Charts' },
   'sav.noble':                        { sv: 'Adel', en: 'Noble' },
   'sav.not-to-be-trifled-with':       { sv: 'Inte att leka med', en: 'Not to be Trifled With' },
@@ -105,7 +106,7 @@ export const STRINGS = {
   'sav.overclock':                    { sv: 'Överklocka', en: 'Overclock' },
   'sav.paranoid':                     { sv: 'Paranoid', en: 'Paranoid' },
   'sav.physicker':                    { sv: 'Läkare', en: 'Physicker' },
-  'sav.pilot':                        { sv: 'Pilot', en: 'Pilot' },
+  'sav.pilot':                        { sv: 'Styrman', en: 'Pilot' },
   'sav.pleasure':                     { sv: 'Njutning', en: 'Pleasure' },
   'sav.point-defence':                { sv: 'Punktförsvar', en: 'Point Defence' },
   'sav.precognition':                 { sv: 'Förutseende', en: 'Precognition' },
@@ -135,7 +136,7 @@ export const STRINGS = {
   'sav.smoke-grenade':                { sv: 'Rökgranat', en: 'Smoke Grenade' },
   'sav.soft':                         { sv: 'Vek', en: 'Soft' },
   'sav.spare-parts':                  { sv: 'Reservdelar', en: 'Spare Parts' },
-  'sav.speaker':                      { sv: 'Talesman', en: 'Speaker' },
+  'sav.speaker':                      { sv: 'Ombudsman', en: 'Speaker' },
   'sav.stardancer':                   { sv: 'Stardancer', en: 'Stardancer' },
   'sav.stealth-suit':                 { sv: 'Smygdräkt', en: 'Stealth Suit' },
   'sav.stim-injector':                { sv: 'Stiminjektor', en: 'Stim Injector' },
