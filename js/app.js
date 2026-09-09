@@ -21,6 +21,7 @@ import * as store from './store.js';
 import { mountFleetPanel } from './fleet-ui.js';
 import { mountCrewPanel } from './crew-ui.js';
 import { mountSharePanel } from './share-ui.js';
+import { shipArt } from './sheet-ship.js';
 import { setBodyPos, clearPositions, bodyPos, bodyAt, anchorTargets,
          resolveAnchor, defaultAnchor, parkRadius, makeTransit,
          describeAnchor, anchorEllipse, PARK_ECC, targetName,
@@ -571,8 +572,10 @@ async function makeFleetShip(rec, sysId) {
 
   /* Sprite art, keyed off `sprite` rather than the record id — the id is a
      UUID, so the art needs a stable human-chosen name. */
-  if (rec.sprite) {
-    const url = await artUrl(`img/ship-${rec.sprite}`, 'png');
+  /* The frame supplies the art unless the crew has overridden it. */
+  const art = shipArt(rec);
+  if (art) {
+    const url = await artUrl(`img/ship-${art}`, 'png');
     if (url) {
       el.classList.add('has-art');
       const cid = `clip-fleet-${rec.id}`;
@@ -875,7 +878,7 @@ function shipAsBody(rec) {
   return {
     id: rec.id,
     name: rec.name || '',
-    surface: rec.sprite || null,
+    surface: shipArt(rec),
     tag: rec.tag || t('fleet.vessel'),
     blurb: rec.blurb || '',
     article: null

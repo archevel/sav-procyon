@@ -1,9 +1,10 @@
-/* The share panel: pick what to send, choose how, and receive.
+/* The share panel: pick what to send, and receive what someone sent.
  *
- * Export is a checklist with a live size readout, because the only way a link
- * can be trusted is if the sender is told when it stops being one. Import
- * shows what every incoming item would do BEFORE anything is written, defaults
- * every choice to the non-destructive one, and leaves an undo entry behind.
+ * There is one transport — an image carrying its own data — so export is a
+ * checklist and a single button rather than a choice between formats. Import
+ * shows what every incoming item would do BEFORE anything is written,
+ * defaults every choice to the non-destructive one, and leaves an undo entry
+ * behind.
  */
 
 import { t } from '../data/i18n.js';
@@ -26,16 +27,6 @@ export function mountSharePanel() {
   document.getElementById('share-close')
     ?.addEventListener('click', () => { panel.hidden = true; });
   panel.addEventListener('click', e => { if (e.target === panel) panel.hidden = true; });
-
-  /* A share arriving as a link. The fragment is cleared once handled so a
-     reload does not re-prompt for an import already decided. */
-  if (location.hash.startsWith('#d=')) {
-    const frag = location.hash.slice(3);
-    history.replaceState(null, '', location.pathname + location.search);
-    share.decodeLink(frag)
-      .then(p => { panel.hidden = false; showImport({ ...p, source: 'link' }); })
-      .catch(() => { panel.hidden = false; showError(t('share.errBadLink')); });
-  }
 
   /* Dropping a share anywhere on the page imports it — the file came from a
      chat window, and hunting for a button first is friction. */
@@ -108,41 +99,47 @@ async function showExport() {
       return;
     }
 
-    /* Images decide the transports as much as size does: a link cannot carry
-       them, so a share with portraits is a file share whatever its length. */
-    const withImages = await share.buildPayload(items, { withImages: true });
-    const textOnly   = await share.buildPayload(items, { withImages: false });
-    const link = await share.shareUrl(textOnly);
-    const imageCount = Object.keys(withImages.assets).length;
+    const payload = await share.buildPayload(items);
+    const imageCount = Object.keys(payload.assets).length;
 
     meter.appendChild(el('p', 'share-size',
       t('share.size')
         .replace('%n', items.length)
-        .replace('%b', formatBytes(link.bytes))));
+        .replace('%i', imageCount)));
 
-    /* The PNG is the file format: it previews in a chat AND imports here, so
-       offering a second one would only ask the player to choose between two
-       files that carry identical data. */
+    /* One way out. The image previews in a chat AND imports here, so a second
+       transport would only be a weaker option sitting next to the better
+       one. */
     button(actions, t('share.png'), async () => {
-      const blob = await share.sharePng(items, withImages);
+      const blob = await share.sharePng(items, payload);
       share.download(blob, share.shareName(items, 'png'));
     }, true);
-
-    if (link.ok) {
-      button(actions, imageCount ? t('share.linkNoImages') : t('share.link'), async () => {
-        await navigator.clipboard.writeText(link.url);
-        meter.appendChild(el('p', 'share-ok', t('share.copied')));
-      });
-    } else {
-      meter.appendChild(el('p', 'share-warn', t('share.tooLongForLink')));
-    }
-
-    if (imageCount) {
-      meter.appendChild(el('p', 'fleet-hint',
-        t('share.imagesNote').replace('%n', imageCount)));
-    }
   }
   refresh();
+
+  /* And one way in that does not depend on dropping a file, which is awkward
+     on a phone and impossible to discover. */
+  body.appendChild(receiveRow());
+}
+
+/** The import affordance: drop a shared image, or pick one. */
+function receiveRow() {
+  const wrap = el('div', 'share-receive');
+  wrap.appendChild(el('span', 'share-receive-text', t('share.receiveHint')));
+  const pick = el('label', 'loc-info-btn share-pick-file', t('share.pickFile'));
+  const input = el('input');
+  input.type = 'file';
+  input.accept = 'image/png,application/json';
+  input.addEventListener('change', async () => {
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    try { showImport({ ...(await share.readFile(file)), source: 'file' }); }
+    catch (err) { showError(err.message); }
+  });
+  pick.appendChild(input);
+  wrap.appendChild(pick);
+  return wrap;
 }
 
 function describeRow(row) {
@@ -251,8 +248,4 @@ function button(host, text, onClick, primary = false) {
   b.addEventListener('click', onClick);
   host.appendChild(b);
   return b;
-}
-
-function formatBytes(n) {
-  return n < 1024 ? `${n} B` : `${(n / 1024).toFixed(1)} kB`;
 }

@@ -17,6 +17,22 @@ import { el, dots, track, imageStrip, field, choice, picks,
 import { clocksSection, notesSection, extraFields } from './sheet-character.js';
 import { describeAnchor } from './fleet.js';
 
+/**
+ * The art a vessel uses, as a base name for img/ship-<n>.webp and
+ * img/surface-<n>.webp.
+ *
+ * The frame is the default, since frame ids and the shipped art share their
+ * names — choosing Cerberus should draw a Cerberus without further asking.
+ * `sprite` overrides it, so a crew that has repainted their hull, or drawn
+ * their own, can point at whatever file they like.
+ *
+ * Returns null when neither is set, which is what an unnamed vessel gets: the
+ * plain triangle every ship falls back to.
+ */
+export function shipArt(rec) {
+  return (rec?.sprite || '').trim() || rec?.frame || null;
+}
+
 /** A blank ship. `location: null` keeps a new vessel off the chart until it
     is placed, which is the fleet panel's job. */
 export function blankShip(name) {
@@ -81,8 +97,12 @@ function identity(rec, save) {
       }
       save({ frame: v, systems });
     }));
-  grid.appendChild(field(t('fleet.sprite'), rec.sprite,
-    v => save({ sprite: v }), { list: 'fleet-sprite-names' }));
+  /* Shown with the frame's own art as the placeholder, so it reads as an
+     override rather than a required field. */
+  grid.appendChild(field(t('sheet.spriteOverride'), rec.sprite,
+    v => save({ sprite: v }),
+    { list: 'fleet-sprite-names',
+      placeholder: rec.frame || t('sheet.spriteNone') }));
   grid.appendChild(field(t('sheet.look'), rec.look, v => save({ look: v })));
 
   const where = describeAnchor(rec.location, t);

@@ -1002,3 +1002,15 @@ body.in-system .orbit-layer .o-body { pointer-events: auto; }
 .share-actions { display: flex; flex-wrap: wrap; gap: .8vmin; margin: 1.4vmin 0 0; }
 .loc-info-btn.is-primary { background: var(--ink); color: var(--paper); }
 .loc-info-btn.is-primary:hover { background: var(--paper); color: var(--ink); }
+
+/* The import affordance, kept beside export so both directions are one panel. */
+.share-receive {
+  display: flex; align-items: center; gap: .8vmin; flex-wrap: wrap;
+  margin: 1.8vmin 0 0; padding: 1.2vmin 0 0;
+  border-top: max(1px, .1vmin) dashed var(--ink);
+}
+.share-receive-text {
+  font-family: var(--mono); font-size: 1.15vmin; color: var(--ink-soft);
+}
+.share-pick-file { cursor: pointer; }
+.share-pick-file input { display: none; }

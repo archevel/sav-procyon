@@ -40,9 +40,9 @@
     <p class="fleet-hint" data-i18n="fleet.hint">Välj ett skepp, tryck M och klicka för att flytta.</p>
     <div id="fleet-list"></div>
     <div id="fleet-sheet" hidden></div>
-    <datalist id="fleet-sprite-names">
-      <option value="cerberus"><option value="stardancer"><option value="firedrake">
-    </datalist>
+    <!-- Filled from data/sav.js, so the suggestions cannot drift from the
+         frames that actually ship with art. -->
+    <datalist id="fleet-sprite-names"></datalist>
     <button id="fleet-add" class="loc-info-btn" data-i18n="fleet.add">Nytt skepp</button>
   </div>
 </div>

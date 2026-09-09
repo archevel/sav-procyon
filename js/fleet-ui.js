@@ -13,6 +13,7 @@ import { SECTOR } from '../data/sector.js';
 import { t } from '../data/i18n.js';
 import * as store from './store.js';
 import { renderShipSheet, blankShip } from './sheet-ship.js';
+import { FRAME_LIST } from '../data/sav.js';
 import { defaultAnchor, describeAnchor, anchorTargets, bodyAt,
          parkRadius, PARK_ECC, targetName, isGatePath,
          gateParkRadius, systemK } from './fleet.js';
@@ -57,6 +58,18 @@ export function mountFleetPanel(opts = {}) {
 
   /* Keep the list honest when a vessel lands somewhere new, or when an
      import brings ships in. */
+  /* The art suggestions are the frame ids, since those are the names the
+     shipped images use. Built here rather than written into the markup so
+     adding a frame adds its suggestion. */
+  const dl = document.getElementById('fleet-sprite-names');
+  if (dl && !dl.children.length) {
+    for (const f of FRAME_LIST) {
+      const o = document.createElement('option');
+      o.value = f.id;
+      dl.appendChild(o);
+    }
+  }
+
   store.subscribe(() => { if (!panel.hidden) render(); }, ['ships']);
   window.addEventListener('langchange', () => { if (!panel.hidden) render(); });
   render();

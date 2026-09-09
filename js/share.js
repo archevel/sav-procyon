@@ -1,15 +1,13 @@
 /* Sharing.
  *
- * One payload shape, two transports out:
+ * One payload, one way out: a PNG card with the data in a tEXt chunk. It
+ * previews in a chat and imports here, so it does both jobs a share has, and
+ * anything else offered alongside would be a weaker option next to it — a URL
+ * cannot carry portraits at any useful size, and a JSON file carries the same
+ * bytes with nothing to look at.
  *
- *   link   #d=<deflated base64>   small, text only, images left behind
- *   png    a card with the payload in a tEXt chunk — previews in a chat AND
- *          imports here, which is the reason this format exists
- *
- * There is deliberately no second file format. The PNG carries everything a
- * plain JSON export would, so offering both would only ask the sender to
- * choose between two files with identical contents. Import still ACCEPTS
- * JSON, so a file exported before this stays usable.
+ * Import still ACCEPTS JSON, so a file exported by an older version, or one
+ * written by hand, stays usable.
  *
  * Import never overwrites without being told to. Every incoming record is
  * matched by `originId`, which survives export, and the recipient chooses per
@@ -24,26 +22,19 @@ import { shareCard } from './share-card.js';
 
 export const PAYLOAD_VERSION = 1;
 
-/* Beyond this a link stops being reliable — Safari and several chat clients
-   truncate long URLs silently, which is the worst way to find a limit. */
-export const LINK_LIMIT = 6000;
-
 /* --------------------------------------------------------------- payload */
 
 /**
  * Build the payload for a set of selected items.
  *
- * `withImages` decides whether asset bytes travel. A link cannot carry them at
- * any useful size, so it passes false and the recipient is told what was left
- * behind rather than silently receiving a sheet with broken portraits.
+ * Images always travel: the only transport is a file, and a sheet that
+ * arrives without its portraits is a worse share than a larger one.
  */
-export async function buildPayload(items, { withImages = true, from = null } = {}) {
+export async function buildPayload(items, { from = null } = {}) {
   const assets = {};
-  if (withImages) {
-    for (const id of collectAssetIds(items)) {
-      const a = await store.getAsset(id);
-      if (a) assets[id] = { mime: a.mime, w: a.w, h: a.h, data: await blobToBase64(a.blob) };
-    }
+  for (const id of collectAssetIds(items)) {
+    const a = await store.getAsset(id);
+    if (a) assets[id] = { mime: a.mime, w: a.w, h: a.h, data: await blobToBase64(a.blob) };
   }
   return {
     v: PAYLOAD_VERSION,
@@ -61,37 +52,6 @@ function collectAssetIds(items) {
 }
 
 /* ------------------------------------------------------------- transports */
-
-/** Deflate + base64url, for the URL fragment. */
-export async function encodeLink(payload) {
-  const json = new TextEncoder().encode(JSON.stringify(payload));
-  const cs = new CompressionStream('deflate-raw');
-  const packed = new Uint8Array(await new Response(
-    new Blob([json]).stream().pipeThrough(cs)).arrayBuffer());
-  /* base64url so the fragment needs no escaping and survives being pasted
-     into a chat that treats +/= as punctuation. */
-  return btoa(String.fromCharCode(...packed))
-    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-}
-
-export async function decodeLink(fragment) {
-  const b64 = fragment.replace(/-/g, '+').replace(/_/g, '/');
-  const bin = atob(b64);
-  const bytes = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-  const ds = new DecompressionStream('deflate-raw');
-  const json = await new Response(
-    new Blob([bytes]).stream().pipeThrough(ds)).text();
-  return JSON.parse(json);
-}
-
-/** Full share URL for a payload, and whether it is short enough to trust. */
-export async function shareUrl(payload) {
-  const encoded = await encodeLink(payload);
-  const base = location.href.split('#')[0];
-  const url = `${base}#d=${encoded}`;
-  return { url, bytes: url.length, ok: url.length <= LINK_LIMIT };
-}
 
 /** A PNG that both previews as a card and carries the payload. */
 export async function sharePng(items, payload) {
