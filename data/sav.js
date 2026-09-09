@@ -1,13 +1,17 @@
 /* Scum & Villainy — the mechanical skeleton of a sheet.
  *
- * Names, structure and numbers only. What an ability or an item DOES is not
- * reproduced here: that text is Evil Hat's, and the sheets give every entry a
- * free notes field for the player to paste or paraphrase their own copy. This
- * file exists so a sheet knows what fields exist, how many dots go where, and
- * what a track's length is — nothing that substitutes for owning the book.
+ * IDENTIFIERS, structure and numbers only. Every entry here is a key, never a
+ * display name: what the player reads comes from data/i18n/strings.js under
+ * `sav.<id>`, so the sheets are as translatable as the rest of the map.
  *
- * Everything is data, so a group running a variant can edit this file alone
- * and both sheets follow.
+ * What an ability or an item DOES is not reproduced anywhere: that text is
+ * Evil Hat's, and the sheets give every entry a free notes field for the
+ * player to keep their own summary. This file says what fields exist, how
+ * many dots go where and how long a track is — nothing that substitutes for
+ * owning the book.
+ *
+ * A group running a variant edits this file and adds the matching strings;
+ * both sheets follow.
  */
 
 /* ------------------------------------------------------------- characters */
@@ -35,79 +39,79 @@ export const STARTING_DOTS = 7;       // dots to spend at creation, beyond the
 /**
  * Playbooks.
  *
- * `startingAction` is the single dot the playbook begins with; `abilities` are
- * the special-ability NAMES to choose from, and `items` the playbook-specific
- * gear. Descriptions belong in the book.
+ * `startingAction` is the single dot the playbook begins with; `abilities`
+ * and `items` are the ids to choose from. Names live in the string catalogue,
+ * descriptions in the book.
  */
 export const PLAYBOOKS = {
   muscle: {
-    id: 'muscle', name: 'Muscle', startingAction: 'scrap',
-    abilities: ['Battle-Hardened', 'Bodyguard', 'Ghost Fighter', 'Mule',
-                'Not to be Trifled With', 'Savage', 'Vigorous'],
-    items: ['Blade or Baton', 'Heavy Pistol', 'Scary Weapon', 'Armor',
-            'Heavy Armor', 'Breaching Charge']
+    id: 'muscle', startingAction: 'scrap',
+    abilities: ['battle-hardened', 'bodyguard', 'ghost-fighter', 'mule',
+                'not-to-be-trifled-with', 'savage', 'vigorous'],
+    items: ['blade-or-baton', 'heavy-pistol', 'scary-weapon', 'armor',
+            'heavy-armor', 'breaching-charge']
   },
   pilot: {
-    id: 'pilot', name: 'Pilot', startingAction: 'helm',
-    abilities: ['Ace', 'Born to the Black', 'Hard Burn', 'Reflexes',
-                'Sixth Sense', 'Wingman', 'Fly Casual'],
-    items: ['Flight Suit', 'Toolkit', 'Lucky Charm', 'Spare Parts',
-            'Docking Clamps', 'Nav Charts']
+    id: 'pilot', startingAction: 'helm',
+    abilities: ['ace', 'born-to-the-black', 'hard-burn', 'reflexes',
+                'sixth-sense', 'wingman', 'fly-casual'],
+    items: ['flight-suit', 'toolkit', 'lucky-charm', 'spare-parts',
+            'docking-clamps', 'nav-charts']
   },
   speaker: {
-    id: 'speaker', name: 'Speaker', startingAction: 'consort',
-    abilities: ['Like Part of the Family', 'Mesmerism', 'Subterfuge',
-                'Trust Me', 'Well Connected', 'Jaded', 'Weird Contacts'],
-    items: ['Fine Clothes', 'Documents', 'Credit Chits', 'Recorder',
-            'Disguise Kit', 'Gift']
+    id: 'speaker', startingAction: 'consort',
+    abilities: ['like-part-of-the-family', 'mesmerism', 'subterfuge',
+                'trust-me', 'well-connected', 'jaded', 'weird-contacts'],
+    items: ['fine-clothes', 'documents', 'credit-chits', 'recorder',
+            'disguise-kit', 'gift']
   },
   scoundrel: {
-    id: 'scoundrel', name: 'Scoundrel', startingAction: 'skulk',
-    abilities: ['Ghost Echo', 'Infiltrator', 'Shadow', 'Slippery',
-                'Cloak and Dagger', 'Scout', 'Thief'],
-    items: ['Climbing Gear', 'Lockpicks', 'Silenced Pistol', 'Stealth Suit',
-            'Scanner', 'Smoke Grenade']
+    id: 'scoundrel', startingAction: 'skulk',
+    abilities: ['ghost-echo', 'infiltrator', 'shadow', 'slippery',
+                'cloak-and-dagger', 'scout', 'thief'],
+    items: ['climbing-gear', 'lockpicks', 'silenced-pistol', 'stealth-suit',
+            'scanner', 'smoke-grenade']
   },
   stitch: {
-    id: 'stitch', name: 'Stitch', startingAction: 'doctor',
-    abilities: ['Alchemist', 'Battlefield Medic', 'Physicker', 'Surgeon',
-                'Bedside Manner', 'Chemist', 'Ghost Ward'],
-    items: ['Medkit', 'Surgical Kit', 'Drugs', 'Sedatives',
-            'Bio-Scanner', 'Stim Injector']
+    id: 'stitch', startingAction: 'doctor',
+    abilities: ['alchemist', 'battlefield-medic', 'physicker', 'surgeon',
+                'bedside-manner', 'chemist', 'ghost-ward'],
+    items: ['medkit', 'surgical-kit', 'drugs', 'sedatives',
+            'bio-scanner', 'stim-injector']
   },
   mechanic: {
-    id: 'mechanic', name: 'Mechanic', startingAction: 'rig',
-    abilities: ['Ancient Interface', 'Artificer', 'Bantam', 'Functional',
-                'Grease Monkey', 'Tinkerer', 'Overclock'],
-    items: ['Toolkit', 'Heavy Tools', 'Spare Parts', 'Welding Gear',
-            'Repair Drone', 'Diagnostic Scanner']
+    id: 'mechanic', startingAction: 'rig',
+    abilities: ['ancient-interface', 'artificer', 'bantam', 'functional',
+                'grease-monkey', 'tinkerer', 'overclock'],
+    items: ['toolkit', 'heavy-tools', 'spare-parts', 'welding-gear',
+            'repair-drone', 'diagnostic-scanner']
   },
   mystic: {
-    id: 'mystic', name: 'Mystic', startingAction: 'attune',
-    abilities: ['Ghost Voice', 'Precognition', 'The Way', 'Warded',
-                'Ritual', 'Compel', 'Tempest']
+    id: 'mystic', startingAction: 'attune',
+    abilities: ['ghost-voice', 'precognition', 'the-way', 'warded',
+                'ritual', 'compel', 'tempest']
   }
 };
 
 /** Playbooks as a list, for menus. */
 export const PLAYBOOK_LIST = Object.values(PLAYBOOKS);
 
-/** Heritages and backgrounds — origin fields, chosen or written freely. */
-export const HERITAGES   = ['Coreworlder', 'Rim Dweller', 'Voidborn',
-                            'Colonist', 'Xeno', 'Synthetic'];
-export const BACKGROUNDS = ['Academic', 'Labor', 'Military', 'Noble',
-                            'Trade', 'Underworld', 'Wanderer'];
+/** Heritages and backgrounds — origin fields. */
+export const HERITAGES   = ['coreworlder', 'rim-dweller', 'voidborn',
+                            'colonist', 'xeno', 'synthetic'];
+export const BACKGROUNDS = ['academic', 'labor', 'military', 'noble',
+                            'trade', 'underworld', 'wanderer'];
 
 /** Vices — what a character indulges to clear stress. */
-export const VICES = ['Faith', 'Gambling', 'Luxury', 'Obligation',
-                      'Pleasure', 'Stupor', 'Weird'];
+export const VICES = ['faith', 'gambling', 'luxury', 'obligation',
+                      'pleasure', 'stupor', 'weird'];
 
 /* Tracks. Stress fills up and is cleared by indulging a vice; taking stress
    past the end of the track inflicts trauma. */
 export const STRESS_MAX  = 9;
 export const TRAUMA_MAX  = 4;
-export const TRAUMAS = ['Cold', 'Haunted', 'Obsessed', 'Paranoid',
-                        'Reckless', 'Soft', 'Unstable', 'Vicious'];
+export const TRAUMAS = ['cold', 'haunted', 'obsessed', 'paranoid',
+                        'reckless', 'soft', 'unstable', 'vicious'];
 
 /** Harm, by severity. Each level has a fixed number of slots. */
 export const HARM_LEVELS = [
@@ -126,8 +130,8 @@ export const LOADS = [
 
 /** Gear every character can carry, independent of playbook. */
 export const COMMON_ITEMS = [
-  'Blaster', 'Blade', 'Throwing Blades', 'Comms Unit', 'Rebreather',
-  'Armor', 'Tools', 'Rations', 'Rope', 'Med Patch'
+  'blaster', 'blade', 'throwing-blades', 'comms-unit', 'rebreather',
+  'armor', 'tools', 'rations', 'rope', 'med-patch'
 ];
 
 export const XP_TRACKS = { playbook: 8, attribute: 6 };
@@ -142,11 +146,11 @@ export const XP_TRACKS = { playbook: 8, attribute: 6 };
  * description of it.
  */
 export const FRAMES = {
-  cerberus: { id: 'cerberus', name: 'Cerberus', hull: 2, engines: 2,
+  cerberus: { id: 'cerberus', hull: 2, engines: 2,
               comms: 1, weapons: 2, slots: 6 },
-  stardancer: { id: 'stardancer', name: 'Stardancer', hull: 2, engines: 2,
+  stardancer: { id: 'stardancer', hull: 2, engines: 2,
                 comms: 2, weapons: 1, slots: 6 },
-  firedrake: { id: 'firedrake', name: 'Firedrake', hull: 3, engines: 1,
+  firedrake: { id: 'firedrake', hull: 3, engines: 1,
                comms: 1, weapons: 2, slots: 6 }
 };
 export const FRAME_LIST = Object.values(FRAMES);
@@ -158,11 +162,11 @@ export const MAX_SYSTEM_RATING = 3;
 
 /** Upgrades a ship can take, by the area they belong to. */
 export const SHIP_UPGRADES = {
-  engines: ['Superior Engines', 'Bulk Fuel', 'Silent Running', 'Boost Thrusters'],
-  hull:    ['Reinforced Hull', 'Armor Plating', 'Cargo Hold', 'Hidden Hold'],
-  comms:   ['Sensor Array', 'Jamming Suite', 'Encrypted Comms', 'Long-Range Array'],
-  weapons: ['Turret', 'Heavy Cannon', 'Missiles', 'Point Defence'],
-  crew:    ['Medical Bay', 'Workshop', 'Galley', 'Quarters', 'Brig']
+  engines: ['superior-engines', 'bulk-fuel', 'silent-running', 'boost-thrusters'],
+  hull:    ['reinforced-hull', 'armor-plating', 'cargo-hold', 'hidden-hold'],
+  comms:   ['sensor-array', 'jamming-suite', 'encrypted-comms', 'long-range-array'],
+  weapons: ['turret', 'heavy-cannon', 'missiles', 'point-defence'],
+  crew:    ['medical-bay', 'workshop', 'galley', 'quarters', 'brig']
 };
 
 export const SHIP_XP_TRACK = 8;

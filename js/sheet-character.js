@@ -174,9 +174,13 @@ function kitSection(rec, save) {
   const pb = SAV.PLAYBOOKS[rec.playbook];
   const wrap = el('div', 'sheet-kit');
 
-  wrap.appendChild(choice(t('sheet.load'), rec.load,
-    SAV.LOADS.map(l => ({ id: l.id, name: `${t('load.' + l.id)} (${l.slots})` })),
-    v => save({ load: v }), { blank: null }));
+  /* Load keys its own strings rather than the sav.* vocabulary, so it passes
+     its own namer; the slot count is appended because that is the only thing
+     load actually decides. */
+  wrap.appendChild(choice(t('sheet.load'), rec.load, SAV.LOADS,
+    v => save({ load: v }),
+    { blank: null,
+      name: id => `${t('load.' + id)} (${SAV.LOADS.find(l => l.id === id).slots})` }));
 
   /* Playbook items are listed with the common gear rather than separately:
      what matters when packing is the single list of everything available. */

@@ -13,6 +13,7 @@
 import { t } from '../data/i18n.js';
 import * as store from './store.js';
 import * as SAV from '../data/sav.js';
+import { savName } from './sheet-parts.js';
 import { SECTOR } from '../data/sector.js';
 
 const W = 1000, H = 560;
@@ -30,8 +31,10 @@ export async function characterCard(rec) {
   if (rec.portrait) await drawPortrait(g, rec.portrait.assetId, 56, 56, 300, 300);
 
   heading(g, rec.name || '—', x, 108);
-  const pb = SAV.PLAYBOOKS[rec.playbook];
-  sub(g, [pb?.name, rec.heritage, rec.background].filter(Boolean).join(' · '), x, 142);
+  /* Every one of these is an id in the record; the card shows them in the
+     reader's language like anywhere else. */
+  sub(g, [rec.playbook, rec.heritage, rec.background]
+        .filter(Boolean).map(savName).join(' · '), x, 142);
 
   let y = 190;
   if (rec.blurb) y = paragraph(g, rec.blurb, x, y, W - x - 56) + 18;
@@ -61,7 +64,7 @@ export async function characterCard(rec) {
   if (rec.trauma?.length) {
     g.fillStyle = WARN;
     g.font = `bold 14px ${MONO}`;
-    g.fillText(rec.trauma.join(' · ').toUpperCase(), 300, footY - 4);
+    g.fillText(rec.trauma.map(savName).join(' · ').toUpperCase(), 300, footY - 4);
   }
 
   frame(g);
@@ -78,8 +81,8 @@ export async function shipCard(rec) {
   if (rec.portrait) await drawPortrait(g, rec.portrait.assetId, 56, 56, 300, 300);
 
   heading(g, rec.name || '—', x, 108);
-  const frameName = SAV.FRAMES[rec.frame]?.name;
-  sub(g, [frameName, rec.look].filter(Boolean).join(' · '), x, 142);
+  sub(g, [rec.frame ? savName(rec.frame) : null, rec.look]
+        .filter(Boolean).join(' · '), x, 142);
 
   let y = 190;
   if (rec.blurb) y = paragraph(g, rec.blurb, x, y, W - x - 56) + 18;
@@ -101,7 +104,7 @@ export async function shipCard(rec) {
     label(g, t('sheet.upgrades'), 56, footY - 22);
     g.fillStyle = SOFT;
     g.font = `13px ${MONO}`;
-    g.fillText(clip(g, upgrades.join(' · '), W - 112), 56, footY - 2);
+    g.fillText(clip(g, upgrades.map(savName).join(' · '), W - 112), 56, footY - 2);
   }
 
   frame(g);
@@ -162,8 +165,8 @@ async function crewCard(crew, items) {
     /* The one line that says what this is: a frame for a ship, a playbook for
        a character. */
     const kind = it.store === 'ships'
-      ? SAV.FRAMES[it.record.frame]?.name
-      : SAV.PLAYBOOKS[it.record.playbook]?.name;
+      ? (it.record.frame ? savName(it.record.frame) : null)
+      : (it.record.playbook ? savName(it.record.playbook) : null);
     if (kind) {
       g.fillStyle = SOFT;
       g.font = `13px ${MONO}`;

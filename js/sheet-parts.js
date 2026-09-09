@@ -13,6 +13,17 @@ import { t } from '../data/i18n.js';
 import { CLOCK_SIZES, DEFAULT_CLOCK_SIZE } from '../data/sav.js';
 import * as store from './store.js';
 
+/**
+ * Display name for a Scum & Villainy id.
+ *
+ * Every list in data/sav.js holds ids; this is the single place they become
+ * words. An id with no entry falls through to t()'s own missing-key marker,
+ * so a gap is visible on the page rather than silently blank.
+ */
+export function savName(id) {
+  return id ? t('sav.' + id) : '';
+}
+
 export function el(tag, cls, text) {
   const n = document.createElement(tag);
   if (cls) n.className = cls;
@@ -238,7 +249,8 @@ export function field(label, value, onChange, { list = null, placeholder = '' } 
 }
 
 /** A labelled select. */
-export function choice(label, value, options, onChange, { blank = '—' } = {}) {
+export function choice(label, value, options, onChange,
+                       { blank = '—', name = savName } = {}) {
   const wrap = el('label', 'sheet-field');
   wrap.appendChild(el('span', 'sheet-field-label', label));
   const sel = el('select', 'sheet-field-input');
@@ -247,9 +259,10 @@ export function choice(label, value, options, onChange, { blank = '—' } = {}) 
     sel.appendChild(o);
   }
   for (const opt of options) {
+    /* Options are ids, whether given bare or as records; what the player
+       reads is looked up, so a menu is as translatable as any other text. */
     const id  = typeof opt === 'string' ? opt : opt.id;
-    const txt = typeof opt === 'string' ? opt : opt.name;
-    const o = el('option', null, txt);
+    const o = el('option', null, name(id, opt));
     o.value = id;
     if (id === value) o.selected = true;
     sel.appendChild(o);
@@ -265,7 +278,8 @@ export function choice(label, value, options, onChange, { blank = '—' } = {}) 
  * Used for special abilities and items, where the sheet tracks WHICH were
  * taken; what each one does stays in the book.
  */
-export function picks(options, chosen, onChange, { note: withNote = false } = {}) {
+export function picks(options, chosen, onChange,
+                      { note: withNote = false, name = savName } = {}) {
   const wrap = el('div', 'sheet-picks');
   const set = new Set(chosen || []);
   for (const opt of options) {
@@ -274,12 +288,14 @@ export function picks(options, chosen, onChange, { note: withNote = false } = {}
     cb.type = 'checkbox';
     cb.checked = set.has(opt);
     cb.addEventListener('change', () => {
+      /* The STORED value is always the id; only the label is translated, so
+         a sheet filled in one language reads correctly in the other. */
       const next = new Set(set);
       cb.checked ? next.add(opt) : next.delete(opt);
       onChange([...next]);
     });
     row.appendChild(cb);
-    row.appendChild(el('span', 'sheet-pick-label', opt));
+    row.appendChild(el('span', 'sheet-pick-label', name(opt)));
     wrap.appendChild(row);
   }
   if (withNote) wrap.appendChild(el('p', 'sheet-picks-note', t('sheet.picksNote')));

@@ -8,7 +8,7 @@
 
 import { t } from '../data/i18n.js';
 import * as store from './store.js';
-import { PLAYBOOK_LIST } from '../data/sav.js';
+import { savName } from './sheet-parts.js';
 import { renderCharacterSheet, blankCharacter } from './sheet-character.js';
 
 let panel, listEl, sheetEl;
@@ -86,14 +86,14 @@ function showRoster(rows) {
   }
 
   listEl.innerHTML = rows.map(c => {
-    const pb = PLAYBOOK_LIST.find(p => p.id === c.playbook);
     return `<div class="fleet-row" data-id="${c.id}">
       <div class="fleet-row-top">
         <button class="crew-open" data-open="${c.id}">${esc(c.name)}</button>
         <button class="fleet-x" data-del="${c.id}"
                 title="${esc(t('crew.delete'))}">×</button>
       </div>
-      <span class="fleet-where">${pb ? esc(pb.name) : esc(t('crew.noPlaybook'))}</span>
+      <span class="fleet-where">${c.playbook ? esc(savName(c.playbook))
+                                                  : esc(t('crew.noPlaybook'))}</span>
     </div>`;
   }).join('');
 
