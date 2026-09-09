@@ -14,6 +14,7 @@ import { t } from '../data/i18n.js';
 import * as store from './store.js';
 import * as SAV from '../data/sav.js';
 import { savName } from './sheet-parts.js';
+import { shipArt } from './sheet-ship.js';
 import { SECTOR } from '../data/sector.js';
 
 const W = 1000, H = 560;
@@ -25,10 +26,9 @@ export async function characterCard(rec) {
   const c = base();
   const g = c.getContext('2d');
 
-  const portraitW = rec.portrait ? 300 : 0;
-  const x = 56 + portraitW + (portraitW ? 40 : 0);
-
-  if (rec.portrait) await drawPortrait(g, rec.portrait.assetId, 56, 56, 300, 300);
+  const pic = pictureOf(rec);
+  const x = 56 + (pic ? 340 : 0);
+  await drawPicture(g, pic, 56, 56, 300, 300);
 
   heading(g, rec.name || '—', x, 108);
   /* Every one of these is an id in the record; the card shows them in the
@@ -76,9 +76,10 @@ export async function shipCard(rec) {
   const c = base();
   const g = c.getContext('2d');
 
-  const portraitW = rec.portrait ? 300 : 0;
-  const x = 56 + portraitW + (portraitW ? 40 : 0);
-  if (rec.portrait) await drawPortrait(g, rec.portrait.assetId, 56, 56, 300, 300);
+  /* A vessel with no uploaded portrait still has its frame's chart art. */
+  const pic = pictureOf(rec);
+  const x = 56 + (pic ? 340 : 0);
+  await drawPicture(g, pic, 56, 56, 300, 300);
 
   heading(g, rec.name || '—', x, 108);
   sub(g, [rec.frame ? savName(rec.frame) : null, rec.look]
@@ -152,8 +153,8 @@ async function crewCard(crew, items) {
   for (let i = 0; i < shown.length; i++) {
     const it = shown[i];
     const x = x0 + i * (cell + gap);
-    const portrait = it.record.portrait;
-    if (portrait) await drawPortrait(g, portrait.assetId, x, y0, cell, cell);
+    const pic = pictureOf(it.record);
+    if (pic) await drawPicture(g, pic, x, y0, cell, cell);
     else placeholder(g, x, y0, cell, cell, it.store === 'ships' ? '▶' : '☻');
 
     g.fillStyle = INK;
@@ -352,11 +353,54 @@ function clip(g, text, width) {
   return s + '…';
 }
 
-async function drawPortrait(g, assetId, x, y, w, h) {
-  const asset = await store.getAsset(assetId);
-  if (!asset) return;
-  const bmp = await createImageBitmap(asset.blob);
-  /* Cover the box, centred — a portrait cropped is better than one squashed. */
+/**
+ * What picture a record has, if any.
+ *
+ * An uploaded portrait wins; a vessel with none falls back to its frame's
+ * chart art, so a shared ship arrives looking like the ship rather than as an
+ * empty box. Characters have no such fallback — there is no generic portrait
+ * that would say anything true about one.
+ */
+function pictureOf(rec) {
+  if (rec.portrait?.assetId) return { kind: 'asset', id: rec.portrait.assetId };
+  /* Only a vessel has a fallback, and shipArt returns null without a frame or
+     sprite — so this is inert for a character rather than merely happening to
+     miss. */
+  const art = shipArt(rec);
+  return art ? { kind: 'url', url: artUrl(`img/ship-${art}.webp`) } : null;
+}
+
+/* Resolve chart art against THIS MODULE rather than the page. A bare relative
+   path resolves against the document, so it works from index.html and 404s
+   from anything served out of another directory — the dev pages under js/,
+   and any future page not at the root. */
+function artUrl(path) {
+  return new URL('../' + path, import.meta.url).href;
+}
+
+/** Draw whichever source pictureOf found, cropped to fill the box. */
+async function drawPicture(g, pic, x, y, w, h) {
+  if (!pic) return;
+  let blobOrUrl;
+  if (pic.kind === 'asset') {
+    const asset = await store.getAsset(pic.id);
+    if (!asset) return;
+    blobOrUrl = asset.blob;
+  } else {
+    /* The art is served from this origin, so it can be fetched and decoded
+       the same way an uploaded image is — no canvas tainting to worry about. */
+    const res = await fetch(pic.url).catch(() => null);
+    if (!res?.ok) return;
+    blobOrUrl = await res.blob();
+  }
+  const bmp = await createImageBitmap(blobOrUrl).catch(() => null);
+  if (!bmp) return;
+  paintBitmap(g, bmp, x, y, w, h);
+  bmp.close?.();
+}
+
+function paintBitmap(g, bmp, x, y, w, h) {
+  /* Cover the box, centred — a picture cropped is better than one squashed. */
   const scale = Math.max(w / bmp.width, h / bmp.height);
   const dw = bmp.width * scale, dh = bmp.height * scale;
   g.save();
@@ -366,7 +410,6 @@ async function drawPortrait(g, assetId, x, y, w, h) {
   g.restore();
   g.strokeStyle = INK; g.lineWidth = 2;
   g.strokeRect(x, y, w, h);
-  bmp.close?.();
 }
 
 function toBlob(canvas) {
