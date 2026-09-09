@@ -1014,3 +1014,22 @@ body.in-system .orbit-layer .o-body { pointer-events: auto; }
 }
 .share-pick-file { cursor: pointer; }
 .share-pick-file input { display: none; }
+
+/* Portrait chooser: shipped art and the player's own, one selected. */
+.sheet-portraits {
+  display: flex; flex-wrap: wrap; gap: .6vmin; margin: .5vmin 0 0;
+}
+.sheet-portrait-opt {
+  position: relative; width: 7vmin; height: 7vmin; cursor: pointer;
+  border: max(1px, .12vmin) solid var(--ink);
+}
+.sheet-portrait-opt img {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+  filter: grayscale(1) contrast(1.15);
+  opacity: .5; transition: opacity 140ms;
+}
+.sheet-portrait-opt:hover img { opacity: .85; }
+/* The chosen one is full strength and ringed, so the selection reads at a
+   glance in a row that will grow long. */
+.sheet-portrait-opt.is-on { outline: max(2px, .3vmin) solid var(--ink); }
+.sheet-portrait-opt.is-on img { opacity: 1; }

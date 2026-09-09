@@ -15,6 +15,7 @@ import * as store from './store.js';
 import * as SAV from '../data/sav.js';
 import { savName } from './sheet-parts.js';
 import { shipArt } from './sheet-ship.js';
+import { portraitById } from '../data/portraits.js';
 import { SECTOR } from '../data/sector.js';
 
 /* Proportions of the card. Shorter than it was: the old height left a band of
@@ -452,9 +453,12 @@ function clip(g, text, width) {
  */
 function pictureOf(rec) {
   if (rec.portrait?.assetId) return { kind: 'asset', id: rec.portrait.assetId };
-  /* Only a vessel has a fallback, and shipArt returns null without a frame or
-     sprite — so this is inert for a character rather than merely happening to
-     miss. */
+  /* A character may instead name one of the shipped portraits. */
+  const p = rec.portraitId ? portraitById(rec.portraitId) : null;
+  if (p) return { kind: 'url', url: artUrl(p.url) };
+  /* And a vessel falls back to its frame. shipArt returns null without a
+     frame or sprite, so this is inert for a character rather than merely
+     happening to miss. */
   const art = shipArt(rec);
   return art ? { kind: 'url', url: artUrl(`img/ship-${art}.webp`) } : null;
 }

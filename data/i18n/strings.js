@@ -232,6 +232,7 @@ export const STRINGS = {
   'sheet.background':{ sv: 'Bakgrund',     en: 'Background' },
   'sheet.vice':      { sv: 'Last',         en: 'Vice' },
   'sheet.look':      { sv: 'Utseende',     en: 'Look' },
+  'sheet.portrait':  { sv: 'Porträtt',     en: 'Portrait' },
   'sheet.startingAction': { sv: 'Arketypens startprick: %s',
                             en: 'Playbook starting dot: %s' },
   'sheet.actions':   { sv: 'Handlingar',   en: 'Actions' },

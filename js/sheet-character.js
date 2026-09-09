@@ -15,7 +15,22 @@ import { t } from '../data/i18n.js';
 import * as store from './store.js';
 import * as SAV from '../data/sav.js';
 import { el, dots, track, clock, newClock, note, newNote, imageStrip,
-         field, choice, picks, section } from './sheet-parts.js';
+         field, choice, picks, section, portraitPicker } from './sheet-parts.js';
+import { PORTRAITS, portraitById, defaultPortraitFor } from '../data/portraits.js';
+
+/**
+ * The art a character uses, as a URL, or null.
+ *
+ * Two sources, and an uploaded image always wins: `portrait` holds an asset
+ * the player added, `portraitId` names one of the shipped files. Keeping them
+ * apart means choosing a shipped portrait never destroys an upload, and a
+ * shared character carries whichever it actually uses.
+ */
+export function characterArtUrl(rec) {
+  if (rec?.portrait?.assetId) return null;      // an asset — the caller resolves it
+  const p = rec?.portraitId ? portraitById(rec.portraitId) : null;
+  return p ? p.url : null;
+}
 
 /** A blank character, with every mechanical field present from the start so
     the sheet never has to guess whether something exists. */
@@ -29,7 +44,7 @@ export function blankCharacter(name) {
     healing: 0,
     load: 'normal', items: [], abilities: [],
     xp: { playbook: 0, insight: 0, prowess: 0, resolve: 0 },
-    portrait: null, clocks: [], notes: [], fields: []
+    portrait: null, portraitId: null, clocks: [], notes: [], fields: []
   };
 }
 
@@ -81,7 +96,17 @@ function identity(rec, save) {
   const pb = SAV.PLAYBOOKS[rec.playbook];
   const grid = el('div', 'sheet-grid');
   grid.appendChild(choice(t('sheet.playbook'), rec.playbook, SAV.PLAYBOOK_LIST,
-    v => save({ playbook: v })));
+    v => {
+      /* Choosing a playbook offers a portrait for it, but only when the
+         character has none: art the player picked or uploaded is theirs, and
+         changing playbook must not quietly repaint them. */
+      const patch = { playbook: v };
+      if (!rec.portrait && !rec.portraitId) {
+        const p = defaultPortraitFor(v);
+        if (p) patch.portraitId = p.id;
+      }
+      save(patch);
+    }));
   grid.appendChild(field(t('sheet.alias'), rec.alias, v => save({ alias: v })));
   grid.appendChild(choice(t('sheet.heritage'), rec.heritage, SAV.HERITAGES,
     v => save({ heritage: v })));
@@ -101,12 +126,19 @@ function identity(rec, save) {
   blurb.addEventListener('blur', () => save({ blurb: blurb.value }));
 
   const portrait = el('div', 'sheet-portrait');
-  portrait.appendChild(imageStrip(rec.portrait ? [rec.portrait] : [], {
-    onAddImage: async file => {
+  portrait.appendChild(el('span', 'sheet-field-label', t('sheet.portrait')));
+  portrait.appendChild(portraitPicker({
+    shipped: PORTRAITS,
+    selectedId: rec.portraitId,
+    asset: rec.portrait,
+    /* Picking shipped art clears any upload, so exactly one is in force —
+       but the asset itself survives in the store until nothing cites it. */
+    onPick: id => save({ portraitId: id, portrait: null }),
+    onUpload: async file => {
       const a = await store.putAsset(file);
       save({ portrait: { assetId: a.id, caption: '' } });
     },
-    onRemoveImage: () => save({ portrait: null })
+    onClear: () => save({ portrait: null })
   }));
 
   const body = section(t('sheet.identity'), grid, blurb, portrait);

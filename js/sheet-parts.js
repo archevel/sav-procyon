@@ -236,6 +236,61 @@ export function imageStrip(images, { onAddImage, onRemoveImage }) {
   return wrap;
 }
 
+/**
+ * Portrait chooser: the shipped art, plus whatever the player uploaded.
+ *
+ * One row of thumbnails where exactly one is selected. Clicking a shipped
+ * portrait selects it; the upload slot at the end adds a file and selects
+ * that. Choosing a shipped portrait never deletes an upload, so switching
+ * back and forth costs nothing.
+ */
+export function portraitPicker({ shipped, selectedId, asset, onPick, onUpload,
+                                 onClear }) {
+  const wrap = el('div', 'sheet-portraits');
+
+  /* The uploaded image comes first when there is one: it is the player's own
+     and should not be hunted for at the end of a growing list. */
+  if (asset) {
+    const fig = el('div', 'sheet-portrait-opt is-on');
+    const im = el('img');
+    store.assetUrl(asset.assetId).then(url => { if (url) im.src = url; });
+    fig.appendChild(im);
+    const x = el('button', 'sheet-x sheet-image-x', '×');
+    x.type = 'button';
+    x.title = t('sheet.remove');
+    x.addEventListener('click', e => { e.stopPropagation(); onClear(); });
+    fig.appendChild(x);
+    wrap.appendChild(fig);
+  }
+
+  for (const p of shipped) {
+    const fig = el('div', 'sheet-portrait-opt'
+      + (!asset && p.id === selectedId ? ' is-on' : ''));
+    const im = el('img');
+    im.src = p.url;
+    im.alt = '';
+    im.loading = 'lazy';
+    fig.appendChild(im);
+    fig.addEventListener('click', () => onPick(p.id));
+    wrap.appendChild(fig);
+  }
+
+  const add = el('label', 'sheet-image-add');
+  add.textContent = '+';
+  add.title = t('sheet.addImage');
+  const input = el('input');
+  input.type = 'file';
+  input.accept = store.ACCEPTED_IMAGE_TYPES;
+  input.addEventListener('change', async () => {
+    const file = input.files?.[0];
+    input.value = '';
+    if (file) await onUpload(file);
+  });
+  add.appendChild(input);
+  wrap.appendChild(add);
+  return wrap;
+}
+
 /** A labelled text input. */
 export function field(label, value, onChange, { list = null, placeholder = '' } = {}) {
   const wrap = el('label', 'sheet-field');
