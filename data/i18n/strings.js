@@ -11,6 +11,20 @@
 export const STRINGS = {
 
 
+
+  /* --------------- crew ------------------------------------------------- */
+  'crew.button':   { sv: 'Besättning', en: 'Crew' },
+  'crew.title':    { sv: 'Besättning', en: 'Crew' },
+  'crew.hint':     { sv: 'Rollpersoner sparas lokalt i din webbläsare.',
+                     en: 'Characters are stored locally in your browser.' },
+  'crew.add':      { sv: 'Ny rollperson', en: 'New character' },
+  'crew.empty':    { sv: 'Inga rollpersoner än.', en: 'No characters yet.' },
+  'crew.name':     { sv: 'Namn',        en: 'Name' },
+  'crew.playbook': { sv: 'Arketyp',     en: 'Playbook' },
+  'crew.delete':   { sv: 'Ta bort',     en: 'Delete' },
+  'crew.confirmDelete': { sv: 'Ta bort %s? Detta kan inte ångras.',
+                          en: 'Delete %s? This cannot be undone.' },
+
   /* --------------- player fleet ----------------------------------------- */
   'fleet.button':  { sv: 'Flotta',      en: 'Fleet' },
   'fleet.title':   { sv: 'Flotta',      en: 'Fleet' },

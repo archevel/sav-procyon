@@ -19,6 +19,7 @@ import { SOURCEBOOK } from '../data/sourcebook.js';
 import { FACTIONS } from '../data/factions-data.js';
 import * as store from './store.js';
 import { mountFleetPanel } from './fleet-ui.js';
+import { mountCrewPanel } from './crew-ui.js';
 import { setBodyPos, clearPositions, bodyPos, bodyAt, anchorTargets,
          resolveAnchor, defaultAnchor, parkRadius, makeTransit,
          describeAnchor, anchorEllipse } from './fleet.js';
@@ -1404,6 +1405,7 @@ window.addEventListener('langchange', () => {
   await renderFleet();
   // The fleet panel owns no render state: it writes anchors to the store and
   // reaches back through these hooks for the two things only the chart knows.
+  mountCrewPanel();
   mountFleetPanel({
     onSelect: id => { selectedShipId = null; selectShip(id); },
     onFocus:  sysId => {

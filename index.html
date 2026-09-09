@@ -46,6 +46,17 @@
   </div>
 </div>
 
+<!-- Player characters. -->
+<div id="crew-panel" class="loc-info-panel" hidden>
+  <div class="loc-info-content fleet-content">
+    <button id="crew-close" class="loc-info-close" aria-label="Close">×</button>
+    <h3 data-i18n="crew.title">Besättning</h3>
+    <p class="fleet-hint" data-i18n="crew.hint">Rollpersoner sparas lokalt i din webbläsare.</p>
+    <div id="crew-list"></div>
+    <button id="crew-add" class="loc-info-btn" data-i18n="crew.add">Ny rollperson</button>
+  </div>
+</div>
+
 <!-- Location level: full-bleed surface view. -->
 <div id="location-view"></div>
 
@@ -57,13 +68,18 @@
       <button data-lang="sv">SV</button>
       <button data-lang="en">EN</button>
       <button data-lang="debug" title="Debug — show i18n keys">⚙</button>
-      <button id="fleet-btn" data-i18n="fleet.button">Flotta</button>
       <button id="about-btn" data-i18n="about.button">Om</button>
     </div>
   </div>
   <div id="breadcrumb"></div>
   <div id="index"></div>
   <div class="hud-hint" data-i18n="hud.hint">Klicka på ett system för att zooma in · Esc för att backa</div>
+  <!-- Everything the player owns lives in one corner, apart from the chrome
+       that belongs to the sector itself. -->
+  <div id="player-switch">
+    <button id="crew-btn" data-i18n="crew.button">Besättning</button>
+    <button id="fleet-btn" data-i18n="fleet.button">Flotta</button>
+  </div>
 </div>
 
 <script type="module" src="js/app.js"></script>
