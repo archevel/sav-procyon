@@ -333,6 +333,18 @@ export async function sweepAssets(candidateIds) {
   return orphans;
 }
 
+/**
+ * Formats an upload may be in.
+ *
+ * Whatever the browser can decode is accepted, since everything is re-encoded
+ * to WebP on the way in — so this list is about what the file PICKER should
+ * offer, not about what is stored. SVG is deliberately absent: it is an
+ * image/* type, but createImageBitmap refuses it, so offering it would only
+ * produce a failure after the user had chosen a file.
+ */
+export const ACCEPTED_IMAGE_TYPES =
+  'image/png,image/jpeg,image/webp,image/gif,image/avif,image/bmp';
+
 /** Re-encode to WebP within MAX_EDGE. Images already small enough are still
     re-encoded, so every stored asset has one predictable format. */
 async function normalizeImage(fileOrBlob) {

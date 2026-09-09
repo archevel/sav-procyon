@@ -223,7 +223,9 @@ export function imageStrip(images, { onAddImage, onRemoveImage }) {
   add.title = t('sheet.addImage');
   const input = el('input');
   input.type = 'file';
-  input.accept = 'image/*';
+  /* Named types rather than image/*, so the picker does not offer SVG — an
+     image/* format the decoder refuses. */
+  input.accept = store.ACCEPTED_IMAGE_TYPES;
   input.multiple = true;
   input.addEventListener('change', async () => {
     for (const file of input.files) await onAddImage(file);
