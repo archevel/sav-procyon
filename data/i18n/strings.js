@@ -349,6 +349,9 @@ export const STRINGS = {
                            en: 'Delete %s? This cannot be undone.' },
   'fleet.unplaced':{ sv: 'Inte utplacerad', en: 'Not placed' },
   'fleet.moving':  { sv: 'Klicka på ett mål i systemet', en: 'Click a destination in the system' },
+  'fleet.move':    { sv: 'Flytta',       en: 'Move' },
+  'fleet.jump':    { sv: 'Hoppa genom porten', en: 'Jump the gate' },
+  'fleet.cancel':  { sv: 'Avbryt',       en: 'Cancel' },
 
   /* --------------- systems ---------------------------------------------- */
   'sys.rin.name':   { sv: 'Rin',   en: 'Rin' },

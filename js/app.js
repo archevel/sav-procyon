@@ -728,11 +728,25 @@ async function jumpShip(id) {
    hint only while a vessel is selected. */
 function updateFleetHint() {
   const hint = document.querySelector('.hud-hint');
-  if (!hint) return;
-  if (targeting)            hint.textContent = t('fleet.moving');
-  else if (selectedShipId)  hint.textContent = canJump() ? t('fleet.hintJump')
-                                                         : t('fleet.hintMove');
-  else                      hint.textContent = t('hud.hint');
+  if (hint) {
+    if (targeting)            hint.textContent = t('fleet.moving');
+    else if (selectedShipId)  hint.textContent = canJump() ? t('fleet.hintJump')
+                                                           : t('fleet.hintMove');
+    else                      hint.textContent = t('hud.hint');
+  }
+  /* The action bar carries the same state as buttons. Keys still work on a
+     desktop, but a phone has none, and even with one the keys were invisible
+     until this hint was read. */
+  const bar = document.getElementById('ship-actions');
+  if (bar) {
+    bar.hidden = !selectedShipId;
+    const move = document.getElementById('ship-move');
+    const jump = document.getElementById('ship-jump');
+    const cancel = document.getElementById('ship-cancel');
+    if (move)   move.hidden = targeting;
+    if (jump)   jump.hidden = targeting || !canJump();
+    if (cancel) cancel.hidden = !targeting;
+  }
 }
 
 /** True when the selected vessel is parked at a gate that leads somewhere. */
@@ -1621,6 +1635,13 @@ window.addEventListener('langchange', () => {
   // reaches back through these hooks for the two things only the chart knows.
   mountCrewPanel();
   mountSharePanel();
+  document.getElementById('ship-move')?.addEventListener('click', () => {
+    if (selectedShipId && !targeting) beginTargeting();
+  });
+  document.getElementById('ship-jump')?.addEventListener('click', () => {
+    if (selectedShipId && !targeting) jumpShip(selectedShipId);
+  });
+  document.getElementById('ship-cancel')?.addEventListener('click', () => endTargeting());
   mountFleetPanel({
     onSelect: id => { selectedShipId = null; selectShip(id); },
     onFocus:  sysId => {

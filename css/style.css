@@ -1229,3 +1229,29 @@ body.in-system .orbit-layer .o-body { pointer-events: auto; }
   .factions-title { width: 100%; font-size: 2.6vmin; padding: 1.6vmin 2vmin; }
   .faction-pill { font-size: 2.6vmin; padding: 2vmin 2.4vmin; }
 }
+
+/* Orders for the selected vessel — shown only while one is selected. */
+#ship-actions {
+  position: fixed; bottom: 6vmin; left: 50%; transform: translateX(-50%);
+  display: flex; gap: .8vmin; z-index: 55; pointer-events: auto;
+}
+#ship-actions[hidden] { display: none; }
+#ship-actions button {
+  font-family: var(--mono); font-size: 1.15vmin; font-weight: 700;
+  letter-spacing: .16em; text-transform: uppercase;
+  color: var(--paper); background: var(--ink);
+  border: max(1px, .14vmin) solid var(--ink);
+  padding: 1vmin 2vmin; cursor: pointer;
+}
+#ship-actions button:hover { background: var(--paper); color: var(--ink); }
+#ship-actions button[hidden] { display: none; }
+@media (max-width: 760px) {
+  /* Above the player buttons and the hint, where a thumb can reach it. */
+  #ship-actions { bottom: 22vmin; left: 3vmin; right: 3vmin;
+                  transform: none; }
+  #ship-actions button { flex: 1; font-size: 3vmin; padding: 3.2vmin 1vmin; }
+  /* The faction row and the order bar share the bottom band; while a vessel
+     is selected the factions step up out of its way rather than showing
+     through between the buttons. */
+  body:has(#ship-actions:not([hidden])) #factions { bottom: 36vmin; }
+}

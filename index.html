@@ -86,6 +86,13 @@
   <div class="hud-hint" data-i18n="hud.hint">Klicka på ett system för att zooma in · Esc för att backa</div>
   <!-- Everything the player owns lives in one corner, apart from the chrome
        that belongs to the sector itself. -->
+  <!-- Orders for the selected vessel. Buttons rather than only keys: M and J
+       do not exist on a phone, and even on a desktop they were invisible. -->
+  <div id="ship-actions" hidden>
+    <button id="ship-move" data-i18n="fleet.move">Flytta</button>
+    <button id="ship-jump" data-i18n="fleet.jump">Hoppa</button>
+    <button id="ship-cancel" data-i18n="fleet.cancel" hidden>Avbryt</button>
+  </div>
   <div id="player-switch">
     <button id="crew-btn" data-i18n="crew.button">Besättning</button>
     <button id="fleet-btn" data-i18n="fleet.button">Flotta</button>
