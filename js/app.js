@@ -576,7 +576,7 @@ async function makeFleetShip(rec, sysId) {
     selectShip(rec.id);
   });
 
-  return { rec, el, inner, sysId, K, r, transit: null, prev: null, heading: 0 };
+  return { rec, el, inner, sysId, K, r, transit: null, prev: null };
 }
 
 /** Position every vessel. Called from tick(), after canon bodies have
@@ -606,24 +606,14 @@ function tickFleet(t) {
     if (!p) { f.el.style.display = 'none'; continue; }
     f.el.style.display = '';
 
-    /* Point the hull along its motion. The view is squashed vertically, so
-       unsquash the delta before taking the angle or ships fly at odd pitches. */
-    if (f.prev) {
-      const dx = p.x - f.prev.x, dy = (p.y - f.prev.y) / TILT;
-      if (Math.hypot(dx, dy) > 0.008) f.heading = Math.atan2(dy, dx) * 180 / Math.PI;
-    }
     f.prev = p;
     f.y = p.y;
+    /* Translation only. Canon bodies keep a constant alignment however they
+       travel — their art is a fixed chart symbol, not a model of the thing —
+       so a vessel that swung to face its direction of motion read as a
+       different class of object and drew the eye for no reason. */
     f.inner.setAttribute('transform',
-      `translate(${p.x.toFixed(2)} ${p.y.toFixed(2)}) rotate(${f.heading.toFixed(1)})`);
-    /* Counter-rotate the label so it stays readable however the hull points.
-       The rotation is about the label's own anchor, not the hull origin —
-       rotating about the origin would swing the text around the ship. */
-    const lab = f.inner.querySelector('.o-label-fleet');
-    if (lab) {
-      const ly = lab.getAttribute('y') || 0;
-      lab.setAttribute('transform', `rotate(${(-f.heading).toFixed(1)} 0 ${ly})`);
-    }
+      `translate(${p.x.toFixed(2)} ${p.y.toFixed(2)})`);
   }
 }
 
@@ -633,7 +623,7 @@ async function commitArrival(f, dest) {
   f.rec = { ...f.rec, location: dest };
   /* The local node is already in the right place, so suppress the rebuild
      this write would otherwise trigger — rebuilding here would drop the
-     node mid-flight and lose its heading. */
+     node mid-flight and restart its approach. */
   suppressFleetRebuild = true;
   try { f.rec = await store.put('ships', f.rec); }
   finally { suppressFleetRebuild = false; }
@@ -742,7 +732,7 @@ function anchorFromClick(e, sysId, K) {
   const dist = Math.hypot(p.x, p.y / TILT);
   const phase = Math.atan2(p.y / TILT, p.x) * 180 / Math.PI;
   return { mode: 'star', system: sysId, orbit: Math.max(6, dist / K),
-           phase, period: 300, ecc: 0.22, argp: phase };
+           phase, period: 300, ecc: 0.22, argp: 0 };
 }
 
 /* ------------------------------------------------------------- orbit loop */

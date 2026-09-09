@@ -116,24 +116,44 @@ export function resolveAnchor(anchor, nowSeconds, K, TILT) {
      eccentric orbits via the same Kepler solve in tick(). `ecc` is the
      eccentricity (0 = circle) and `argp` rotates the ellipse's long axis so
      several ships at one body do not all share an orientation. */
+  /* `phase` is a BEARING: the direction from the anchor point at which the
+     vessel should sit at t=0. That is what the placement UI and the m-click
+     both mean by it, so the orbit is built around that direction rather than
+     having it treated as a raw mean anomaly.
+
+     The ellipse is therefore constructed with its periapsis toward `phase`
+     (so the vessel starts on the clicked bearing) and `argp` only offsets the
+     long axis relative to that, defaulting to none. Passing the bearing as
+     BOTH the anomaly and the axis rotation applied it twice, which sent a
+     ship clicked toward one gate off to the opposite side of the system. */
   const orbitOffset = (R, phase, period, ecc = 0, argp = 0) => {
-    const M = (phase || 0) * Math.PI / 180 + (nowSeconds / (period || 90)) * Math.PI * 2;
+    const bearing = (phase || 0) * Math.PI / 180;
+    const M = (nowSeconds / (period || 90)) * Math.PI * 2;
     let x, y;
     if (ecc > 0) {
       /* Solve M = E - e*sin(E) for the eccentric anomaly by Newton's method,
-         matching how tick() integrates the canon bodies. */
+         matching how tick() integrates the canon bodies.
+
+         R is treated as the SEMI-MAJOR axis, so the vessel swings between
+         R(1-e) and R(1+e) around the distance asked for. Pinning periapsis to
+         R instead would put apoapsis at R(1+e)/(1-e) — 1.9x the requested
+         radius at e=0.3, which carries a parked ship well away from the body
+         it is meant to be orbiting. */
+      const a = R;
       let E = M;
       for (let i = 0; i < 4; i++) E -= (E - ecc * Math.sin(E) - M) / (1 - ecc * Math.cos(E));
-      x = R * (Math.cos(E) - ecc);
-      y = R * Math.sqrt(1 - ecc * ecc) * Math.sin(E);
+      x = a * (Math.cos(E) - ecc);
+      y = a * Math.sqrt(1 - ecc * ecc) * Math.sin(E);
     } else {
       x = Math.cos(M) * R;
       y = Math.sin(M) * R;
     }
-    /* Rotate the ellipse in its own plane BEFORE squashing to the viewing
-       plane, or the tilt would shear it instead of turning it. */
-    if (argp) {
-      const c = Math.cos(argp), sn = Math.sin(argp);
+    /* Turn the whole orbit to the requested bearing, in its own plane and
+       BEFORE the squash to the viewing plane — rotating after the squash
+       would shear the ellipse instead of turning it. */
+    const rot = bearing + argp;
+    if (rot) {
+      const c = Math.cos(rot), sn = Math.sin(rot);
       const nx = x * c - y * sn; y = x * sn + y * c; x = nx;
     }
     return { x, y: y * TILT };
@@ -224,16 +244,4 @@ export function makeTransit({ from, to, ms = 2000, arc = 0.18 }) {
       };
     }
   };
-}
-
-/** Heading in degrees for a ship moving between two frames, so the sprite
-    can point where it is going. Returns null below a threshold, letting a
-    nearly-stationary ship keep its last heading instead of jittering. */
-export function headingOf(prev, cur) {
-  if (!prev) return null;
-  const dx = cur.x - prev.x, dy = cur.y - prev.y;
-  if (Math.hypot(dx, dy) < 0.01) return null;
-  /* The view is squashed vertically by TILT, so unsquash before taking the
-     angle or ships appear to fly at the wrong pitch. */
-  return Math.atan2(dy, dx) * 180 / Math.PI;
 }

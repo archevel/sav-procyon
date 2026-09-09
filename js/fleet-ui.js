@@ -193,15 +193,16 @@ function wire(ships) {
       if (v.includes(':')) {
         const [sysId, path] = v.split(':');
         const body = bodyAt(sysId, path);
-        const phase = spreadPhase(ships, s.id, sysId, path);
-        /* Give each vessel's ellipse its own orientation, tied to its slot on
-           the circle, so ships sharing a body do not trace the same path. */
+        /* `phase` is the bearing the vessel sits at; resolveAnchor turns the
+           whole orbit to it. `argp` only offsets the ellipse's long axis from
+           that bearing, so leaving it at 0 keeps the ship where it was put. */
         location = { mode: 'body', system: sysId, bodyPath: path,
-                     orbit: parkRadius(body?.size), phase, period: 60,
-                     ecc: 0.3, argp: phase };
+                     orbit: parkRadius(body?.size),
+                     phase: spreadPhase(ships, s.id, sysId, path),
+                     period: 60, ecc: 0.3, argp: 0 };
       } else if (v) {
-        const phase = spreadPhase(ships, s.id, v, null);
-        location = { ...defaultAnchor(v), phase, argp: phase };
+        location = { ...defaultAnchor(v),
+                     phase: spreadPhase(ships, s.id, v, null) };
       }
       await store.put('ships', { ...s, location });
       if (location) hooks.onFocus?.(location.system);
