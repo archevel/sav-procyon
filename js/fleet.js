@@ -85,13 +85,16 @@ export function systemK(sysId, SYS_R) {
 
 /* ------------------------------------------------------------- anchoring */
 
-/* How far off a body a parked ship sits, in world units — big enough to clear
-   the body's own disc and its label, small enough to read as "in orbit". */
-const PARK_GAP = 4.2;
-
-/** A sensible parking orbit for a body, given its drawn radius. */
-export function parkRadius(bodyRadius) {
-  return Math.max(6, bodyRadius * 1.9 + PARK_GAP);
+/**
+ * A parking orbit for a body, in ORBIT-UNITS.
+ *
+ * A body's drawn radius is `size * K / 4.375`, so dividing by 4.375 converts
+ * `size` into the same orbit-units an anchor stores; the multiplier then sets
+ * how far outside the disc the vessel rides. Small enough to read as being in
+ * orbit, wide enough to clear the body and its label.
+ */
+export function parkRadius(size) {
+  return Math.max(2.2, (size || 12) / 4.375 * 2.1);
 }
 
 /**
@@ -105,24 +108,57 @@ export function parkRadius(bodyRadius) {
 export function resolveAnchor(anchor, nowSeconds, K, TILT) {
   if (!anchor || !anchor.system) return null;
 
-  const orbitOffset = (R, phase, period) => {
-    /* A ship's own little orbit around whatever it is parked at. Period is
-       generous so parked ships drift rather than race. */
+  /* A ship's own little orbit around whatever it is parked at. Period is
+     generous so parked ships drift rather than race.
+
+     Slightly elliptical by default: a perfect circle reads as a UI ring
+     rather than a body under gravity, and the canon planets already run on
+     eccentric orbits via the same Kepler solve in tick(). `ecc` is the
+     eccentricity (0 = circle) and `argp` rotates the ellipse's long axis so
+     several ships at one body do not all share an orientation. */
+  const orbitOffset = (R, phase, period, ecc = 0, argp = 0) => {
     const M = (phase || 0) * Math.PI / 180 + (nowSeconds / (period || 90)) * Math.PI * 2;
-    return { x: Math.cos(M) * R, y: Math.sin(M) * R * TILT };
+    let x, y;
+    if (ecc > 0) {
+      /* Solve M = E - e*sin(E) for the eccentric anomaly by Newton's method,
+         matching how tick() integrates the canon bodies. */
+      let E = M;
+      for (let i = 0; i < 4; i++) E -= (E - ecc * Math.sin(E) - M) / (1 - ecc * Math.cos(E));
+      x = R * (Math.cos(E) - ecc);
+      y = R * Math.sqrt(1 - ecc * ecc) * Math.sin(E);
+    } else {
+      x = Math.cos(M) * R;
+      y = Math.sin(M) * R;
+    }
+    /* Rotate the ellipse in its own plane BEFORE squashing to the viewing
+       plane, or the tilt would shear it instead of turning it. */
+    if (argp) {
+      const c = Math.cos(argp), sn = Math.sin(argp);
+      const nx = x * c - y * sn; y = x * sn + y * c; x = nx;
+    }
+    return { x, y: y * TILT };
   };
 
+  /* Default eccentricity for a parked vessel — enough to be visibly not a
+     circle, small enough that the ship never appears to drift off the body
+     it is meant to be orbiting. */
+  const ecc  = anchor.ecc  ?? 0.28;
+  const argp = (anchor.argp ?? 0) * Math.PI / 180;
+
+  /* Both modes measure `orbit` in ORBIT-UNITS, the same units the sector data
+     uses, and convert with K here. Storing world units instead would pin a
+     vessel to one system's scale: K is derived from a system's outermost
+     body, so the same anchor would sit at a different distance in a wider
+     system, and re-scaling a system would silently move every ship in it. */
   if (anchor.mode === 'body') {
     const base = bodyPos(anchor.system, anchor.bodyPath);
     if (!base) return null;                    // body not on chart (yet)
-    const off = orbitOffset(anchor.orbit || 8, anchor.phase, anchor.period);
+    const off = orbitOffset((anchor.orbit || 6) * K, anchor.phase, anchor.period, ecc, argp);
     return { x: base.x + off.x, y: base.y + off.y };
   }
 
   if (anchor.mode === 'star') {
-    /* Held relative to the star, exactly like a canon body: the orbit is in
-       orbit-units so it stays put when the system is rescaled. */
-    const off = orbitOffset((anchor.orbit || 20) * K, anchor.phase, anchor.period);
+    const off = orbitOffset((anchor.orbit || 20) * K, anchor.phase, anchor.period, ecc, argp);
     return { x: off.x, y: off.y };
   }
 
@@ -135,7 +171,7 @@ export function defaultAnchor(sysId) {
   const sys = SECTOR.systems[sysId];
   const outer = sys ? Math.max(...sys.bodies.map(b => b.orbit)) : 40;
   return { mode: 'star', system: sysId, orbit: Math.round(outer * 0.6),
-           phase: 0, period: 300 };
+           phase: 0, period: 300, ecc: 0.22, argp: 0 };
 }
 
 /** Human-readable description of where a ship is, for the sheet and HUD. */

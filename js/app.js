@@ -722,14 +722,19 @@ function anchorFromClick(e, sysId, K) {
     const bp = bodyPos(sysId, path);
     if (!bp) continue;
     const r = Math.max(5.4, body.size * K / 4.375) * (body.scale || 1);
+    /* Unsquash the vertical delta before measuring, or bodies would be
+       easier to hit from the side than from above. */
     const d = Math.hypot(p.x - bp.x, (p.y - bp.y) / TILT);
     const reach = r * 2.4;
     if (d <= reach && (!best || d < best.d)) best = { path, body, r, d };
   }
 
   if (best) {
+    /* parkRadius works in orbit-units, like every stored anchor, so it takes
+       the body's `size` from the sector data rather than its drawn radius. */
     return { mode: 'body', system: sysId, bodyPath: best.path,
-             orbit: parkRadius(best.r), phase: 0, period: 60 };
+             orbit: parkRadius(best.body.size), phase: 0, period: 60,
+             ecc: 0.3, argp: 0 };
   }
 
   /* Free hold: distance from the star, unsquashed, converted back to the
@@ -737,7 +742,7 @@ function anchorFromClick(e, sysId, K) {
   const dist = Math.hypot(p.x, p.y / TILT);
   const phase = Math.atan2(p.y / TILT, p.x) * 180 / Math.PI;
   return { mode: 'star', system: sysId, orbit: Math.max(6, dist / K),
-           phase, period: 300 };
+           phase, period: 300, ecc: 0.22, argp: phase };
 }
 
 /* ------------------------------------------------------------- orbit loop */

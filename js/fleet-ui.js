@@ -12,7 +12,8 @@
 import { SECTOR } from '../data/sector.js';
 import { t } from '../data/i18n.js';
 import * as store from './store.js';
-import { defaultAnchor, describeAnchor, anchorTargets, bodyAt } from './fleet.js';
+import { defaultAnchor, describeAnchor, anchorTargets, bodyAt,
+         parkRadius } from './fleet.js';
 
 /* Suggested sprite names, offered as a datalist. The field is free text, not
    a fixed menu: the fleet is unbounded, so any vessel must be able to name
@@ -192,15 +193,15 @@ function wire(ships) {
       if (v.includes(':')) {
         const [sysId, path] = v.split(':');
         const body = bodyAt(sysId, path);
-        /* Clear of the body's own disc: the drawn radius scales from `size`,
-           so a parking orbit proportional to it keeps small moons and gas
-           giants both looking right. */
+        const phase = spreadPhase(ships, s.id, sysId, path);
+        /* Give each vessel's ellipse its own orientation, tied to its slot on
+           the circle, so ships sharing a body do not trace the same path. */
         location = { mode: 'body', system: sysId, bodyPath: path,
-                     orbit: Math.max(7, (body?.size || 12) * 0.8),
-                     phase: spreadPhase(ships, s.id, sysId, path), period: 60 };
+                     orbit: parkRadius(body?.size), phase, period: 60,
+                     ecc: 0.3, argp: phase };
       } else if (v) {
-        location = { ...defaultAnchor(v),
-                     phase: spreadPhase(ships, s.id, v, null) };
+        const phase = spreadPhase(ships, s.id, v, null);
+        location = { ...defaultAnchor(v), phase, argp: phase };
       }
       await store.put('ships', { ...s, location });
       if (location) hooks.onFocus?.(location.system);
