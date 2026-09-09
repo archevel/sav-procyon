@@ -1603,6 +1603,11 @@ function findBody(sysId, bodyId) {
 }
 
 window.addEventListener('langchange', () => {
+  /* One manifest per locale — the spec has no i18n. Retargeted on switch so
+     an install made afterwards carries the right name; 'debug' reads as sv. */
+  const mf = document.querySelector('link[rel="manifest"]');
+  if (mf) mf.href = getLang() === 'en' ? 'manifest-en.webmanifest'
+                                       : 'manifest.webmanifest';
   // Full re-render: rebuild world, refresh chrome and index. If a location
   // view was open, re-open it so the blurb + details also flip language.
   const currentView = { ...view };

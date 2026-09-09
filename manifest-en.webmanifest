@@ -1,0 +1,18 @@
+{
+  "name": "Procyon Sector IE-21",
+  "short_name": "Procyon",
+  "description": "A navigable map of the Procyon Sector IE-21 — with crew, fleet and notes kept in the browser.",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f4f1e8",
+  "theme_color": "#f4f1e8",
+  "lang": "en",
+  "icons": [
+    { "src": "img/app/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "img/app/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "img/app/icon-maskable-512.png", "sizes": "512x512",
+      "type": "image/png", "purpose": "maskable" }
+  ]
+}
