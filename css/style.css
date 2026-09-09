@@ -1311,8 +1311,9 @@ body.in-system .orbit-layer .o-body { pointer-events: auto; }
     left: auto; right: auto; bottom: auto;
     padding: 4vmin 4vmin 34vmin; max-width: none;
   }
-  .loc-back { width: 11vmin; height: 11vmin; font-size: 5.5vmin;
-              top: 26vmin; left: 3vmin; }
+  /* On a phone the system back gesture does this job (see js/nav.js); the
+     button stays for desktop, which has no such gesture. */
+  .loc-back { display: none; }
 
   /* The crumbs were absolutely placed for the desktop header row and landed
      tiny on top of the stacked mobile title. The header goes static so the

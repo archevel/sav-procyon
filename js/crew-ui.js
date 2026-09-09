@@ -10,6 +10,7 @@ import { t } from '../data/i18n.js';
 import * as store from './store.js';
 import { savName } from './sheet-parts.js';
 import { renderCharacterSheet, blankCharacter } from './sheet-character.js';
+import { pushUi } from './nav.js';
 
 let panel, listEl, sheetEl;
 /* Which character the panel is showing a sheet for; null shows the roster. */
@@ -25,7 +26,7 @@ export function mountCrewPanel() {
     panel.hidden = !panel.hidden;
     /* Always return to the roster when reopening: a sheet left open from an
        earlier session is rarely the one wanted next. */
-    if (!panel.hidden) { openId = null; render(); }
+    if (!panel.hidden) { pushUi('crew'); openId = null; render(); }
   });
   document.getElementById('crew-close')
     ?.addEventListener('click', () => { panel.hidden = true; });
@@ -46,6 +47,7 @@ async function addCharacter() {
   const rec = await store.put('characters', blankCharacter(`Character ${n}`));
   /* Open the new sheet straight away — creating a character is almost always
      the first half of filling one in. */
+  pushUi('crew-sheet');
   openId = rec.id;
   render();
 }
@@ -98,7 +100,7 @@ function showRoster(rows) {
   }).join('');
 
   listEl.querySelectorAll('.crew-open').forEach(btn => {
-    btn.addEventListener('click', () => { openId = btn.dataset.open; render(); });
+    btn.addEventListener('click', () => { pushUi('crew-sheet'); openId = btn.dataset.open; render(); });
   });
 
   listEl.querySelectorAll('.fleet-x').forEach(btn => {

@@ -14,6 +14,7 @@ import { t } from '../data/i18n.js';
 import * as store from './store.js';
 import { renderShipSheet, blankShip } from './sheet-ship.js';
 import { FRAME_LIST } from '../data/sav.js';
+import { pushUi } from './nav.js';
 import { defaultAnchor, describeAnchor, anchorTargets, bodyAt,
          parkRadius, PARK_ECC, targetName, isGatePath,
          gateParkRadius, systemK } from './fleet.js';
@@ -50,7 +51,7 @@ export function mountFleetPanel(opts = {}) {
   document.getElementById('fleet-btn')?.addEventListener('click', () => {
     panel.hidden = !panel.hidden;
     /* Always return to the fleet list when reopening. */
-    if (!panel.hidden) { openId = null; render(); }
+    if (!panel.hidden) { pushUi('fleet'); openId = null; render(); }
   });
   document.getElementById('fleet-close')
     ?.addEventListener('click', () => { panel.hidden = true; });
@@ -92,6 +93,7 @@ async function addShip() {
   const rec = await store.put('ships', blankShip(`Ship ${n}`));
   /* Open the new sheet straight away — creating a vessel is the first half
      of filling one in. */
+  pushUi('fleet-sheet');
   openId = rec.id;
   render();
 }
@@ -215,7 +217,7 @@ function wire(ships) {
   const find = id => ships.find(s => s.id === id);
 
   listEl.querySelectorAll('.crew-open').forEach(btn => {
-    btn.addEventListener('click', () => { openId = btn.dataset.open; render(); });
+    btn.addEventListener('click', () => { pushUi('fleet-sheet'); openId = btn.dataset.open; render(); });
   });
 
   listEl.querySelectorAll('.fleet-place').forEach(sel => {

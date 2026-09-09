@@ -12,6 +12,7 @@ import * as store from './store.js';
 import * as share from './share.js';
 import { el } from './sheet-parts.js';
 import { describePlace } from './notes-ui.js';
+import { pushUi } from './nav.js';
 
 let panel, body;
 
@@ -21,6 +22,7 @@ export function mountSharePanel() {
   if (!panel) return;
 
   document.getElementById('share-btn')?.addEventListener('click', () => {
+    if (panel.hidden) pushUi('share');
     panel.hidden = false;
     showExport();
   });

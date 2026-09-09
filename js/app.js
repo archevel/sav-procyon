@@ -29,6 +29,7 @@ import { setBodyPos, clearPositions, bodyPos, bodyAt, anchorTargets,
 import { renderPlaceNotes, placePath, notesIndex,
          splitPath, isFactionTarget } from './notes-ui.js';
 import { renderFactionExtras } from './factions-ui.js';
+import { pushUi, installBackHandler } from './nav.js';
 
 /* Sourcebook text is authored per map key in both languages, and takes
    precedence over the hand-written strings in strings.js.
@@ -904,6 +905,7 @@ function shipAsBody(rec) {
 function beginTargeting() {
   const f = FLEET.get(selectedShipId);
   if (!f || view.level !== 'system' || f.sysId !== view.id) return;
+  pushUi('targeting');
   targeting = true;
   svgRoot.classList.add('is-targeting');
   updateChrome();
@@ -1138,6 +1140,7 @@ function systemHalfFor(id) {
 }
 
 function enterSystem(id) {
+  if (view.level === 'sector') pushUi('system');
   const s = SECTOR.systems[id];
   view = { level: 'system', id };
   document.body.classList.add('in-system');
@@ -1242,7 +1245,10 @@ function diveTo(sysId, b, node, notePath = null) {
 
 /* ------------------------------------------------------------- location */
 
-async function openLocation(sysId, b, notePath = null) {
+async function openLocation(sysId, b, notePath = null, { push = true } = {}) {
+  /* A language switch re-renders the open location; that must not grow the
+     back stack. */
+  if (push && view.level !== 'location') pushUi('location');
   view = { level: 'location', sysId, bodyId: b.id, notePath };
   const surface = b.surface ? await artUrl(`img/surface-${b.surface}`, 'jpg') : null;
   const hasImage = !!surface;
@@ -1412,6 +1418,7 @@ function renderFactions() {
     btn.addEventListener('click', () => {
       const f = FACTIONS.find(x => x.slug === btn.dataset.faction);
       if (!f) return;
+      if (panel.hidden) pushUi('faction');
       content.innerHTML = factionHTML(f, view.id);
       /* The player's own clocks and notes for this faction, rendered below
          the sourcebook text. Async, so the panel opens at once and the
@@ -1621,7 +1628,7 @@ window.addEventListener('langchange', () => {
     }
     if (currentView.level === 'location') {
       const b = findBody(currentView.sysId, currentView.bodyId);
-      if (b) setTimeout(() => openLocation(currentView.sysId, b), 100);
+      if (b) setTimeout(() => openLocation(currentView.sysId, b, null, { push: false }), 100);
     }
     renderFactions();
   });
@@ -1640,6 +1647,7 @@ window.addEventListener('langchange', () => {
   store.subscribe(() => markNoteBadges(), ['notes']);
   // The fleet panel owns no render state: it writes anchors to the store and
   // reaches back through these hooks for the two things only the chart knows.
+  installBackHandler();
   mountCrewPanel();
   mountSharePanel();
   document.getElementById('ship-move')?.addEventListener('click', () => {
@@ -1721,7 +1729,7 @@ window.addEventListener('langchange', () => {
         + mdBlocks([t('about.art'), t('about.translation'),
                     t('about.rights')].join('\n\n'));
     };
-    aboutBtn.addEventListener('click', () => { fill(); aboutPanel.hidden = false; });
+    aboutBtn.addEventListener('click', () => { fill(); pushUi('about'); aboutPanel.hidden = false; });
     document.getElementById('about-close')
       ?.addEventListener('click', () => { aboutPanel.hidden = true; });
     aboutPanel.addEventListener('click', e => {

@@ -12,6 +12,7 @@
 import { t } from '../data/i18n.js';
 import { CLOCK_SIZES, DEFAULT_CLOCK_SIZE } from '../data/sav.js';
 import * as store from './store.js';
+import { pushUi } from './nav.js';
 
 /**
  * Display name for a Scum & Villainy id.
@@ -278,6 +279,7 @@ export function portraitField({ shipped, selectedId, asset, onPick, onUpload,
  * added.
  */
 function openChooser({ shipped, selectedId, asset, onPick, onUpload, onClear }) {
+  pushUi('portrait');
   const back = el('div', 'portrait-modal');
   const close = () => back.remove();
 
