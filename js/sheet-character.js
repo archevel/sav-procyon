@@ -117,6 +117,9 @@ function header(rec, save, onBack) {
     h.appendChild(back);
   }
   const name = el('input', 'sheet-name');
+  /* Capped so the share card's heading always has something it can fit —
+     40 characters is roomier than any name that ends up on a card. */
+  name.maxLength = 40;
   name.value = rec.name || '';
   name.setAttribute('aria-label', t('crew.name'));
   name.addEventListener('blur', () => {

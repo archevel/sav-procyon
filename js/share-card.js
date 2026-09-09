@@ -51,10 +51,15 @@ export async function characterCard(rec) {
      reader's language like anywhere else. */
   sub(g, [rec.playbook, rec.heritage, rec.background]
         .filter(Boolean).map(savName).join(' · '), x, PAD + 70);
+  if (rec.alias) {
+    g.fillStyle = INK;
+    g.font = `15px ${MONO}`;
+    g.fillText(clip(g, '”' + rec.alias + '”', W - x - PAD), x, PAD + 94);
+  }
 
   /* The blurb goes UNDER the portrait once the ratings have taken the column
      beside it, so it uses the width the old layout left empty. */
-  ratingColumns(g, ratedActions(rec), x, PAD + 108, W - x - PAD);
+  ratingColumns(g, ratedActions(rec), x, PAD + (rec.alias ? 122 : 108), W - x - PAD);
 
   const footTop = footerTop();
   /* The blurb has its own band under the portrait, so it neither chases the
@@ -305,8 +310,11 @@ function placeholder(g, x, y, w, h, glyph) {
 function ratingColumns(g, rows, x, y, width) {
   if (!rows.length) return y;
 
-  const ROW = 21, HEAD = 19, COLW = 250;
-  const cols = Math.max(1, Math.min(2, Math.floor(width / COLW)));
+  /* A fully rated character carries fifteen rows; two columns run them
+     into the blurb band, three keep each attribute to its own column and
+     the block above it. Column width is what a label plus four dots need. */
+  const ROW = 21, HEAD = 19, COLW = 215;
+  const cols = Math.max(1, Math.min(3, Math.floor(width / COLW)));
 
   /* Split on GROUP boundaries, never mid-group: a column that opened on an
      attribute's actions without its heading left them floating under the
@@ -382,8 +390,15 @@ function frame(g) {
 
 function heading(g, text, x, y) {
   g.fillStyle = INK;
-  g.font = `bold 36px ${MONO}`;
-  g.fillText(clip(g, text.toUpperCase(), W - x - 56), x, y);
+  /* A long name shrinks before it truncates: an exported card with half a
+     name looks broken, one with a smaller name just looks dense. The floor
+     keeps it a heading; past that the ellipsis takes over. */
+  const width = W - x - PAD;
+  let size = 36;
+  const up = String(text).toUpperCase();
+  do { g.font = `bold ${size}px ${MONO}`; size -= 2; }
+  while (size >= 22 && g.measureText(up).width > width);
+  g.fillText(clip(g, up, width), x, y);
 }
 
 function sub(g, text, x, y) {
@@ -404,16 +419,22 @@ function paragraph(g, text, x, y, width, maxLines = 3) {
   g.fillStyle = INK;
   g.font = `15px ${MONO}`;
   const words = String(text).split(/\s+/);
-  let line = '', lines = 0;
-  for (const w of words) {
-    const next = line ? `${line} ${w}` : w;
+  let line = '', lines = 0, spilled = false;
+  for (let i = 0; i < words.length; i++) {
+    const next = line ? `${line} ${words[i]}` : words[i];
     if (g.measureText(next).width > width && line) {
       g.fillText(line, x, y);
-      y += 21; line = w;
-      if (++lines >= maxLines - 1) break;
+      y += 21; line = words[i];
+      if (++lines >= maxLines - 1) { spilled = i < words.length - 1; break; }
     } else line = next;
   }
-  if (line) { g.fillText(clip(g, line, width), x, y); y += 21; }
+  /* A silently truncated blurb reads as the whole text; the ellipsis says
+     there is more on the sheet. */
+  if (line) {
+    const tail = spilled ? line + '…' : line;
+    g.fillText(clip(g, tail, width), x, y);
+    y += 21;
+  }
   return y;
 }
 
