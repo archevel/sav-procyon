@@ -20,6 +20,7 @@ import { FACTIONS } from '../data/factions-data.js';
 import * as store from './store.js';
 import { mountFleetPanel } from './fleet-ui.js';
 import { mountCrewPanel } from './crew-ui.js';
+import { mountSharePanel } from './share-ui.js';
 import { setBodyPos, clearPositions, bodyPos, bodyAt, anchorTargets,
          resolveAnchor, defaultAnchor, parkRadius, makeTransit,
          describeAnchor, anchorEllipse, PARK_ECC, targetName,
@@ -1608,6 +1609,7 @@ window.addEventListener('langchange', () => {
   // The fleet panel owns no render state: it writes anchors to the store and
   // reaches back through these hooks for the two things only the chart knows.
   mountCrewPanel();
+  mountSharePanel();
   mountFleetPanel({
     onSelect: id => { selectedShipId = null; selectShip(id); },
     onFocus:  sysId => {

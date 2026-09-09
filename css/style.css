@@ -962,3 +962,43 @@ body.in-system .orbit-layer .o-body { pointer-events: auto; }
   stroke-linejoin: round; pointer-events: none;
   opacity: var(--detail, 1);
 }
+
+/* ------------------------------------------------------------------ share */
+.share-list { margin: 1.2vmin 0; max-height: 40vh; overflow-y: auto; }
+.share-row {
+  display: flex; align-items: center; gap: .7vmin;
+  padding: .5vmin 0; border-bottom: max(1px, .08vmin) solid rgba(16,16,14,.15);
+}
+.share-kind {
+  font-family: var(--mono); font-size: .95vmin; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--ink-soft);
+  min-width: 7rem; flex: none;
+}
+.share-label {
+  font-family: var(--mono); font-size: 1.25vmin; flex: 1;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.share-status {
+  font-family: var(--mono); font-size: .95vmin; letter-spacing: .1em;
+  text-transform: uppercase; padding: .2vmin .6vmin; flex: none;
+  border: max(1px, .1vmin) solid currentColor;
+}
+.share-status-new       { color: #2e6a3f; }
+.share-status-conflict  { color: #a4442e; }
+.share-status-identical { color: var(--ink-soft); }
+.share-pick {
+  font-family: var(--mono); font-size: 1.1vmin; flex: none;
+  color: var(--ink); background: var(--paper);
+  border: max(1px, .1vmin) solid var(--ink); padding: .3vmin;
+}
+.share-meter { margin: 1vmin 0; }
+.share-size {
+  font-family: var(--mono); font-size: 1.15vmin; letter-spacing: .1em;
+  text-transform: uppercase; margin: 0;
+}
+.share-warn  { color: #a4442e; font-family: var(--mono); font-size: 1.1vmin; }
+.share-ok    { color: #2e6a3f; font-family: var(--mono); font-size: 1.1vmin; }
+.share-error { color: #a4442e; font-family: var(--mono); font-size: 1.3vmin; }
+.share-actions { display: flex; flex-wrap: wrap; gap: .8vmin; margin: 1.4vmin 0 0; }
+.loc-info-btn.is-primary { background: var(--ink); color: var(--paper); }
+.loc-info-btn.is-primary:hover { background: var(--paper); color: var(--ink); }
