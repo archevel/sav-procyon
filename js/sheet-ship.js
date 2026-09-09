@@ -14,7 +14,8 @@ import * as store from './store.js';
 import * as SAV from '../data/sav.js';
 import { el, dots, track, imageStrip, field, choice, picks,
          section } from './sheet-parts.js';
-import { clocksSection, notesSection, extraFields } from './sheet-character.js';
+import { clocksSection, notesSection, extraFields,
+         restoreView } from './sheet-character.js';
 import { describeAnchor } from './fleet.js';
 
 /**
@@ -53,6 +54,16 @@ export function renderShipSheet(host, rec, { onBack } = {}) {
     renderShipSheet(host, rec, { onBack });
   };
 
+  /* See the character sheet: a rebuild would otherwise lose the scroll
+     position and reopen collapsed sections, moving whatever the player was
+     about to click. */
+  const scroller = host.closest('.loc-info-content') || host.parentElement;
+  const scrollTop = scroller?.scrollTop ?? 0;
+  const collapsed = new Set(
+    [...host.querySelectorAll('.sheet-section')]
+      .filter(d => !d.open)
+      .map(d => d.querySelector('.sheet-section-title')?.textContent));
+
   host.innerHTML = '';
   host.appendChild(header(rec, save, onBack));
   host.appendChild(identity(rec, save));
@@ -61,6 +72,8 @@ export function renderShipSheet(host, rec, { onBack } = {}) {
   host.appendChild(clocksSection(rec, save));
   host.appendChild(notesSection(rec, save));
   host.appendChild(extraFields(rec, save));
+
+  restoreView(host, scroller, scrollTop, collapsed);
 }
 
 function header(rec, save, onBack) {

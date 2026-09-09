@@ -16,7 +16,7 @@ import * as store from './store.js';
 import * as SAV from '../data/sav.js';
 import { el, dots, track, clock, newClock, note, newNote, imageStrip,
          field, choice, picks, section, portraitPicker } from './sheet-parts.js';
-import { PORTRAITS, portraitById, defaultPortraitFor } from '../data/portraits.js';
+import { PORTRAITS, portraitById, randomPortrait } from '../data/portraits.js';
 
 /**
  * The art a character uses, as a URL, or null.
@@ -44,7 +44,10 @@ export function blankCharacter(name) {
     healing: 0,
     load: 'normal', items: [], abilities: [],
     xp: { playbook: 0, insight: 0, prowess: 0, resolve: 0 },
-    portrait: null, portraitId: null, clocks: [], notes: [], fields: []
+    /* A new character starts with a face, picked at random from the shipped
+       art; the player changes it if they want another. */
+    portrait: null, portraitId: randomPortrait()?.id ?? null,
+    clocks: [], notes: [], fields: []
   };
 }
 
@@ -62,6 +65,17 @@ export function renderCharacterSheet(host, rec, { onBack } = {}) {
     renderCharacterSheet(host, rec, { onBack });
   };
 
+  /* Every save rebuilds the sheet, which would otherwise throw away where the
+     player was looking and reopen every section they had collapsed — so a
+     click landed on whatever slid under the cursor instead of on what they
+     aimed at. Capture that state and put it back. */
+  const scroller = host.closest('.loc-info-content') || host.parentElement;
+  const scrollTop = scroller?.scrollTop ?? 0;
+  const collapsed = new Set(
+    [...host.querySelectorAll('.sheet-section')]
+      .filter(d => !d.open)
+      .map(d => d.querySelector('.sheet-section-title')?.textContent));
+
   host.innerHTML = '';
   host.appendChild(header(rec, save, onBack));
   host.appendChild(identity(rec, save));
@@ -71,6 +85,27 @@ export function renderCharacterSheet(host, rec, { onBack } = {}) {
   host.appendChild(clocksSection(rec, save));
   host.appendChild(notesSection(rec, save));
   host.appendChild(extraFields(rec, save));
+
+  restoreView(host, scroller, scrollTop, collapsed);
+}
+
+/**
+ * Put back what a rebuild discarded: which sections were collapsed, and where
+ * the player had scrolled to.
+ *
+ * Sections are matched by their heading rather than by index, so adding one
+ * does not silently collapse a different one.
+ */
+export function restoreView(host, scroller, scrollTop, collapsed) {
+  if (collapsed.size) {
+    for (const d of host.querySelectorAll('.sheet-section')) {
+      const title = d.querySelector('.sheet-section-title')?.textContent;
+      if (collapsed.has(title)) d.open = false;
+    }
+  }
+  /* After layout, or the scroller has not yet grown to its full height and
+     the assignment is clamped to nothing. */
+  if (scroller && scrollTop) requestAnimationFrame(() => { scroller.scrollTop = scrollTop; });
 }
 
 function header(rec, save, onBack) {
@@ -96,17 +131,7 @@ function identity(rec, save) {
   const pb = SAV.PLAYBOOKS[rec.playbook];
   const grid = el('div', 'sheet-grid');
   grid.appendChild(choice(t('sheet.playbook'), rec.playbook, SAV.PLAYBOOK_LIST,
-    v => {
-      /* Choosing a playbook offers a portrait for it, but only when the
-         character has none: art the player picked or uploaded is theirs, and
-         changing playbook must not quietly repaint them. */
-      const patch = { playbook: v };
-      if (!rec.portrait && !rec.portraitId) {
-        const p = defaultPortraitFor(v);
-        if (p) patch.portraitId = p.id;
-      }
-      save(patch);
-    }));
+    v => save({ playbook: v })));
   grid.appendChild(field(t('sheet.alias'), rec.alias, v => save({ alias: v })));
   grid.appendChild(choice(t('sheet.heritage'), rec.heritage, SAV.HERITAGES,
     v => save({ heritage: v })));
@@ -131,8 +156,8 @@ function identity(rec, save) {
     shipped: PORTRAITS,
     selectedId: rec.portraitId,
     asset: rec.portrait,
-    /* Picking shipped art clears any upload, so exactly one is in force —
-       but the asset itself survives in the store until nothing cites it. */
+    /* Picking shipped art clears any upload so exactly one is in force — the
+       asset itself survives in the store until nothing cites it. */
     onPick: id => save({ portraitId: id, portrait: null }),
     onUpload: async file => {
       const a = await store.putAsset(file);

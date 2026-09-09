@@ -5,9 +5,9 @@
  * file in, add its name below.
  *
  * Files are named `character-<playbook>-<something>.webp`. The playbook part
- * only decides which art is offered as a DEFAULT when a playbook is chosen —
- * every portrait stays selectable for every character, because a group's idea
- * of what a Skruvare looks like is not the app's business.
+ * is read and exposed, but nothing in the app branches on it: every portrait
+ * is offered to every character. It is there so the art stays organised, and
+ * so a future grouping in the picker has something to group by.
  */
 
 const DIR = 'img/characters/';
@@ -62,17 +62,15 @@ function playbookOf(file) {
 }
 
 /**
- * A portrait to offer a character of this playbook, chosen at random from
- * those that name it.
+ * A portrait for a new character, chosen at random from everything shipped.
  *
- * Random rather than first, so a crew of four Skruvare does not arrive
- * wearing the same face. Returns null when nothing matches — the character
- * then simply has no portrait until one is picked, which is better than
- * handing them art drawn for someone else.
+ * Random so a crew does not arrive wearing one face, and from the whole set
+ * rather than from art naming their playbook: a new character starts with a
+ * face, and the player changes it if they want a different one. That is the
+ * whole rule — there is no state tracking whether the art was chosen or
+ * assigned, because nothing later depends on the difference.
  */
-export function defaultPortraitFor(playbook) {
-  if (!playbook) return null;
-  const matches = PORTRAITS.filter(p => p.playbook === playbook);
-  if (!matches.length) return null;
-  return matches[Math.floor(Math.random() * matches.length)];
+export function randomPortrait() {
+  if (!PORTRAITS.length) return null;
+  return PORTRAITS[Math.floor(Math.random() * PORTRAITS.length)];
 }
