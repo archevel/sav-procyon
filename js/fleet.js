@@ -51,6 +51,10 @@ export function clearPositions() { POS.clear(); }
 export function bodyAt(sysId, path) {
   const sys = SECTOR.systems[sysId];
   if (!sys || !path) return null;
+  if (isGatePath(path)) {
+    const g = (sys.gates || []).find(x => GATE_PREFIX + x.to === path);
+    return g ? gateBody(g) : null;
+  }
   const [headId, ...rest] = path.split('/');
   let node = sys.bodies.find(b => b.id === headId);
   for (const seg of rest) {
@@ -60,8 +64,24 @@ export function bodyAt(sysId, path) {
   return node || null;
 }
 
-/** Every anchorable body in a system, as { path, body, depth }, moons
-    included — the candidate list for targeting mode. */
+/* Gates are addressed as 'gate:iota' so their paths cannot collide with a
+   body id, and so a stored anchor says plainly what it is tied to. */
+export const GATE_PREFIX = 'gate:';
+export const isGatePath = path => String(path || '').startsWith(GATE_PREFIX);
+
+/* A gate has no `size` in the sector data — it is drawn at a fixed radius —
+   so parking uses this in place of one. Matches the small stations, which is
+   what a gate reads as on the chart. */
+export const GATE_SIZE = 9;
+
+/**
+ * Every anchorable target in a system, as { path, body, depth }.
+ *
+ * Bodies, their moons, and the system's gates. Gates are included because a
+ * vessel waiting to jump is holding station AT the gate; without them a click
+ * on one fell through to the free-hold branch and produced a star-centred
+ * orbit that merely happened to pass through the gate.
+ */
 export function anchorTargets(sysId) {
   const sys = SECTOR.systems[sysId];
   if (!sys) return [];
@@ -72,7 +92,16 @@ export function anchorTargets(sysId) {
       out.push({ path: `${b.id}/${m.id}`, body: m, depth: 1 });
     }
   }
+  for (const g of (sys.gates || [])) {
+    out.push({ path: GATE_PREFIX + g.to, body: gateBody(g), depth: 0, gate: true });
+  }
   return out;
+}
+
+/** A gate presented in the shape anchorTargets' callers expect of a body. */
+function gateBody(g) {
+  return { id: GATE_PREFIX + g.to, key: `gate.${g.to}`, size: GATE_SIZE,
+           type: 'gate', gate: g };
 }
 
 /** Orbit-units-to-world scale for a system. Mirrors buildSystemGroup, which
@@ -107,6 +136,24 @@ export function parkRadius(size, ecc = PARK_ECC) {
   /* Returned as the SEMI-MAJOR axis, which is what an anchor stores; the
      vessel starts at a(1-e), so scale up to put periapsis at the clearance
      instead of 30% inside it. */
+  return clearance / (1 - ecc);
+}
+
+/**
+ * Parking orbit for a gate, in orbit-units.
+ *
+ * A gate is drawn at a fixed world radius rather than scaled from a `size`,
+ * so its orbit is derived from that ring and converted back through K —
+ * parkRadius' body formula would be meaningless here. `gateR` is the drawn
+ * ring radius in world units.
+ */
+export function gateParkRadius(gateR, K, ecc = PARK_ECC) {
+  /* Just outside the ring, so the vessel reads as holding station AT the gate
+     rather than as having flown through it. Tight: a gate sits out on the
+     system rim, where there is nothing else nearby to give the orbit scale,
+     so a generous one reads as a star-centred orbit that happens to pass the
+     gate — which is precisely the bug this replaced. */
+  const clearance = (gateR * 1.12) / K;
   return clearance / (1 - ecc);
 }
 
@@ -207,6 +254,13 @@ export function defaultAnchor(sysId) {
            phase: 0, period: 300, ecc: 0.22, argp: 0 };
 }
 
+/** Display name for an anchor target. Gates key their string as `.label`,
+    bodies as `.name`, so the suffix follows the kind. */
+export function targetName(body, tr = k => k) {
+  if (!body) return null;
+  return tr(body.key + (body.type === 'gate' ? '.label' : '.name'));
+}
+
 /** Human-readable description of where a ship is, for the sheet and HUD. */
 export function describeAnchor(anchor, tr = k => k) {
   if (!anchor || !anchor.system) return null;
@@ -214,8 +268,8 @@ export function describeAnchor(anchor, tr = k => k) {
   const sysName = sys ? tr(sys.key + '.name') : anchor.system;
   if (anchor.mode === 'body') {
     const b = bodyAt(anchor.system, anchor.bodyPath);
-    const name = b ? tr(b.key + '.name') : anchor.bodyPath;
-    return { system: sysName, detail: name, orphan: !b };
+    return { system: sysName, detail: targetName(b, tr) ?? anchor.bodyPath,
+             orphan: !b };
   }
   return { system: sysName, detail: null, orphan: false };
 }

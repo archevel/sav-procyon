@@ -13,12 +13,19 @@ import { SECTOR } from '../data/sector.js';
 import { t } from '../data/i18n.js';
 import * as store from './store.js';
 import { defaultAnchor, describeAnchor, anchorTargets, bodyAt,
-         parkRadius, PARK_ECC } from './fleet.js';
+         parkRadius, PARK_ECC, targetName, isGatePath,
+         gateParkRadius, systemK } from './fleet.js';
 
 /* Suggested sprite names, offered as a datalist. The field is free text, not
    a fixed menu: the fleet is unbounded, so any vessel must be able to name
    its own art file (img/ship-<name>.webp) without this list being edited. */
 export const SPRITES = ['cerberus', 'stardancer', 'firedrake'];
+
+/* Mirrors the chart's own constants. Kept here rather than imported from
+   app.js so this module stays free of render state; both are geometry of the
+   drawing, not of a vessel. */
+const GATE_R = 8;
+const SYS_R  = 62;
 
 let panel, listEl, hooks = {};
 
@@ -96,11 +103,15 @@ async function render() {
         const rows = [`<option value="${sysId}"${
           s.location?.mode === 'star' && s.location.system === sysId ? ' selected' : ''
         }>${esc(t(sys.key + '.name'))} — ${esc(t('fleet.hold'))}</option>`];
-        for (const { path, body, depth } of anchorTargets(sysId)) {
+        for (const { path, body, depth, gate } of anchorTargets(sysId)) {
           const sel = s.location?.mode === 'body'
             && s.location.system === sysId && s.location.bodyPath === path;
+          /* Gates are named as they are labelled on the chart, and marked
+             so a jump point is not mistaken for a body. */
+          const label = gate ? `${t('fleet.gate')} ${targetName(body, t)}`
+                             : targetName(body, t);
           rows.push(`<option value="${sysId}:${path}"${sel ? ' selected' : ''}>${
-            '  '.repeat(depth + 1)}${esc(t(body.key + '.name'))}</option>`);
+            '  '.repeat(depth + 1)}${esc(label)}</option>`);
         }
         return rows;
       })).join('');
@@ -196,8 +207,12 @@ function wire(ships) {
         /* `phase` is the bearing the vessel sits at; resolveAnchor turns the
            whole orbit to it. `argp` only offsets the ellipse's long axis from
            that bearing, so leaving it at 0 keeps the ship where it was put. */
-        location = { mode: 'body', system: sysId, bodyPath: path,
-                     orbit: parkRadius(body?.size),
+        /* A gate has no `size` — it is drawn at a fixed ring radius — so its
+           orbit comes from that ring instead of the body formula. */
+        const orbit = isGatePath(path)
+          ? gateParkRadius(GATE_R, systemK(sysId, SYS_R))
+          : parkRadius(body?.size);
+        location = { mode: 'body', system: sysId, bodyPath: path, orbit,
                      phase: spreadPhase(ships, s.id, sysId, path),
                      period: 60, ecc: PARK_ECC, argp: 0 };
       } else if (v) {

@@ -37,6 +37,7 @@ export const STRINGS = {
   'fleet.sprite':  { sv: 'Bild',        en: 'Sprite' },
   'fleet.place':   { sv: 'Placera',     en: 'Place' },
   'fleet.hold':    { sv: 'fri bana',    en: 'free orbit' },
+  'fleet.gate':    { sv: 'Porten',      en: 'Gate' },
   'fleet.select':  { sv: 'Visa & flytta', en: 'Show & move' },
   'fleet.delete':  { sv: 'Ta bort',     en: 'Delete' },
   'fleet.confirmDelete': { sv: 'Ta bort %s? Detta kan inte ångras.',

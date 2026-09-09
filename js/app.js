@@ -22,7 +22,8 @@ import { mountFleetPanel } from './fleet-ui.js';
 import { mountCrewPanel } from './crew-ui.js';
 import { setBodyPos, clearPositions, bodyPos, bodyAt, anchorTargets,
          resolveAnchor, defaultAnchor, parkRadius, makeTransit,
-         describeAnchor, anchorEllipse, PARK_ECC } from './fleet.js';
+         describeAnchor, anchorEllipse, PARK_ECC, targetName,
+         GATE_PREFIX, isGatePath, gateParkRadius } from './fleet.js';
 
 /* Sourcebook text is authored per map key in both languages, and takes
    precedence over the hand-written strings in strings.js.
@@ -57,6 +58,11 @@ const ZOOM_SECTOR = 660;               // fallback if sectorHalf() not yet compu
 let CURRENT_SECTOR = ZOOM_SECTOR;      // updated whenever sectorHalf() runs
 const ZOOM_SYSTEM = 96;
 const ZOOM_BODY   = 15;
+
+/* Radius a gate's Precursor ring is drawn at, in world units. Gates carry no
+   `size` in the sector data, so this stands in for one wherever a gate has to
+   be measured — hit testing, and the orbit a vessel holds at it. */
+const GATE_R = 8;
 
 let view = { level: 'sector' };
 const ORBITERS = [];
@@ -277,9 +283,13 @@ async function buildSystemGroup(id, s) {
       class: `o-gate o-gate-${gt.status}` + (SECTOR.systems[gt.to] ? ' o-gate-linked' : ''),
       transform: `translate(${gx} ${gy})`
     });
+    /* Publish the gate's position so vessels can anchor to it. Gates do not
+       orbit, so unlike the bodies this is written once at build time rather
+       than every frame. */
+    setBodyPos(id, GATE_PREFIX + gt.to, gx, gy);
     // Every gate gets its Precursor ring image. Sealed gates use their own
     // (gate-hantu.png shows the missing-components, dead-interior variant).
-    const gr = 8;                                    // ring radius in world units
+    const gr = GATE_R;                               // ring radius in world units
     const gateImg = await artUrl(
       gt.status === 'sealed' ? 'img/gate-hantu' : 'img/gate', 'png');
     if (gateImg) gg.appendChild(svgEl('image', { href: gateImg,
@@ -754,10 +764,13 @@ function anchorFromClick(e, sysId, K) {
      tested too, and win over their planet when both are in range because they
      are listed deeper. */
   let best = null;
-  for (const { path, body } of anchorTargets(sysId)) {
+  for (const { path, body, gate } of anchorTargets(sysId)) {
     const bp = bodyPos(sysId, path);
     if (!bp) continue;
-    const r = Math.max(5.4, body.size * K / 4.375) * (body.scale || 1);
+    /* Gates are drawn at a fixed ring radius rather than scaled from a
+       `size`, so their hit radius is that ring, not the body formula. */
+    const r = gate ? GATE_R
+                   : Math.max(5.4, body.size * K / 4.375) * (body.scale || 1);
     /* Unsquash the vertical delta before measuring, or bodies would be
        easier to hit from the side than from above. */
     const d = Math.hypot(p.x - bp.x, (p.y - bp.y) / TILT);
@@ -766,11 +779,16 @@ function anchorFromClick(e, sysId, K) {
   }
 
   if (best) {
-    /* parkRadius works in orbit-units, like every stored anchor, so it takes
-       the body's `size` from the sector data rather than its drawn radius. */
+    /* Both radii work in orbit-units, like every stored anchor. A gate is
+       measured from its drawn ring; a body from its `size` in the sector
+       data. Phase is the bearing from the anchor to the click, so a vessel
+       appears on the side the player aimed at rather than always due east. */
+    const phase = Math.atan2((p.y - bodyPos(sysId, best.path).y) / TILT,
+                             p.x - bodyPos(sysId, best.path).x) * 180 / Math.PI;
     return { mode: 'body', system: sysId, bodyPath: best.path,
-             orbit: parkRadius(best.body.size), phase: 0, period: 60,
-             ecc: PARK_ECC, argp: 0 };
+             orbit: isGatePath(best.path) ? gateParkRadius(GATE_R, K)
+                                          : parkRadius(best.body.size),
+             phase, period: 60, ecc: PARK_ECC, argp: 0 };
   }
 
   /* Free hold: distance from the star, unsquashed, converted back to the
