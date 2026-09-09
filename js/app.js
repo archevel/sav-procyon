@@ -17,6 +17,10 @@ import { SECTOR } from '../data/sector.js';
 import { t, has as hasKey, getLang, setLang, LANGS } from '../data/i18n.js';
 import { SOURCEBOOK } from '../data/sourcebook.js';
 import { FACTIONS } from '../data/factions-data.js';
+import * as store from './store.js';
+import { setBodyPos, clearPositions, bodyPos, bodyAt, anchorTargets,
+         resolveAnchor, defaultAnchor, parkRadius, makeTransit,
+         describeAnchor } from './fleet.js';
 
 /* Sourcebook text is authored per map key in both languages, and takes
    precedence over the hand-written strings in strings.js.
@@ -57,6 +61,15 @@ const ORBITERS = [];
 const DEPTH_LAYERS = [];
 const NODE_ORBIT = new WeakMap();
 let rafId = null;
+
+/* Player vessels: the live render nodes, and the per-system group each is
+   drawn into. Declared here with the other render state because
+   buildSystemGroup() populates fleetLayers long before the fleet section
+   is reached. */
+const FLEET = new Map();          // ship id -> render node
+const fleetLayers = new Map();    // system id -> <g>
+let selectedShipId = null;        // the vessel 'm' will move
+let targeting = false;            // true while awaiting a destination click
 
 /* ------------------------------------------------------------------ utils */
 
@@ -342,6 +355,16 @@ async function buildSystemGroup(id, s) {
   depthNodes.push(starG);
   DEPTH_LAYERS.push({ layer: orbitLayer, nodes: depthNodes, star: starG });
 
+  // Player vessels ride in their own layer, a SIBLING of orbitLayer rather
+  // than a child of it. The depth sort re-appends orbitLayer's children
+  // whenever their painting order changes, and compares its node list against
+  // childNodes to decide — an extra child it does not know about makes that
+  // comparison fail every frame and re-appends the whole system, which hangs
+  // the tab. Vessels sort among themselves and paint above the bodies.
+  const fleetLayer = svgEl('g', { class: 'fleet-layer' });
+  g.appendChild(fleetLayer);
+  fleetLayers.set(id, fleetLayer);
+
   const plate = svgEl('g', { class: 'sys-plate' });
   const nm = svgEl('text', { y: 0, class: 'sys-name' });
   nm.textContent = t(s.key + '.name');
@@ -455,12 +478,256 @@ async function makeBody(b, sysId, K) {
     const mt = svgEl('title'); mt.textContent = `${t(m.key + '.name')} — ${t(m.key + '.tag')}`; mg.appendChild(mt);
     mg.addEventListener('click', e => { e.stopPropagation(); diveTo(sysId, m, mg); });
     inner.appendChild(mg);
-    moons.push({ el: mg, R: mR, period: m.period, phase: m.phase });
+    moons.push({ el: mg, id: m.id, R: mR, period: m.period, phase: m.phase });
   }
 
   ORBITERS.push({ inner, R, period: b.period, phase: b.phase, moons,
+    sysId, path: b.id,
     ecc: b.ecc || 0, armTilt: (b.armTilt || 0) * Math.PI / 180 });
   return g;
+}
+
+
+/* ---------------------------------------------------------- player fleet */
+/* Player vessels are drawn from the store into each system's orbit layer and
+   positioned every frame from their anchor (see fleet.js). They deliberately
+   reuse the same triangle indicator and art pipeline as canon ships — a
+   player vessel is distinguished by its own sprite and label, not by being
+   rendered as a different kind of object. */
+
+
+/* Set while the app is writing a ship record it has already applied locally,
+   so the resulting store event does not rebuild the fleet underneath us. */
+let suppressFleetRebuild = false;
+let fleetRebuilding = false;
+
+/** Rebuild every player vessel from the store. */
+async function renderFleet() {
+  /* Rebuilds are async and event-driven; without this guard two overlapping
+     runs would each append their own nodes and double the fleet. */
+  if (fleetRebuilding) return;
+  fleetRebuilding = true;
+  try { await rebuildFleet(); } finally { fleetRebuilding = false; }
+}
+
+async function rebuildFleet() {
+  for (const f of FLEET.values()) f.el.remove();
+  FLEET.clear();
+
+  const ships = await store.all('ships');
+  for (const rec of ships) {
+    const anchor = rec.location;
+    if (!anchor || !anchor.system) continue;          // unplaced: not on the chart
+    const layer = fleetLayers.get(anchor.system);
+    if (!layer) continue;
+    const node = await makeFleetShip(rec, anchor.system);
+    layer.appendChild(node.el);
+    FLEET.set(rec.id, node);
+  }
+}
+
+async function makeFleetShip(rec, sysId) {
+  const K = SYS_R / Math.max(...SECTOR.systems[sysId].bodies.map(b => b.orbit));
+  const r = Math.max(5.4, (rec.size || 7) * K / 4.375);
+
+  const el = svgEl('g', { class: 'o-body o-fleet', 'data-ship': rec.id });
+  const inner = svgEl('g');
+  el.appendChild(inner);
+
+  /* The same hull the canon ships use, so a player vessel reads as a ship
+     first and as yours second. */
+  const hull = svgEl('g', { class: 'fleet-hull' });
+  hull.appendChild(svgEl('path', {
+    d: `M${-r} 0 L${r * .5} ${-r * .8} L${r * 1.3} 0 L${r * .5} ${r * .8} Z`,
+    class: 'o-globe', fill: FILL.ship }));
+  inner.appendChild(hull);
+
+  /* Sprite art, keyed off `sprite` rather than the record id — the id is a
+     UUID, so the art needs a stable human-chosen name. */
+  if (rec.sprite) {
+    const url = await artUrl(`img/ship-${rec.sprite}`, 'png');
+    if (url) {
+      el.classList.add('has-art');
+      const cid = `clip-fleet-${rec.id}`;
+      const cp = svgEl('clipPath', { id: cid });
+      cp.appendChild(svgEl('circle', { r }));
+      hull.appendChild(cp);
+      hull.appendChild(svgEl('image', { href: url,
+        x: -r, y: -r, width: r * 2, height: r * 2,
+        'clip-path': `url(#${cid})`, class: 'o-art' }));
+    }
+  }
+
+  const lab = svgEl('text', { y: r + 3.2, class: 'o-label o-label-fleet' });
+  lab.textContent = rec.name || '—';
+  inner.appendChild(lab);
+  inner.appendChild(svgEl('circle', { r: Math.max(r * 1.35, 7), class: 'o-hit' }));
+  const ttl = svgEl('title');
+  ttl.textContent = rec.name || '';
+  inner.appendChild(ttl);
+
+  el.addEventListener('click', e => {
+    e.stopPropagation();
+    selectShip(rec.id);
+  });
+
+  return { rec, el, inner, sysId, K, r, transit: null, prev: null, heading: 0 };
+}
+
+/** Position every vessel. Called from tick(), after canon bodies have
+    published their positions for this frame. */
+function tickFleet(t) {
+  const now = performance.now();
+  for (const f of FLEET.values()) {
+    let p;
+    if (f.transit) {
+      const s = f.transit.at(now);
+      p = { x: s.x, y: s.y };
+      if (s.done) {
+        /* Commit the anchor only on arrival, so an interrupted flight leaves
+           the ship at its previous anchor rather than stranded in space.
+           The transit is torn down HERE, synchronously, before the async
+           write is started: commitArrival persists the record, and leaving
+           f.transit set would re-enter it on every subsequent frame until
+           that write resolved, firing a store event and a fleet rebuild each
+           time. */
+        const transit = f.transit;
+        f.transit = null;
+        commitArrival(f, transit.dest);
+      }
+    } else {
+      p = resolveAnchor(f.rec.location, t, f.K, TILT);
+    }
+    if (!p) { f.el.style.display = 'none'; continue; }
+    f.el.style.display = '';
+
+    /* Point the hull along its motion. The view is squashed vertically, so
+       unsquash the delta before taking the angle or ships fly at odd pitches. */
+    if (f.prev) {
+      const dx = p.x - f.prev.x, dy = (p.y - f.prev.y) / TILT;
+      if (Math.hypot(dx, dy) > 0.008) f.heading = Math.atan2(dy, dx) * 180 / Math.PI;
+    }
+    f.prev = p;
+    f.y = p.y;
+    f.inner.setAttribute('transform',
+      `translate(${p.x.toFixed(2)} ${p.y.toFixed(2)}) rotate(${f.heading.toFixed(1)})`);
+    /* Counter-rotate the label so it stays readable however the hull points. */
+    const lab = f.inner.querySelector('.o-label-fleet');
+    if (lab) lab.setAttribute('transform', `rotate(${(-f.heading).toFixed(1)})`);
+  }
+}
+
+/** Land a vessel: adopt the anchor it was flying to and persist it.
+    The caller has already cleared f.transit. */
+async function commitArrival(f, dest) {
+  f.rec = { ...f.rec, location: dest };
+  /* The local node is already in the right place, so suppress the rebuild
+     this write would otherwise trigger — rebuilding here would drop the
+     node mid-flight and lose its heading. */
+  suppressFleetRebuild = true;
+  try { f.rec = await store.put('ships', f.rec); }
+  finally { suppressFleetRebuild = false; }
+  updateChrome();
+}
+
+/**
+ * Send a vessel to a new anchor.
+ *
+ * Both endpoints are read live, because both keep orbiting while the flight
+ * runs: a ship crossing to Warren has to aim where Warren will be on arrival,
+ * not where it was when the order was given.
+ */
+function sendShip(id, dest, ms = 2000) {
+  const f = FLEET.get(id);
+  if (!f) return;
+  const K = f.K;
+  /* The origin is snapshotted at launch rather than read live. tickFleet
+     writes the in-flight position back to f.prev every frame, so a live read
+     would keep moving the start point forward and the ship would appear to
+     accelerate into its destination. */
+  const origin = f.prev
+    || resolveAnchor(f.rec.location, performance.now() / 1000, K, TILT)
+    || { x: 0, y: 0 };
+  /* The destination IS read live: whatever the vessel is heading for keeps
+     orbiting while the flight runs, so it must aim where the target will be
+     on arrival, not where it was when the order was given. */
+  const to = () => resolveAnchor(dest, performance.now() / 1000, K, TILT) || origin;
+  f.transit = makeTransit({ from: () => origin, to, ms });
+  f.transit.dest = dest;
+}
+
+
+/* ------------------------------------------------------- move targeting */
+/* Movement is a keyboard-then-click gesture rather than a drag: a vessel's
+   position is derived from its anchor every frame, so dragging would fight
+   the orbit animation. Press 'm' with a vessel selected, then click a body
+   to park around it or empty space to hold that radius off the star. */
+
+function selectShip(id) {
+  selectedShipId = selectedShipId === id ? null : id;
+  for (const [sid, f] of FLEET) f.el.classList.toggle('is-selected', sid === selectedShipId);
+  if (!selectedShipId) endTargeting();
+  updateChrome();
+}
+
+function beginTargeting() {
+  const f = FLEET.get(selectedShipId);
+  if (!f || view.level !== 'system' || f.sysId !== view.id) return;
+  targeting = true;
+  svgRoot.classList.add('is-targeting');
+  updateChrome();
+}
+
+function endTargeting() {
+  targeting = false;
+  svgRoot.classList.remove('is-targeting');
+  updateChrome();
+}
+
+/** Convert a pointer event to world coordinates, then to coordinates local
+    to a system's group — the frame anchors are expressed in. */
+function pointerToSystem(e, sysId) {
+  const pt = svgRoot.createSVGPoint();
+  pt.x = e.clientX; pt.y = e.clientY;
+  const world = pt.matrixTransform(svgRoot.getScreenCTM().inverse());
+  const sys = SECTOR.systems[sysId];
+  return { x: world.x - wx(sys.x), y: world.y - wy(sys.y) };
+}
+
+/**
+ * Resolve a click during targeting into an anchor.
+ *
+ * A click near a body parks the vessel in orbit around it; anything else is
+ * read as a hold relative to the star at that distance, with the phase taken
+ * from the click so the ship appears where it was asked to go.
+ */
+function anchorFromClick(e, sysId, K) {
+  const p = pointerToSystem(e, sysId);
+
+  /* Snap to the nearest body whose click radius contains the point. Moons are
+     tested too, and win over their planet when both are in range because they
+     are listed deeper. */
+  let best = null;
+  for (const { path, body } of anchorTargets(sysId)) {
+    const bp = bodyPos(sysId, path);
+    if (!bp) continue;
+    const r = Math.max(5.4, body.size * K / 4.375) * (body.scale || 1);
+    const d = Math.hypot(p.x - bp.x, (p.y - bp.y) / TILT);
+    const reach = r * 2.4;
+    if (d <= reach && (!best || d < best.d)) best = { path, body, r, d };
+  }
+
+  if (best) {
+    return { mode: 'body', system: sysId, bodyPath: best.path,
+             orbit: parkRadius(best.r), phase: 0, period: 60 };
+  }
+
+  /* Free hold: distance from the star, unsquashed, converted back to the
+     orbit units anchors are stored in so it survives a rescale. */
+  const dist = Math.hypot(p.x, p.y / TILT);
+  const phase = Math.atan2(p.y / TILT, p.x) * 180 / Math.PI;
+  return { mode: 'star', system: sysId, orbit: Math.max(6, dist / K),
+           phase, period: 300 };
 }
 
 /* ------------------------------------------------------------- orbit loop */
@@ -499,12 +766,21 @@ function tick(now) {
     }
     o.y = py;
     o.inner.setAttribute('transform', `translate(${px.toFixed(2)} ${py.toFixed(2)})`);
+    // Publish the position we just computed. Player ships anchor to these
+    // rather than to stored coordinates, so a ship parked at a moon follows
+    // it around its planet and around the star without any extra maths.
+    if (o.sysId) setBodyPos(o.sysId, o.path, px, py);
     for (const m of o.moons) {
       const ma = (m.phase * Math.PI / 180) + (t / m.period) * Math.PI * 2;
-      m.el.setAttribute('transform',
-        `translate(${(Math.cos(ma) * m.R).toFixed(2)} ${(Math.sin(ma) * m.R * TILT).toFixed(2)})`);
+      const mx = Math.cos(ma) * m.R, my = Math.sin(ma) * m.R * TILT;
+      m.el.setAttribute('transform', `translate(${mx.toFixed(2)} ${my.toFixed(2)})`);
+      // A moon's transform is relative to its planet, so fold the parent in
+      // to keep every published position absolute within its system.
+      if (o.sysId) setBodyPos(o.sysId, `${o.path}/${m.id}`, px + mx, py + my);
     }
   }
+  // Player vessels ride on top of the positions just published.
+  tickFleet(t);
   // Re-sort each system's orbit layer by Y so anything below the star's
   // centerline paints ON TOP of the star (SVG has no z-index — later
   // siblings win). Only touch the DOM when the order has actually changed;
@@ -996,10 +1272,38 @@ function buildIndex() {
 /* --------------------------------------------------------------- controls */
 
 document.addEventListener('keydown', e => {
-  if (e.key !== 'Escape') return;
-  if (view.level === 'location') closeLocation();
-  else if (view.level === 'system') backToSector();
+  // Never steal keys from a field the player is typing into.
+  const el = document.activeElement;
+  if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) return;
+
+  if (e.key === 'Escape') {
+    // Escape backs out one step at a time: first cancel a pending move,
+    // then a selection, and only then leave the view.
+    if (targeting) return endTargeting();
+    if (selectedShipId) return selectShip(selectedShipId);
+    if (view.level === 'location') closeLocation();
+    else if (view.level === 'system') backToSector();
+    return;
+  }
+
+  if ((e.key === 'm' || e.key === 'M') && selectedShipId && !targeting) {
+    e.preventDefault();
+    beginTargeting();
+  }
 });
+
+/* A click anywhere in the system resolves a pending move. Registered in the
+   capture phase so it beats the per-body handlers that would otherwise dive
+   into a location instead of parking the vessel there. */
+svgRoot.addEventListener('click', e => {
+  if (!targeting || view.level !== 'system') return;
+  e.stopPropagation();
+  e.preventDefault();
+  const f = FLEET.get(selectedShipId);
+  if (!f) return endTargeting();
+  sendShip(selectedShipId, anchorFromClick(e, f.sysId, f.K));
+  endTargeting();
+}, true);
 
 window.addEventListener('resize', () => {
   if (view.level === 'system') cam.half = systemHalfFor(view.id);
@@ -1049,6 +1353,10 @@ window.addEventListener('langchange', () => {
   buildIndex();
   updateChrome();
   renderFactions();
+  await renderFleet();
+  // Vessels are rebuilt whenever the store changes, so a sheet edit in the
+  // creator shows up on the chart without a reload.
+  store.subscribe(() => { if (!suppressFleetRebuild) renderFleet(); }, ['ships']);
   // Language switcher wiring
   const langSwitch = document.getElementById('lang-switch');
   if (langSwitch) {

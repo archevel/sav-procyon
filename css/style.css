@@ -632,3 +632,24 @@ body.in-system .orbit-layer .o-body { pointer-events: auto; }
     max-width: none; padding: 2vmin;
   }
 }
+
+/* ---------------------------------------------------------- player fleet */
+/* Player vessels reuse the canon ship indicator and art treatment; only the
+   label and the selection affordances mark them out as yours. */
+.o-label-fleet {
+  font-size: 1.35px; letter-spacing: .2px;
+  fill: var(--ink); font-style: italic;
+}
+/* A vessel awaiting orders is ringed rather than recoloured, so the sprite
+   art itself is never obscured. */
+.o-fleet.is-selected .o-globe { stroke-width: 3.4; }
+.o-fleet.is-selected .fleet-hull::after { content: ''; }
+.o-fleet.is-selected .o-hit {
+  stroke: var(--ink); stroke-width: .5; stroke-dasharray: 1.6 1.2;
+  vector-effect: non-scaling-stroke; fill: transparent;
+}
+/* While a destination is awaited the whole chart takes a crosshair, and the
+   bodies that can be parked at lift slightly so they read as targets. */
+#world.is-targeting { cursor: crosshair; }
+#world.is-targeting .o-body .o-globe { stroke-width: 2.2; }
+#world.is-targeting .o-fleet { pointer-events: none; }
