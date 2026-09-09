@@ -93,8 +93,21 @@ export function systemK(sysId, SYS_R) {
  * how far outside the disc the vessel rides. Small enough to read as being in
  * orbit, wide enough to clear the body and its label.
  */
-export function parkRadius(size) {
-  return Math.max(2.2, (size || 12) / 4.375 * 2.1);
+/* Eccentricity for a vessel parked at a body. Lower than a free hold's,
+   because a parked orbit has far less room: a moon like Grytet sits close to
+   its planet, so an orbit that swings out much past its disc starts reading
+   as belonging to the planet rather than the moon. */
+export const PARK_ECC = 0.18;
+
+export function parkRadius(size, ecc = PARK_ECC) {
+  /* Clearance wanted at PERIAPSIS: far enough outside the disc to read as in
+     orbit rather than landed. Modest, because the vessel swings out to
+     a(1+e) and must still look tied to the body rather than to the star. */
+  const clearance = Math.max(1.7, (size || 12) / 4.375 * 1.45);
+  /* Returned as the SEMI-MAJOR axis, which is what an anchor stores; the
+     vessel starts at a(1-e), so scale up to put periapsis at the clearance
+     instead of 30% inside it. */
+  return clearance / (1 - ecc);
 }
 
 /**
@@ -230,15 +243,21 @@ export function anchorEllipse(anchor, K, TILT) {
   const ecc = anchor.ecc ?? 0.28;
   return {
     rx: a,
-    ry: a * Math.sqrt(1 - ecc * ecc) * TILT,
+    /* UNSQUASHED. resolveAnchor rotates the orbit in its own plane and only
+       then applies TILT, so the ring must be drawn the same way round:
+       `transform` below rotates first and squashes second. Baking TILT into
+       ry here and rotating the result would SHEAR the ellipse rather than
+       turn it, which put the vessel up to 15 world units off its own ring. */
+    ry: a * Math.sqrt(1 - ecc * ecc),
     /* Shift the ellipse so its FOCUS — the star, or the body being orbited —
        sits at the origin of the frame the ring is drawn in (Kepler I).
        Negative because resolveAnchor puts periapsis at +x, unlike tick()
-       which flips px; verified against the ellipse equation rather than
-       assumed from the canon ring code. */
+       which flips px. */
     cx: -a * ecc,
-    /* Anchors store both angles in degrees; resolveAnchor converts them to
-       radians internally, so the ring uses them as-is. */
+    /* Ready-made SVG transform, so callers cannot get the order wrong. Read
+       right to left: rotate within the orbital plane, then squash to the
+       viewing plane. */
+    transform: `scale(1 ${TILT}) rotate(${((anchor.phase || 0) + (anchor.argp || 0)).toFixed(2)})`,
     rotate: (anchor.phase || 0) + (anchor.argp || 0)
   };
 }

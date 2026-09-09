@@ -22,7 +22,7 @@ import { mountFleetPanel } from './fleet-ui.js';
 import { mountCrewPanel } from './crew-ui.js';
 import { setBodyPos, clearPositions, bodyPos, bodyAt, anchorTargets,
          resolveAnchor, defaultAnchor, parkRadius, makeTransit,
-         describeAnchor, anchorEllipse } from './fleet.js';
+         describeAnchor, anchorEllipse, PARK_ECC } from './fleet.js';
 
 /* Sourcebook text is authored per map key in both languages, and takes
    precedence over the hand-written strings in strings.js.
@@ -652,10 +652,12 @@ function updateFleetRing(f) {
     if (!base) { f.ringG.style.display = 'none'; return; }
     cx = base.x; cy = base.y;
   }
-  /* Translate to the focus first, then rotate the ellipse about it — the
-     reverse order would swing the whole orbit around the system centre. */
+  /* Translate to the focus first, then apply the orbit's own transform —
+     the reverse order would swing the whole orbit around the system centre.
+     geo.transform carries the rotate-then-squash order the position maths
+     uses, so the ring is the path actually travelled. */
   f.ringG.setAttribute('transform',
-    `translate(${cx.toFixed(2)} ${cy.toFixed(2)}) rotate(${geo.rotate.toFixed(1)})`);
+    `translate(${cx.toFixed(2)} ${cy.toFixed(2)}) ${geo.transform}`);
   f.ring.setAttribute('rx', geo.rx.toFixed(2));
   f.ring.setAttribute('ry', geo.ry.toFixed(2));
   f.ring.setAttribute('cx', geo.cx.toFixed(2));
@@ -768,15 +770,22 @@ function anchorFromClick(e, sysId, K) {
        the body's `size` from the sector data rather than its drawn radius. */
     return { mode: 'body', system: sysId, bodyPath: best.path,
              orbit: parkRadius(best.body.size), phase: 0, period: 60,
-             ecc: 0.3, argp: 0 };
+             ecc: PARK_ECC, argp: 0 };
   }
 
   /* Free hold: distance from the star, unsquashed, converted back to the
-     orbit units anchors are stored in so it survives a rescale. */
+     orbit units anchors are stored in so it survives a rescale.
+
+     A vessel starts at periapsis, a(1-e), so the semi-major axis is scaled up
+     to put PERIAPSIS on the click. Storing the raw distance as `a` instead
+     drops the ship short of where it was sent and swings the orbit out well
+     past it — at e=0.22 that is a 22% miss in and a 22% overshoot out. */
+  const ECC = 0.22;
   const dist = Math.hypot(p.x, p.y / TILT);
   const phase = Math.atan2(p.y / TILT, p.x) * 180 / Math.PI;
-  return { mode: 'star', system: sysId, orbit: Math.max(6, dist / K),
-           phase, period: 300, ecc: 0.22, argp: 0 };
+  return { mode: 'star', system: sysId,
+           orbit: Math.max(6, dist / K / (1 - ECC)),
+           phase, period: 300, ecc: ECC, argp: 0 };
 }
 
 /* ------------------------------------------------------------- orbit loop */

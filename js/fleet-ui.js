@@ -13,7 +13,7 @@ import { SECTOR } from '../data/sector.js';
 import { t } from '../data/i18n.js';
 import * as store from './store.js';
 import { defaultAnchor, describeAnchor, anchorTargets, bodyAt,
-         parkRadius } from './fleet.js';
+         parkRadius, PARK_ECC } from './fleet.js';
 
 /* Suggested sprite names, offered as a datalist. The field is free text, not
    a fixed menu: the fleet is unbounded, so any vessel must be able to name
@@ -199,7 +199,7 @@ function wire(ships) {
         location = { mode: 'body', system: sysId, bodyPath: path,
                      orbit: parkRadius(body?.size),
                      phase: spreadPhase(ships, s.id, sysId, path),
-                     period: 60, ecc: 0.3, argp: 0 };
+                     period: 60, ecc: PARK_ECC, argp: 0 };
       } else if (v) {
         location = { ...defaultAnchor(v),
                      phase: spreadPhase(ships, s.id, v, null) };
