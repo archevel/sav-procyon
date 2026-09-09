@@ -24,6 +24,8 @@ import { setBodyPos, clearPositions, bodyPos, bodyAt, anchorTargets,
          resolveAnchor, defaultAnchor, parkRadius, makeTransit,
          describeAnchor, anchorEllipse, PARK_ECC, targetName,
          GATE_PREFIX, isGatePath, gateParkRadius } from './fleet.js';
+import { renderPlaceNotes, placePath, notesIndex,
+         splitPath } from './notes-ui.js';
 
 /* Sourcebook text is authored per map key in both languages, and takes
    precedence over the hand-written strings in strings.js.
@@ -488,7 +490,8 @@ async function makeBody(b, sysId, K) {
     mg.appendChild(ml);
     mg.appendChild(svgEl('circle', { r: mr * 1.25, class: 'o-hit' }));
     const mt = svgEl('title'); mt.textContent = `${t(m.key + '.name')} — ${t(m.key + '.tag')}`; mg.appendChild(mt);
-    mg.addEventListener('click', e => { e.stopPropagation(); diveTo(sysId, m, mg); });
+    mg.addEventListener('click', e => { e.stopPropagation();
+      diveTo(sysId, m, mg, placePath(sysId, `${b.id}/${m.id}`)); });
     inner.appendChild(mg);
     moons.push({ el: mg, id: m.id, R: mR, period: m.period, phase: m.phase });
   }
@@ -774,6 +777,37 @@ function sendShip(id, dest, ms = 2000) {
 }
 
 
+/* ------------------------------------------------------------ note badges */
+
+/**
+ * Mark every charted place that carries player notes.
+ *
+ * A small tick beside a body is enough: the point is to make the player's own
+ * writing findable again without cluttering a chart whose whole style is
+ * restraint. Re-run whenever notes change.
+ */
+async function markNoteBadges() {
+  const { known } = await notesIndex();
+  const paths = new Set(known.map(k => k.path));
+
+  camera.querySelectorAll('.o-note-badge').forEach(n => n.remove());
+  for (const path of paths) {
+    const { sysId, bodyPath } = splitPath(path);
+    const group = camera.querySelector(`.system-group[data-system="${sysId}"]`);
+    if (!group) continue;
+    /* A nested moon is drawn inside its planet, so the last segment finds it
+       wherever it sits in the tree. */
+    const leaf = bodyPath ? bodyPath.split('/').pop() : null;
+    const host = leaf
+      ? group.querySelector(`.o-body[data-id="${CSS.escape(leaf)}"] > g`)
+      : group.querySelector('.sys-star-g');
+    if (!host) continue;
+    const badge = svgEl('text', { class: 'o-note-badge', x: 0, y: -6 });
+    badge.textContent = '✎';
+    host.appendChild(badge);
+  }
+}
+
 /* ------------------------------------------------------- move targeting */
 /* Movement is a keyboard-then-click gesture rather than a drag: a vessel's
    position is derived from its anchor every frame, so dragging would fight
@@ -825,7 +859,7 @@ function diveToShip(id) {
   stopOrbits();                                  // hold the vessel still
   moveCam({ x: wx(sys.x) + p.x, y: wy(sys.y) + p.y, half: ZOOM_BODY }, 700,
           { ease: k => k * k });
-  setTimeout(() => openLocation(f.sysId, shipAsBody(f.rec)), 850);
+  setTimeout(() => openLocation(f.sysId, shipAsBody(f.rec)), 850);   // vessel notes live on its sheet
 }
 
 /**
@@ -1168,7 +1202,7 @@ function travelTo(toId) {
 
 /* Diving into a body: continue the same camera move all the way down to the
    body itself, then cross-fade to the surface image partway through. */
-function diveTo(sysId, b, node) {
+function diveTo(sysId, b, node, notePath = null) {
   const sys = SECTOR.systems[sysId];
   const m = /translate\(([-\d.]+) ([-\d.]+)\)/.exec(node.getAttribute('transform') || '');
   let ox = 0, oy = 0;
@@ -1183,13 +1217,13 @@ function diveTo(sysId, b, node) {
   stopOrbits();                                  // hold the target still
   moveCam({ x: wx(sys.x) + ox, y: wy(sys.y) + oy, half: ZOOM_BODY }, 700,
           { ease: k => k * k });
-  setTimeout(() => openLocation(sysId, b), 850); // fade starts near the end of the zoom
+  setTimeout(() => openLocation(sysId, b, notePath || placePath(sysId, b.id)), 850);
 }
 
 /* ------------------------------------------------------------- location */
 
-async function openLocation(sysId, b) {
-  view = { level: 'location', sysId, bodyId: b.id };
+async function openLocation(sysId, b, notePath = null) {
+  view = { level: 'location', sysId, bodyId: b.id, notePath };
   const surface = b.surface ? await artUrl(`img/surface-${b.surface}`, 'jpg') : null;
   const hasImage = !!surface;
   // The surface view uses i18n keys for everything now.
@@ -1215,6 +1249,10 @@ async function openLocation(sysId, b) {
       <h2 class="loc-title">${b.key ? t(b.key + '.name') : (b.name || '?')}</h2>
       <p class="loc-text">${prose || ''}</p>
       ${hasDetails ? `<div class="loc-actions"><button class="loc-info-btn">${t('loc.details')}</button></div>` : ''}
+      ${notePath ? `<div class="loc-notes">
+        <h3 class="loc-notes-title">${t('notes.yours')}</h3>
+        <div class="loc-notes-body"></div>
+      </div>` : ''}
     </div>
     ${hasDetails ? `<div class="loc-info-panel" hidden>
       <button class="loc-info-close" aria-label="${t('loc.close')}">×</button>
@@ -1240,6 +1278,13 @@ async function openLocation(sysId, b) {
   }
   closeBtn?.addEventListener('click', () => { panel.hidden = true; });
   panel?.addEventListener('click', e => { if (e.target === panel) panel.hidden = true; });
+
+  /* The player's own notes for this place, below the canon text and clearly
+     separated from it — what the group wrote must never read as sourcebook. */
+  if (notePath) {
+    const host = locView.querySelector('.loc-notes-body');
+    if (host) renderPlaceNotes(host, notePath, { onChange: markNoteBadges });
+  }
 
   updateChrome();
 }
@@ -1448,15 +1493,16 @@ function buildIndex() {
       if (!bid) return enterSystem(sid);
       const s = SECTOR.systems[sid];
       let b = s.bodies.find(x => x.id === bid);
+      let path = bid;
       if (!b) for (const p of s.bodies) {
         const mm = (p.moons || []).find(x => x.id === bid);
-        if (mm) b = mm;
+        if (mm) { b = mm; path = `${p.id}/${mm.id}`; }
       }
       if (!b) return;
       enterSystem(sid);
       setTimeout(() => {
         const node = camera.querySelector(`.system-group[data-system="${sid}"] .o-body[data-id="${bid}"]`);
-        diveTo(sid, b, node?.firstElementChild || node);
+        diveTo(sid, b, node?.firstElementChild || node, placePath(sid, path));
         // After the dive + surface fade, auto-open the details panel for quick navigation.
         setTimeout(() => {
           const btn = document.querySelector('.loc-info-btn');
@@ -1557,6 +1603,8 @@ window.addEventListener('langchange', () => {
   updateChrome();
   renderFactions();
   await renderFleet();
+  markNoteBadges();
+  store.subscribe(() => markNoteBadges(), ['notes']);
   // The fleet panel owns no render state: it writes anchors to the store and
   // reaches back through these hooks for the two things only the chart knows.
   mountCrewPanel();

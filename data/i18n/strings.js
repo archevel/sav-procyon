@@ -13,6 +13,14 @@ export const STRINGS = {
 
 
 
+  /* --------------- notes ------------------------------------------------ */
+  'notes.yours':    { sv: 'Dina anteckningar', en: 'Your notes' },
+  'notes.confirmDelete': { sv: 'Ta bort anteckningen "%s"?',
+                           en: 'Delete the note "%s"?' },
+  'notes.orphans':  { sv: 'Okända platser', en: 'Unknown locations' },
+  'notes.orphanHint': { sv: 'Dessa anteckningar pekar på platser som inte längre finns i kartdatan.',
+                        en: 'These notes point at places no longer in the map data.' },
+
   /* --------------- sheets ----------------------------------------------- */
   'sheet.back':      { sv: 'Tillbaka',     en: 'Back' },
   'sheet.identity':  { sv: 'Identitet',    en: 'Identity' },

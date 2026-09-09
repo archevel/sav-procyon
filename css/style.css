@@ -941,3 +941,24 @@ body.in-system .orbit-layer .o-body { pointer-events: auto; }
   border-bottom: max(1px, .1vmin) solid transparent; padding: .2vmin 0;
 }
 .crew-open:hover { border-bottom-color: var(--ink); }
+
+/* ------------------------------------------------------------ place notes */
+/* Player notes sit below the canon text and are visibly the player's — a
+   dashed rule and a quieter heading, so nothing here reads as sourcebook. */
+.loc-notes {
+  margin: 2.4vmin 0 0; padding: 1.6vmin 0 0;
+  border-top: max(1px, .12vmin) dashed var(--ink);
+}
+.loc-notes-title {
+  font-family: var(--mono); font-size: 1.1vmin; font-weight: 700;
+  letter-spacing: .2em; text-transform: uppercase;
+  color: var(--ink-soft); margin: 0 0 1vmin;
+}
+/* A place that carries notes is ticked on the chart, so the player's own
+   writing can be found again without hunting. */
+.o-note-badge {
+  fill: var(--ink); font-size: 2.6px; text-anchor: middle;
+  paint-order: stroke; stroke: var(--paper); stroke-width: .8px;
+  stroke-linejoin: round; pointer-events: none;
+  opacity: var(--detail, 1);
+}
