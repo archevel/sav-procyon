@@ -15,7 +15,7 @@ import { t } from '../data/i18n.js';
 import * as store from './store.js';
 import * as SAV from '../data/sav.js';
 import { el, dots, track, clock, newClock, note, newNote, imageStrip,
-         field, choice, picks, section, portraitPicker } from './sheet-parts.js';
+         field, choice, picks, section, portraitField } from './sheet-parts.js';
 import { PORTRAITS, portraitById, randomPortrait } from '../data/portraits.js';
 
 /**
@@ -152,7 +152,7 @@ function identity(rec, save) {
 
   const portrait = el('div', 'sheet-portrait');
   portrait.appendChild(el('span', 'sheet-field-label', t('sheet.portrait')));
-  portrait.appendChild(portraitPicker({
+  portrait.appendChild(portraitField({
     shipped: PORTRAITS,
     selectedId: rec.portraitId,
     asset: rec.portrait,

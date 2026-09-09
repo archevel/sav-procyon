@@ -237,58 +237,121 @@ export function imageStrip(images, { onAddImage, onRemoveImage }) {
 }
 
 /**
- * Portrait chooser: the shipped art, plus whatever the player uploaded.
+ * The character's portrait: what they look like now, and a way to change it.
  *
- * One row of thumbnails where exactly one is selected. Clicking a shipped
- * portrait selects it; the upload slot at the end adds a file and selects
- * that. Choosing a shipped portrait never deletes an upload, so switching
- * back and forth costs nothing.
+ * Shown as the single current portrait rather than a row of every option.
+ * A row works only once there is something to choose BETWEEN — with one
+ * shipped image it renders as a lone thumbnail that is already selected, so
+ * clicking it appears to do nothing at all. Clicking now opens a chooser.
  */
-export function portraitPicker({ shipped, selectedId, asset, onPick, onUpload,
-                                 onClear }) {
-  const wrap = el('div', 'sheet-portraits');
+export function portraitField({ shipped, selectedId, asset, onPick, onUpload,
+                                onClear }) {
+  const wrap = el('div', 'sheet-portrait-field');
 
-  /* The uploaded image comes first when there is one: it is the player's own
-     and should not be hunted for at the end of a growing list. */
+  const current = el('button', 'sheet-portrait-current');
+  current.type = 'button';
+  current.title = t('sheet.changePortrait');
+
+  const im = el('img');
   if (asset) {
-    const fig = el('div', 'sheet-portrait-opt is-on');
-    const im = el('img');
     store.assetUrl(asset.assetId).then(url => { if (url) im.src = url; });
-    fig.appendChild(im);
-    const x = el('button', 'sheet-x sheet-image-x', '×');
-    x.type = 'button';
-    x.title = t('sheet.remove');
-    x.addEventListener('click', e => { e.stopPropagation(); onClear(); });
-    fig.appendChild(x);
-    wrap.appendChild(fig);
+  } else if (selectedId) {
+    const p = shipped.find(x => x.id === selectedId);
+    if (p) im.src = p.url;
+  }
+  if (im.src) current.appendChild(im);
+  else current.appendChild(el('span', 'sheet-portrait-empty', '+'));
+  current.addEventListener('click',
+    () => openChooser({ shipped, selectedId, asset, onPick, onUpload, onClear }));
+  wrap.appendChild(current);
+
+  const hint = el('span', 'sheet-portrait-hint', t('sheet.changePortrait'));
+  wrap.appendChild(hint);
+  return wrap;
+}
+
+/**
+ * The chooser itself: every shipped portrait, plus upload and clear.
+ *
+ * A modal rather than an inline row, because the catalogue is meant to grow
+ * and a growing row would push the rest of the sheet down every time art is
+ * added.
+ */
+function openChooser({ shipped, selectedId, asset, onPick, onUpload, onClear }) {
+  const back = el('div', 'portrait-modal');
+  const close = () => back.remove();
+
+  const box = el('div', 'portrait-modal-box');
+  const head = el('div', 'portrait-modal-head');
+  head.appendChild(el('h3', null, t('sheet.portrait')));
+  const x = el('button', 'sheet-x', '×');
+  x.type = 'button';
+  x.title = t('sheet.close');
+  x.addEventListener('click', close);
+  head.appendChild(x);
+  box.appendChild(head);
+
+  const grid = el('div', 'portrait-grid');
+
+  /* The player's own upload comes first — it is theirs, and should not be
+     hunted for past a catalogue that will only get longer. */
+  if (asset) {
+    const fig = el('button', 'portrait-opt is-on');
+    fig.type = 'button';
+    const ai = el('img');
+    store.assetUrl(asset.assetId).then(url => { if (url) ai.src = url; });
+    fig.appendChild(ai);
+    fig.addEventListener('click', close);       // already in force
+    grid.appendChild(fig);
   }
 
   for (const p of shipped) {
-    const fig = el('div', 'sheet-portrait-opt'
-      + (!asset && p.id === selectedId ? ' is-on' : ''));
-    const im = el('img');
-    im.src = p.url;
-    im.alt = '';
-    im.loading = 'lazy';
-    fig.appendChild(im);
-    fig.addEventListener('click', () => onPick(p.id));
-    wrap.appendChild(fig);
+    const fig = el('button', 'portrait-opt' + (!asset && p.id === selectedId ? ' is-on' : ''));
+    fig.type = 'button';
+    const pi = el('img');
+    pi.src = p.url;
+    pi.alt = '';
+    pi.loading = 'lazy';
+    fig.appendChild(pi);
+    fig.addEventListener('click', () => { onPick(p.id); close(); });
+    grid.appendChild(fig);
   }
+  box.appendChild(grid);
 
-  const add = el('label', 'sheet-image-add');
-  add.textContent = '+';
-  add.title = t('sheet.addImage');
+  const actions = el('div', 'portrait-modal-actions');
+  const up = el('label', 'loc-info-btn', t('sheet.uploadOwn'));
   const input = el('input');
   input.type = 'file';
   input.accept = store.ACCEPTED_IMAGE_TYPES;
   input.addEventListener('change', async () => {
     const file = input.files?.[0];
     input.value = '';
-    if (file) await onUpload(file);
+    if (!file) return;
+    await onUpload(file);
+    close();
   });
-  add.appendChild(input);
-  wrap.appendChild(add);
-  return wrap;
+  up.appendChild(input);
+  actions.appendChild(up);
+
+  if (asset) {
+    const clear = el('button', 'loc-info-btn', t('sheet.removeOwn'));
+    clear.type = 'button';
+    clear.addEventListener('click', () => { onClear(); close(); });
+    actions.appendChild(clear);
+  }
+  box.appendChild(actions);
+
+  back.appendChild(box);
+  back.addEventListener('click', e => { if (e.target === back) close(); });
+  /* Escape closes, and is removed with the modal so it cannot outlive it. */
+  const onKey = e => { if (e.key === 'Escape') { e.stopPropagation(); close(); } };
+  document.addEventListener('keydown', onKey, true);
+  back.addEventListener('remove', () => document.removeEventListener('keydown', onKey, true));
+  new MutationObserver((m, obs) => {
+    if (!back.isConnected) { document.removeEventListener('keydown', onKey, true); obs.disconnect(); }
+  }).observe(document.body, { childList: true, subtree: true });
+
+  document.body.appendChild(back);
 }
 
 /** A labelled text input. */

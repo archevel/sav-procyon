@@ -1,0 +1,26 @@
+#!/usr/bin/env sh
+# Rewrite the PORTRAIT_FILES list in data/portraits.js from whatever is in
+# img/characters/. A static site cannot list a directory at runtime, so the
+# catalogue is generated here instead — run this after adding or removing art.
+set -e
+cd "$(dirname "$0")/.."
+python3 - <<'PY'
+import os, re
+d = 'img/characters'
+files = sorted(f for f in os.listdir(d) if f.lower().endswith(('.webp', '.png', '.jpg', '.jpeg')))
+p = 'data/portraits.js'
+s = open(p, encoding='utf-8').read()
+listing = ("export const PORTRAIT_FILES = [\n"
+           + "".join(f"  '{f}',\n" for f in files).rstrip(',\n')
+           + "\n];")
+# Anchored on the closing bracket at column 0, so a 60-entry list does not
+# end early on some other ']' inside the file.
+pat = re.compile(r"export const PORTRAIT_FILES = \[[^\]]*\n\];")
+if not pat.search(s):
+    raise SystemExit('could not find PORTRAIT_FILES in ' + p)
+# A no-op substitution means the catalogue was already correct, which is not
+# an error — only a missing anchor is.
+s2 = pat.sub(lambda _: listing, s)
+open(p, 'w', encoding='utf-8').write(s2)
+print(f'{len(files)} portrait(s) catalogued')
+PY

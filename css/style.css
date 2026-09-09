@@ -1033,3 +1033,63 @@ body.in-system .orbit-layer .o-body { pointer-events: auto; }
    glance in a row that will grow long. */
 .sheet-portrait-opt.is-on { outline: max(2px, .3vmin) solid var(--ink); }
 .sheet-portrait-opt.is-on img { opacity: 1; }
+
+/* Portrait: the current picture, and the chooser behind it. */
+.sheet-portrait-field { display: flex; align-items: center; gap: 1vmin; }
+.sheet-portrait-current {
+  width: 10vmin; height: 10vmin; padding: 0; cursor: pointer;
+  border: max(1px, .14vmin) solid var(--ink);
+  background: var(--paper); display: grid; place-items: center;
+}
+.sheet-portrait-current img {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+  filter: grayscale(1) contrast(1.15);
+}
+.sheet-portrait-current:hover { outline: max(2px, .25vmin) solid var(--ink); }
+.sheet-portrait-empty {
+  font-family: var(--mono); font-size: 3vmin; color: var(--ink-soft);
+}
+.sheet-portrait-hint {
+  font-family: var(--mono); font-size: 1vmin; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--ink-soft);
+}
+
+/* The chooser sits above the sheet's own panel. */
+.portrait-modal {
+  position: fixed; inset: 0; z-index: 80;
+  display: grid; place-items: center;
+  background: rgba(16, 16, 14, .55);
+}
+.portrait-modal-box {
+  background: var(--paper); color: var(--ink);
+  border: max(1px, .16vmin) solid var(--ink);
+  padding: 2.4vmin; max-width: 52rem; max-height: 80vh; overflow-y: auto;
+  box-shadow: 0 0 4vmin rgba(16,16,14,.4);
+}
+.portrait-modal-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 1vmin; margin: 0 0 1.4vmin;
+}
+.portrait-modal-head h3 {
+  font-family: var(--mono); font-size: 1.5vmin; font-weight: 700;
+  letter-spacing: .2em; text-transform: uppercase; margin: 0;
+}
+.portrait-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(11vmin, 1fr));
+  gap: 1vmin;
+}
+.portrait-opt {
+  padding: 0; cursor: pointer; aspect-ratio: 1;
+  border: max(1px, .12vmin) solid var(--ink); background: var(--paper);
+}
+.portrait-opt img {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+  filter: grayscale(1) contrast(1.15);
+  opacity: .78; transition: opacity 140ms;
+}
+.portrait-opt:hover img { opacity: 1; }
+.portrait-opt.is-on { outline: max(2px, .3vmin) solid var(--ink); }
+.portrait-opt.is-on img { opacity: 1; }
+.portrait-modal-actions { display: flex; gap: .8vmin; margin: 1.6vmin 0 0; }
+.portrait-modal-actions input[type=file] { display: none; }
+.portrait-modal-actions label { cursor: pointer; }
