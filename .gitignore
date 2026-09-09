@@ -1,0 +1,7 @@
+# Browser test pages. They exercise the store, the orbit maths, the PNG codec,
+# the import/undo flow and the localization guards — serve the repo over
+# http:// and open tests/<name>.html to run one.
+#
+# Deliberately untracked: this repo is served as-is, so anything committed is
+# published. The consequence is that they do not survive a fresh clone.
+tests/
