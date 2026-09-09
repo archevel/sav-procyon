@@ -1,32 +1,31 @@
 /* Crew panel — the player's characters.
  *
- * Deliberately a stub of the eventual character creator: name and playbook
- * only, so characters can be created, listed and deleted while the full sheet
- * (action ratings, stress, harm, load, clocks, notes, portraits) is built.
- * Records already carry the store's id/originId/rev triple, so characters
- * made now survive into the creator and into sharing without a migration.
+ * Two views in one panel: a roster of everyone, and one character's sheet.
+ * The roster stays deliberately thin (name, playbook, a way in) because the
+ * sheet is where the detail belongs; keeping both in one panel means the
+ * player never loses their place navigating between them.
  */
 
 import { t } from '../data/i18n.js';
 import * as store from './store.js';
+import { PLAYBOOK_LIST } from '../data/sav.js';
+import { renderCharacterSheet, blankCharacter } from './sheet-character.js';
 
-/* Playbook names only. The mechanics behind them belong in data/sav.js with
-   the rest of the rules; this list exists so the field is a menu rather than
-   free text, and can be replaced wholesale by that module later. */
-export const PLAYBOOKS = [
-  'Muscle', 'Pilot', 'Speaker', 'Scoundrel', 'Stitch', 'Mechanic', 'Mystic'
-];
-
-let panel, listEl;
+let panel, listEl, sheetEl;
+/* Which character the panel is showing a sheet for; null shows the roster. */
+let openId = null;
 
 export function mountCrewPanel() {
-  panel  = document.getElementById('crew-panel');
-  listEl = document.getElementById('crew-list');
+  panel   = document.getElementById('crew-panel');
+  listEl  = document.getElementById('crew-list');
+  sheetEl = document.getElementById('crew-sheet');
   if (!panel) return;
 
   document.getElementById('crew-btn')?.addEventListener('click', () => {
     panel.hidden = !panel.hidden;
-    if (!panel.hidden) render();
+    /* Always return to the roster when reopening: a sheet left open from an
+       earlier session is rarely the one wanted next. */
+    if (!panel.hidden) { openId = null; render(); }
   });
   document.getElementById('crew-close')
     ?.addEventListener('click', () => { panel.hidden = true; });
@@ -44,7 +43,10 @@ async function addCharacter() {
   let n = rows.length + 1;
   const taken = new Set(rows.map(r => r.name));
   while (taken.has(`Character ${n}`)) n++;
-  await store.put('characters', { name: `Character ${n}`, playbook: '' });
+  const rec = await store.put('characters', blankCharacter(`Character ${n}`));
+  /* Open the new sheet straight away — creating a character is almost always
+     the first half of filling one in. */
+  openId = rec.id;
   render();
 }
 
@@ -55,54 +57,53 @@ function esc(s) {
 
 async function render() {
   if (!listEl) return;
-  const rows = await store.all('characters');
+
+  if (openId) {
+    const rec = await store.get('characters', openId);
+    if (rec) return showSheet(rec);
+    openId = null;                       // deleted from elsewhere
+  }
+  showRoster(await store.all('characters'));
+}
+
+/** One character's sheet, filling the panel. */
+function showSheet(rec) {
+  listEl.hidden = true;
+  sheetEl.hidden = false;
+  document.getElementById('crew-add').hidden = true;
+  renderCharacterSheet(sheetEl, rec, { onBack: () => { openId = null; render(); } });
+}
+
+function showRoster(rows) {
+  sheetEl.hidden = true;
+  sheetEl.innerHTML = '';
+  listEl.hidden = false;
+  document.getElementById('crew-add').hidden = false;
 
   if (!rows.length) {
     listEl.innerHTML = `<p class="fleet-empty">${esc(t('crew.empty'))}</p>`;
     return;
   }
 
-  listEl.innerHTML = rows.map(c => `<div class="fleet-row" data-id="${c.id}">
+  listEl.innerHTML = rows.map(c => {
+    const pb = PLAYBOOK_LIST.find(p => p.id === c.playbook);
+    return `<div class="fleet-row" data-id="${c.id}">
       <div class="fleet-row-top">
-        <input class="crew-name" value="${esc(c.name)}" data-id="${c.id}"
-               aria-label="${esc(t('crew.name'))}">
+        <button class="crew-open" data-open="${c.id}">${esc(c.name)}</button>
         <button class="fleet-x" data-del="${c.id}"
                 title="${esc(t('crew.delete'))}">×</button>
       </div>
-      <div class="fleet-row-controls">
-        <select class="crew-playbook" data-id="${c.id}"
-                aria-label="${esc(t('crew.playbook'))}">
-          <option value="">— ${esc(t('crew.playbook'))} —</option>
-          ${PLAYBOOKS.map(pb => `<option value="${pb}"${
-            c.playbook === pb ? ' selected' : ''}>${esc(pb)}</option>`).join('')}
-        </select>
-      </div>
-    </div>`).join('');
+      <span class="fleet-where">${pb ? esc(pb.name) : esc(t('crew.noPlaybook'))}</span>
+    </div>`;
+  }).join('');
 
-  const find = id => rows.find(r => r.id === id);
-
-  /* Rename on blur, not per keystroke: every save bumps rev, and a rev per
-     character typed would make an import's newer/older comparison useless. */
-  listEl.querySelectorAll('.crew-name').forEach(inp => {
-    inp.addEventListener('blur', async () => {
-      const c = find(inp.dataset.id);
-      if (c && inp.value.trim() && inp.value !== c.name) {
-        await store.put('characters', { ...c, name: inp.value.trim() });
-      }
-    });
-    inp.addEventListener('keydown', e => { if (e.key === 'Enter') inp.blur(); });
-  });
-
-  listEl.querySelectorAll('.crew-playbook').forEach(sel => {
-    sel.addEventListener('change', async () => {
-      const c = find(sel.dataset.id);
-      if (c) await store.put('characters', { ...c, playbook: sel.value });
-    });
+  listEl.querySelectorAll('.crew-open').forEach(btn => {
+    btn.addEventListener('click', () => { openId = btn.dataset.open; render(); });
   });
 
   listEl.querySelectorAll('.fleet-x').forEach(btn => {
     btn.addEventListener('click', async () => {
-      const c = find(btn.dataset.del);
+      const c = rows.find(r => r.id === btn.dataset.del);
       if (!c) return;
       /* No undo for an ordinary delete yet — the snapshot machinery exists
          but only imports use it — so this is confirmed. */

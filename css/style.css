@@ -734,3 +734,210 @@ body.in-system .orbit-layer .o-body { pointer-events: auto; }
 }
 #player-switch button:hover { background: var(--ink); color: var(--paper); }
 #crew-panel[hidden], #fleet-panel[hidden] { display: none; }
+
+/* ----------------------------------------------------------------- sheets */
+/* The panels grow when a sheet is open — a sheet needs room a roster does not. */
+#crew-panel .fleet-content, #fleet-panel .fleet-content { max-width: 44rem; }
+#crew-sheet, #fleet-sheet { display: block; }
+#crew-sheet[hidden], #fleet-sheet[hidden] { display: none; }
+
+.sheet-head { display: flex; align-items: center; gap: 1vmin; margin: 0 0 1.4vmin; }
+.sheet-back {
+  font-family: var(--mono); font-size: 1.15vmin; font-weight: 700;
+  letter-spacing: .14em; text-transform: uppercase;
+  color: var(--ink); background: transparent;
+  border: max(1px, .12vmin) solid var(--ink);
+  padding: .5vmin 1vmin; cursor: pointer; flex: none;
+}
+.sheet-back:hover { background: var(--ink); color: var(--paper); }
+.sheet-name {
+  flex: 1; min-width: 0;
+  font-family: var(--mono); font-size: 2vmin; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ink); background: transparent;
+  border: 0; border-bottom: max(1px, .12vmin) solid var(--ink);
+  padding: .3vmin 0;
+}
+.sheet-name:focus { outline: none; background: rgba(16,16,14,.05); }
+
+.sheet-section { border-top: max(1px, .1vmin) solid var(--ink); margin: 0 0 .4vmin; }
+.sheet-section-title {
+  font-family: var(--mono); font-size: 1.2vmin; font-weight: 700;
+  letter-spacing: .2em; text-transform: uppercase;
+  padding: .9vmin 0; cursor: pointer; list-style: none;
+}
+.sheet-section-title::-webkit-details-marker { display: none; }
+.sheet-section-title::before { content: '▾ '; }
+.sheet-section:not([open]) .sheet-section-title::before { content: '▸ '; }
+.sheet-section-body { padding: 0 0 1.4vmin; }
+
+.sheet-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: .8vmin 1.2vmin;
+}
+.sheet-field { display: flex; flex-direction: column; gap: .25vmin; }
+.sheet-field-label {
+  font-family: var(--mono); font-size: 1vmin; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--ink-soft);
+}
+.sheet-field-input, .sheet-harm-slot, .sheet-extra-key, .sheet-extra-val,
+.sheet-clock-name, .sheet-note-title, .sheet-note-body {
+  font-family: var(--mono); font-size: 1.35vmin;
+  color: var(--ink); background: var(--paper);
+  border: max(1px, .1vmin) solid var(--ink);
+  padding: .45vmin .6vmin; width: 100%; box-sizing: border-box;
+}
+.sheet-field-static {
+  font-family: var(--mono); font-size: 1.35vmin; padding: .45vmin 0;
+  color: var(--ink-soft);
+}
+.sheet-hint {
+  font-family: var(--mono); font-size: 1.05vmin; color: var(--ink-soft);
+  margin: .8vmin 0 0;
+}
+.sheet-sub {
+  font-family: var(--mono); font-size: 1.1vmin; font-weight: 700;
+  letter-spacing: .16em; text-transform: uppercase;
+  margin: 1.2vmin 0 .5vmin; color: var(--ink-soft);
+}
+
+/* Dots and tracks. Both are click-to-set, click-again-to-clear. */
+.sheet-dots { display: flex; align-items: center; gap: .8vmin; margin: .3vmin 0; }
+.sheet-dots-label, .sheet-track-label {
+  font-family: var(--mono); font-size: 1.1vmin; letter-spacing: .1em;
+  text-transform: uppercase; min-width: 7.5rem;
+}
+.sheet-dots-row, .sheet-track-row { display: flex; gap: .35vmin; }
+.sheet-dot {
+  width: 1.5vmin; height: 1.5vmin; padding: 0; cursor: pointer;
+  border: max(1px, .12vmin) solid var(--ink); border-radius: 50%;
+  background: var(--paper);
+}
+.sheet-dot.is-on { background: var(--ink); }
+.sheet-track { display: flex; align-items: center; gap: .8vmin; margin: .5vmin 0; }
+.sheet-pip {
+  width: 1.3vmin; height: 1.8vmin; padding: 0; cursor: pointer;
+  border: max(1px, .12vmin) solid var(--ink); background: var(--paper);
+}
+.sheet-pip.is-on { background: var(--ink); }
+.sheet-track-stress .sheet-pip.is-on { background: #a4442e; border-color: #a4442e; }
+.sheet-track-xp .sheet-pip { height: 1.3vmin; }
+
+.sheet-attrs {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 1.4vmin;
+}
+.sheet-attr-name {
+  font-family: var(--mono); font-size: 1.15vmin; font-weight: 700;
+  letter-spacing: .18em; text-transform: uppercase;
+  margin: 0 0 .5vmin; padding-bottom: .3vmin;
+  border-bottom: max(1px, .1vmin) solid var(--ink);
+}
+
+.sheet-harm-row { display: flex; align-items: center; gap: .6vmin; margin: .4vmin 0; }
+.sheet-harm-level {
+  font-family: var(--mono); font-weight: 700; font-size: 1.2vmin;
+  width: 1.6vmin; flex: none; text-align: center;
+}
+
+.sheet-picks {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: .2vmin .8vmin;
+}
+.sheet-pick { display: flex; align-items: center; gap: .5vmin; cursor: pointer; }
+.sheet-pick-label { font-family: var(--mono); font-size: 1.2vmin; }
+.sheet-picks-note {
+  grid-column: 1 / -1;
+  font-family: var(--mono); font-size: 1.02vmin; font-style: italic;
+  color: var(--ink-soft); margin: .6vmin 0 0;
+}
+
+/* Clocks: a segmented disc plus its name and size. */
+.sheet-clocks { display: flex; flex-wrap: wrap; gap: 1.2vmin; align-items: flex-start; }
+.sheet-clock {
+  display: flex; gap: .8vmin; align-items: flex-start;
+  border: max(1px, .1vmin) solid var(--ink); padding: .8vmin; min-width: 15rem;
+}
+.sheet-clock-face { width: 6vmin; height: 6vmin; flex: none; }
+.sheet-clock-seg {
+  fill: var(--paper); stroke: var(--ink); stroke-width: 1.2; cursor: pointer;
+}
+.sheet-clock-seg.is-on { fill: var(--ink); }
+.sheet-clock-side { display: flex; flex-direction: column; gap: .4vmin; flex: 1; min-width: 0; }
+.sheet-clock-controls { display: flex; gap: .4vmin; }
+.sheet-clock-size {
+  font-family: var(--mono); font-size: 1.1vmin; flex: 1;
+  color: var(--ink); background: var(--paper);
+  border: max(1px, .1vmin) solid var(--ink); padding: .3vmin;
+}
+.sheet-clock-count {
+  font-family: var(--mono); font-size: 1vmin; color: var(--ink-soft);
+  letter-spacing: .1em;
+}
+
+.sheet-note { border: max(1px, .1vmin) solid var(--ink); padding: .8vmin; margin: 0 0 .8vmin; }
+.sheet-note-head { display: flex; gap: .5vmin; margin: 0 0 .5vmin; }
+.sheet-note-body { resize: vertical; }
+
+/* Images attach to notes, portraits and anything else that takes one. */
+.sheet-images { display: flex; flex-wrap: wrap; gap: .6vmin; margin: .6vmin 0 0; }
+.sheet-image { position: relative; width: 7vmin; height: 7vmin; }
+.sheet-image img {
+  width: 100%; height: 100%; object-fit: cover;
+  border: max(1px, .1vmin) solid var(--ink);
+  filter: grayscale(1) contrast(1.15);
+}
+.sheet-image.is-missing::after {
+  content: '?'; position: absolute; inset: 0;
+  display: grid; place-items: center;
+  font-family: var(--mono); border: max(1px, .1vmin) dashed var(--ink);
+}
+.sheet-image-x { position: absolute; top: -.4vmin; right: -.4vmin; }
+.sheet-image-add {
+  width: 7vmin; height: 7vmin; display: grid; place-items: center;
+  border: max(1px, .1vmin) dashed var(--ink); cursor: pointer;
+  font-family: var(--mono); font-size: 2.4vmin; color: var(--ink-soft);
+}
+.sheet-image-add:hover { color: var(--ink); border-style: solid; }
+.sheet-image-add input { display: none; }
+
+.sheet-x {
+  width: 2.2vmin; height: 2.2vmin; flex: none; line-height: 1; padding: 0;
+  font-family: var(--mono); font-size: 1.5vmin; font-weight: 700;
+  color: var(--ink); background: var(--paper);
+  border: max(1px, .1vmin) solid var(--ink); cursor: pointer;
+}
+.sheet-x:hover { background: var(--ink); color: var(--paper); }
+.sheet-add {
+  font-family: var(--mono); font-size: 1.1vmin; font-weight: 700;
+  letter-spacing: .14em; text-transform: uppercase;
+  color: var(--ink); background: transparent;
+  border: max(1px, .1vmin) dashed var(--ink);
+  padding: .6vmin 1.2vmin; cursor: pointer; margin: .4vmin 0 0;
+}
+.sheet-add:hover { border-style: solid; background: var(--ink); color: var(--paper); }
+
+.sheet-system { display: flex; align-items: center; gap: .8vmin; }
+.sheet-system.is-damaged .sheet-dots-label { text-decoration: line-through; }
+.sheet-damage {
+  font-family: var(--mono); font-size: .95vmin; letter-spacing: .1em;
+  text-transform: uppercase; cursor: pointer;
+  color: var(--ink-soft); background: transparent;
+  border: max(1px, .1vmin) solid var(--ink-soft); padding: .2vmin .6vmin;
+}
+.sheet-damage.is-on { background: #a4442e; border-color: #a4442e; color: var(--paper); }
+
+.sheet-extra-row { display: flex; gap: .5vmin; margin: 0 0 .5vmin; }
+.sheet-extra-key { flex: 1; }
+.sheet-extra-val { flex: 2; }
+.sheet-portrait { margin: 1vmin 0 0; }
+
+/* The roster's way into a sheet. */
+.crew-open {
+  flex: 1; text-align: left; cursor: pointer;
+  font-family: var(--mono); font-size: 1.6vmin; font-weight: 700;
+  letter-spacing: .08em; text-transform: uppercase;
+  color: var(--ink); background: transparent; border: 0;
+  border-bottom: max(1px, .1vmin) solid transparent; padding: .2vmin 0;
+}
+.crew-open:hover { border-bottom-color: var(--ink); }

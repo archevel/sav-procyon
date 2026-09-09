@@ -12,6 +12,7 @@
 import { SECTOR } from '../data/sector.js';
 import { t } from '../data/i18n.js';
 import * as store from './store.js';
+import { renderShipSheet, blankShip } from './sheet-ship.js';
 import { defaultAnchor, describeAnchor, anchorTargets, bodyAt,
          parkRadius, PARK_ECC, targetName, isGatePath,
          gateParkRadius, systemK } from './fleet.js';
@@ -27,7 +28,9 @@ export const SPRITES = ['cerberus', 'stardancer', 'firedrake'];
 const GATE_R = 8;
 const SYS_R  = 62;
 
-let panel, listEl, hooks = {};
+let panel, listEl, sheetEl, hooks = {};
+/* Which vessel the panel is showing a sheet for; null shows the fleet. */
+let openId = null;
 
 /**
  * Mount the panel.
@@ -38,13 +41,15 @@ let panel, listEl, hooks = {};
  */
 export function mountFleetPanel(opts = {}) {
   hooks = opts;
-  panel = document.getElementById('fleet-panel');
-  listEl = document.getElementById('fleet-list');
+  panel   = document.getElementById('fleet-panel');
+  listEl  = document.getElementById('fleet-list');
+  sheetEl = document.getElementById('fleet-sheet');
   if (!panel) return;
 
   document.getElementById('fleet-btn')?.addEventListener('click', () => {
     panel.hidden = !panel.hidden;
-    if (!panel.hidden) render();
+    /* Always return to the fleet list when reopening. */
+    if (!panel.hidden) { openId = null; render(); }
   });
   document.getElementById('fleet-close')
     ?.addEventListener('click', () => { panel.hidden = true; });
@@ -71,7 +76,10 @@ async function addShip() {
   let n = ships.length + 1;
   const taken = new Set(ships.map(s => s.name));
   while (taken.has(`Ship ${n}`)) n++;
-  await store.put('ships', { name: `Ship ${n}`, sprite: '', size: 7, location: null });
+  const rec = await store.put('ships', blankShip(`Ship ${n}`));
+  /* Open the new sheet straight away — creating a vessel is the first half
+     of filling one in. */
+  openId = rec.id;
   render();
 }
 
@@ -82,7 +90,28 @@ function esc(s) {
 
 async function render() {
   if (!listEl) return;
-  const ships = await store.all('ships');
+
+  if (openId) {
+    const rec = await store.get('ships', openId);
+    if (rec) return showSheet(rec);
+    openId = null;                       // deleted from elsewhere
+  }
+  return showList(await store.all('ships'));
+}
+
+/** One vessel's sheet, filling the panel. */
+function showSheet(rec) {
+  listEl.hidden = true;
+  sheetEl.hidden = false;
+  document.getElementById('fleet-add').hidden = true;
+  renderShipSheet(sheetEl, rec, { onBack: () => { openId = null; render(); } });
+}
+
+function showList(ships) {
+  sheetEl.hidden = true;
+  sheetEl.innerHTML = '';
+  listEl.hidden = false;
+  document.getElementById('fleet-add').hidden = false;
 
   if (!ships.length) {
     listEl.innerHTML = `<p class="fleet-empty">${esc(t('fleet.empty'))}</p>`;
@@ -118,17 +147,13 @@ async function render() {
 
     return `<div class="fleet-row" data-id="${s.id}">
       <div class="fleet-row-top">
-        <input class="fleet-name" value="${esc(s.name)}" data-id="${s.id}"
-               aria-label="${esc(t('fleet.name'))}">
+        <button class="crew-open" data-open="${s.id}">${esc(s.name)}</button>
         <button class="fleet-x" data-del="${s.id}" title="${esc(t('fleet.delete'))}">×</button>
       </div>
       ${place}
       <div class="fleet-row-controls">
         <select class="fleet-place" data-id="${s.id}"
                 aria-label="${esc(t('fleet.place'))}">${opts}</select>
-        <input class="fleet-sprite" data-id="${s.id}" list="fleet-sprite-names"
-               value="${esc(s.sprite || '')}" placeholder="${esc(t('fleet.sprite'))}"
-               aria-label="${esc(t('fleet.sprite'))}">
       </div>
       <div class="fleet-row-actions">
         <button class="fleet-go" data-go="${s.id}"${s.location ? '' : ' disabled'}
@@ -176,23 +201,8 @@ function spreadPhase(ships, selfId, sysId, path) {
 function wire(ships) {
   const find = id => ships.find(s => s.id === id);
 
-  /* Rename on blur rather than per keystroke: each save bumps rev, and a rev
-     per character would make the import diff meaningless. */
-  listEl.querySelectorAll('.fleet-name').forEach(inp => {
-    inp.addEventListener('blur', async () => {
-      const s = find(inp.dataset.id);
-      if (s && inp.value.trim() && inp.value !== s.name) {
-        await store.put('ships', { ...s, name: inp.value.trim() });
-      }
-    });
-    inp.addEventListener('keydown', e => { if (e.key === 'Enter') inp.blur(); });
-  });
-
-  listEl.querySelectorAll('.fleet-sprite').forEach(inp => {
-    inp.addEventListener('change', async () => {
-      const s = find(inp.dataset.id);
-      if (s) await store.put('ships', { ...s, sprite: inp.value.trim() });
-    });
+  listEl.querySelectorAll('.crew-open').forEach(btn => {
+    btn.addEventListener('click', () => { openId = btn.dataset.open; render(); });
   });
 
   listEl.querySelectorAll('.fleet-place').forEach(sel => {

@@ -1,0 +1,269 @@
+/* The character sheet.
+ *
+ * Semi-structured: the mechanics are real fields — action ratings, stress,
+ * trauma, harm, load — because those are what a sheet is for, but clocks and
+ * notes can be added freely to anything, and a spare "fields" list takes
+ * whatever the group tracks that the rules do not.
+ *
+ * Every edit writes straight to the store. There is no save button and no
+ * draft state: a sheet that can lose work is worse than one that saves too
+ * eagerly, and rev only matters for import comparisons, where a few extra
+ * bumps cost nothing.
+ */
+
+import { t } from '../data/i18n.js';
+import * as store from './store.js';
+import * as SAV from '../data/sav.js';
+import { el, dots, track, clock, newClock, note, newNote, imageStrip,
+         field, choice, picks, section } from './sheet-parts.js';
+
+/** A blank character, with every mechanical field present from the start so
+    the sheet never has to guess whether something exists. */
+export function blankCharacter(name) {
+  return {
+    name, alias: '', playbook: '', heritage: '', background: '', vice: '',
+    look: '',
+    actions: Object.fromEntries(SAV.ACTIONS.map(a => [a, 0])),
+    stress: 0, trauma: [],
+    harm: { severe: ['', ''], moderate: ['', ''], lesser: ['', ''] },
+    healing: 0,
+    load: 'normal', items: [], abilities: [],
+    xp: { playbook: 0, insight: 0, prowess: 0, resolve: 0 },
+    portrait: null, clocks: [], notes: [], fields: []
+  };
+}
+
+/**
+ * Render a character sheet into `host`.
+ *
+ * `rec` is re-read from the store after every write, so the sheet always
+ * edits the record as stored rather than a stale copy — two panels open on
+ * the same character stay in step.
+ */
+export function renderCharacterSheet(host, rec, { onBack } = {}) {
+  const save = async patch => {
+    const fresh = await store.get('characters', rec.id) || rec;
+    rec = await store.put('characters', { ...fresh, ...patch });
+    renderCharacterSheet(host, rec, { onBack });
+  };
+
+  host.innerHTML = '';
+  host.appendChild(header(rec, save, onBack));
+  host.appendChild(identity(rec, save));
+  host.appendChild(actionsSection(rec, save));
+  host.appendChild(conditionSection(rec, save));
+  host.appendChild(kitSection(rec, save));
+  host.appendChild(clocksSection(rec, save));
+  host.appendChild(notesSection(rec, save));
+  host.appendChild(extraFields(rec, save));
+}
+
+function header(rec, save, onBack) {
+  const h = el('div', 'sheet-head');
+  if (onBack) {
+    const back = el('button', 'sheet-back', '‹ ' + t('sheet.back'));
+    back.type = 'button';
+    back.addEventListener('click', onBack);
+    h.appendChild(back);
+  }
+  const name = el('input', 'sheet-name');
+  name.value = rec.name || '';
+  name.setAttribute('aria-label', t('crew.name'));
+  name.addEventListener('blur', () => {
+    if (name.value.trim() && name.value.trim() !== rec.name) save({ name: name.value.trim() });
+  });
+  name.addEventListener('keydown', e => { if (e.key === 'Enter') name.blur(); });
+  h.appendChild(name);
+  return h;
+}
+
+function identity(rec, save) {
+  const pb = SAV.PLAYBOOKS[rec.playbook];
+  const grid = el('div', 'sheet-grid');
+  grid.appendChild(choice(t('sheet.playbook'), rec.playbook, SAV.PLAYBOOK_LIST,
+    v => save({ playbook: v })));
+  grid.appendChild(field(t('sheet.alias'), rec.alias, v => save({ alias: v })));
+  grid.appendChild(choice(t('sheet.heritage'), rec.heritage, SAV.HERITAGES,
+    v => save({ heritage: v })));
+  grid.appendChild(choice(t('sheet.background'), rec.background, SAV.BACKGROUNDS,
+    v => save({ background: v })));
+  grid.appendChild(choice(t('sheet.vice'), rec.vice, SAV.VICES,
+    v => save({ vice: v })));
+  grid.appendChild(field(t('sheet.look'), rec.look, v => save({ look: v })));
+
+  const portrait = el('div', 'sheet-portrait');
+  portrait.appendChild(imageStrip(rec.portrait ? [rec.portrait] : [], {
+    onAddImage: async file => {
+      const a = await store.putAsset(file);
+      save({ portrait: { assetId: a.id, caption: '' } });
+    },
+    onRemoveImage: () => save({ portrait: null })
+  }));
+
+  const body = section(t('sheet.identity'), grid, portrait);
+  /* The playbook's starting action is worth stating: it is the one dot the
+     player did not choose, and it is easy to forget which it was. */
+  if (pb) {
+    body.querySelector('.sheet-section-body')
+        .appendChild(el('p', 'sheet-hint',
+          t('sheet.startingAction').replace('%s', t('action.' + pb.startingAction))));
+  }
+  return body;
+}
+
+function actionsSection(rec, save) {
+  const wrap = el('div', 'sheet-attrs');
+  for (const attr of SAV.ATTRIBUTES) {
+    const col = el('div', 'sheet-attr');
+    /* An attribute's rating for resistance rolls is the number of its actions
+       with at least one dot — shown here so the player does not recount it
+       every time something goes wrong. */
+    const rating = attr.actions.filter(a => (rec.actions?.[a] || 0) > 0).length;
+    col.appendChild(el('h4', 'sheet-attr-name',
+      `${t('attr.' + attr.id)} · ${rating}`));
+    for (const a of attr.actions) {
+      col.appendChild(dots(rec.actions?.[a] || 0, SAV.MAX_ACTION_RATING,
+        v => save({ actions: { ...rec.actions, [a]: v } }),
+        { label: t('action.' + a) }));
+    }
+    col.appendChild(track(rec.xp?.[attr.id] || 0, SAV.XP_TRACKS.attribute,
+      v => save({ xp: { ...rec.xp, [attr.id]: v } }),
+      { label: t('sheet.xp'), cls: 'sheet-track-xp' }));
+    wrap.appendChild(col);
+  }
+  const pbXp = track(rec.xp?.playbook || 0, SAV.XP_TRACKS.playbook,
+    v => save({ xp: { ...rec.xp, playbook: v } }),
+    { label: t('sheet.playbookXp'), cls: 'sheet-track-xp' });
+  return section(t('sheet.actions'), wrap, pbXp);
+}
+
+function conditionSection(rec, save) {
+  const wrap = el('div', 'sheet-condition');
+
+  wrap.appendChild(track(rec.stress || 0, SAV.STRESS_MAX,
+    v => save({ stress: v }), { label: t('sheet.stress'), cls: 'sheet-track-stress' }));
+
+  wrap.appendChild(picks(SAV.TRAUMAS, rec.trauma || [],
+    v => save({ trauma: v.slice(0, SAV.TRAUMA_MAX) })));
+
+  const harm = el('div', 'sheet-harm');
+  for (const lvl of SAV.HARM_LEVELS) {
+    const row = el('div', 'sheet-harm-row');
+    row.appendChild(el('span', 'sheet-harm-level', String(lvl.level)));
+    for (let i = 0; i < lvl.slots; i++) {
+      const inp = el('input', 'sheet-harm-slot');
+      inp.value = rec.harm?.[lvl.id]?.[i] || '';
+      inp.placeholder = t('sheet.harm' + lvl.level);
+      inp.addEventListener('blur', () => {
+        const slots = [...(rec.harm?.[lvl.id] || [])];
+        slots[i] = inp.value.trim();
+        save({ harm: { ...rec.harm, [lvl.id]: slots } });
+      });
+      row.appendChild(inp);
+    }
+    harm.appendChild(row);
+  }
+  wrap.appendChild(harm);
+  wrap.appendChild(track(rec.healing || 0, SAV.HEALING_CLOCK,
+    v => save({ healing: v }), { label: t('sheet.healing') }));
+
+  return section(t('sheet.condition'), wrap);
+}
+
+function kitSection(rec, save) {
+  const pb = SAV.PLAYBOOKS[rec.playbook];
+  const wrap = el('div', 'sheet-kit');
+
+  wrap.appendChild(choice(t('sheet.load'), rec.load,
+    SAV.LOADS.map(l => ({ id: l.id, name: `${t('load.' + l.id)} (${l.slots})` })),
+    v => save({ load: v }), { blank: null }));
+
+  /* Playbook items are listed with the common gear rather than separately:
+     what matters when packing is the single list of everything available. */
+  const items = [...SAV.COMMON_ITEMS, ...(pb?.items || [])];
+  wrap.appendChild(el('h4', 'sheet-sub', t('sheet.items')));
+  wrap.appendChild(picks(items, rec.items || [], v => save({ items: v })));
+
+  if (pb) {
+    wrap.appendChild(el('h4', 'sheet-sub', t('sheet.abilities')));
+    wrap.appendChild(picks(pb.abilities, rec.abilities || [],
+      v => save({ abilities: v }), { note: true }));
+  }
+  return section(t('sheet.kit'), wrap);
+}
+
+/* Clocks and notes are identical on both sheets, so they are written against
+   a record and a save function rather than against a character. */
+
+export function clocksSection(rec, save) {
+  const wrap = el('div', 'sheet-clocks');
+  for (const c of (rec.clocks || [])) {
+    wrap.appendChild(clock(c, {
+      onChange:  v => save({ clocks: rec.clocks.map(x => x.id === c.id ? { ...x, filled: v } : x) }),
+      onRename:  v => save({ clocks: rec.clocks.map(x => x.id === c.id ? { ...x, name: v } : x) }),
+      onResize:  v => save({ clocks: rec.clocks.map(x => x.id === c.id
+                     /* Never leave a clock fuller than it is long. */
+                     ? { ...x, segments: v, filled: Math.min(x.filled, v) } : x) }),
+      onDelete: () => save({ clocks: rec.clocks.filter(x => x.id !== c.id) })
+    }));
+  }
+  const add = el('button', 'sheet-add', '+ ' + t('sheet.addClock'));
+  add.type = 'button';
+  add.addEventListener('click', () => save({ clocks: [...(rec.clocks || []), newClock()] }));
+  wrap.appendChild(add);
+  return section(t('sheet.clocks'), wrap);
+}
+
+export function notesSection(rec, save) {
+  const wrap = el('div', 'sheet-notes');
+  const put = next => save({ notes: next });
+
+  for (const n of (rec.notes || [])) {
+    wrap.appendChild(note(n, {
+      onChange: v => put(rec.notes.map(x => x.id === n.id ? v : x)),
+      onDelete: () => put(rec.notes.filter(x => x.id !== n.id)),
+      onAddImage: async file => {
+        const a = await store.putAsset(file);
+        put(rec.notes.map(x => x.id === n.id
+          ? { ...x, images: [...(x.images || []), { assetId: a.id, caption: '' }] } : x));
+      },
+      onRemoveImage: img => put(rec.notes.map(x => x.id === n.id
+        ? { ...x, images: (x.images || []).filter(i => i.assetId !== img.assetId) } : x))
+    }));
+  }
+  const add = el('button', 'sheet-add', '+ ' + t('sheet.addNote'));
+  add.type = 'button';
+  add.addEventListener('click', () => put([...(rec.notes || []), newNote()]));
+  wrap.appendChild(add);
+  return section(t('sheet.notes'), wrap);
+}
+
+/** Whatever the group tracks that the rules do not. */
+export function extraFields(rec, save) {
+  const wrap = el('div', 'sheet-extra');
+  for (const f of (rec.fields || [])) {
+    const row = el('div', 'sheet-extra-row');
+    const k = el('input', 'sheet-extra-key');
+    k.value = f.label || '';
+    k.placeholder = t('sheet.fieldLabel');
+    k.addEventListener('blur', () => save({
+      fields: rec.fields.map(x => x.id === f.id ? { ...x, label: k.value.trim() } : x) }));
+    const v = el('input', 'sheet-extra-val');
+    v.value = f.value || '';
+    v.addEventListener('blur', () => save({
+      fields: rec.fields.map(x => x.id === f.id ? { ...x, value: v.value } : x) }));
+    const x = el('button', 'sheet-x', '×');
+    x.type = 'button';
+    x.addEventListener('click', () => save({ fields: rec.fields.filter(y => y.id !== f.id) }));
+    row.append(k, v, x);
+    wrap.appendChild(row);
+  }
+  const add = el('button', 'sheet-add', '+ ' + t('sheet.addField'));
+  add.type = 'button';
+  add.addEventListener('click', () => save({
+    fields: [...(rec.fields || []),
+             { id: crypto.randomUUID?.() || String(Math.random()).slice(2),
+               label: '', value: '' }] }));
+  wrap.appendChild(add);
+  return section(t('sheet.extra'), wrap);
+}
