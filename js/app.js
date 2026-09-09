@@ -673,6 +673,67 @@ function updateFleetRing(f) {
   f.ring.setAttribute('cx', geo.cx.toFixed(2));
 }
 
+/**
+ * Jump the selected vessel through the gate it is holding at.
+ *
+ * Only meaningful when parked at a gate that leads to another system — a
+ * sealed gate or the Core has no destination on this chart. The vessel
+ * arrives at the matching gate on the far side, which is where a jump
+ * physically puts you, rather than in some arbitrary hold.
+ */
+async function jumpShip(id) {
+  const f = FLEET.get(id);
+  const anchor = f?.rec.location;
+  if (!anchor || anchor.mode !== 'body' || !isGatePath(anchor.bodyPath)) return false;
+
+  const toId = anchor.bodyPath.slice(GATE_PREFIX.length);
+  const dest = SECTOR.systems[toId];
+  if (!dest) return false;              // sealed gate, or the Core: nowhere to go
+
+  /* Arrive at the gate pointing back the way we came, if the destination has
+     one. Systems are linked both ways in the data, so this is the normal
+     case; a one-way link falls back to a hold near the star. */
+  const backGate = (dest.gates || []).find(g => g.to === view.id || g.to === f.sysId);
+  const K = SYS_R / Math.max(...dest.bodies.map(b => b.orbit));
+  const landing = backGate
+    ? { mode: 'body', system: toId, bodyPath: GATE_PREFIX + backGate.to,
+        orbit: gateParkRadius(GATE_R, K), phase: 0, period: 60,
+        ecc: PARK_ECC, argp: 0 }
+    : defaultAnchor(toId);
+
+  /* The vessel is not animated across the lane. It is in one system and then
+     the other, which is what a gate does; the camera travel that follows is
+     the player's journey, not the ship's. */
+  await store.put('ships', { ...f.rec, location: landing });
+  travelTo(toId);
+  /* renderFleet has rebuilt the node into the destination system, so the
+     selection has to be re-applied to the new element. */
+  setTimeout(() => {
+    const el = FLEET.get(id)?.el;
+    if (el) el.classList.add('is-selected');
+  }, 300);
+  return true;
+}
+
+/* The bottom hint tells the player what the current selection can do, since
+   'm' and 'j' are otherwise invisible. It replaces the standing navigation
+   hint only while a vessel is selected. */
+function updateFleetHint() {
+  const hint = document.querySelector('.hud-hint');
+  if (!hint) return;
+  if (targeting)            hint.textContent = t('fleet.moving');
+  else if (selectedShipId)  hint.textContent = canJump() ? t('fleet.hintJump')
+                                                         : t('fleet.hintMove');
+  else                      hint.textContent = t('hud.hint');
+}
+
+/** True when the selected vessel is parked at a gate that leads somewhere. */
+function canJump() {
+  const a = FLEET.get(selectedShipId)?.rec.location;
+  return !!a && a.mode === 'body' && isGatePath(a.bodyPath)
+      && !!SECTOR.systems[a.bodyPath.slice(GATE_PREFIX.length)];
+}
+
 /** Land a vessel: adopt the anchor it was flying to and persist it.
     The caller has already cleared f.transit. */
 async function commitArrival(f, dest) {
@@ -719,11 +780,71 @@ function sendShip(id, dest, ms = 2000) {
    the orbit animation. Press 'm' with a vessel selected, then click a body
    to park around it or empty space to hold that radius off the star. */
 
+/**
+ * Click a vessel: select it, or dive into it if it was already selected.
+ *
+ * The second click mirrors what clicking a body does — the difference is only
+ * that a vessel needs one click to become the subject of the 'm' command
+ * first, so diving is the follow-up rather than the immediate action.
+ */
 function selectShip(id) {
-  selectedShipId = selectedShipId === id ? null : id;
+  if (selectedShipId === id) {
+    /* Already selected: the player is asking to look at it, not to deselect.
+       Targeting is cancelled first — diving mid-order would leave the map in
+       targeting mode with nothing to aim at. */
+    endTargeting();
+    return diveToShip(id);
+  }
+  selectedShipId = id;
   for (const [sid, f] of FLEET) f.el.classList.toggle('is-selected', sid === selectedShipId);
-  if (!selectedShipId) endTargeting();
   updateChrome();
+}
+
+/** Deselect without diving — what Escape does. */
+function deselectShip() {
+  selectedShipId = null;
+  for (const f of FLEET.values()) f.el.classList.remove('is-selected');
+  endTargeting();
+  updateChrome();
+}
+
+/* Zoom to a vessel and open its surface view. It reuses the body dive rather
+   than inventing a second one, so a vessel closes with Escape and shows the
+   same chrome as anywhere else on the chart. */
+function diveToShip(id) {
+  const f = FLEET.get(id);
+  if (!f) return;
+  /* Resolve the position rather than reading f.prev: the render loop has not
+     necessarily run a frame yet (rAF is paused in a background tab), and a
+     click that silently did nothing would be worse than one frame of stale
+     position. */
+  const p = f.prev
+    || resolveAnchor(f.rec.location, performance.now() / 1000, f.K, TILT);
+  if (!p) return;
+  const sys = SECTOR.systems[f.sysId];
+  stopOrbits();                                  // hold the vessel still
+  moveCam({ x: wx(sys.x) + p.x, y: wy(sys.y) + p.y, half: ZOOM_BODY }, 700,
+          { ease: k => k * k });
+  setTimeout(() => openLocation(f.sysId, shipAsBody(f.rec)), 850);
+}
+
+/**
+ * Present a stored ship in the shape openLocation expects of a body.
+ *
+ * A vessel has no i18n key — its name is the player's own text — so `key` is
+ * left off and the plain-text fallbacks are used instead. `surface` follows
+ * the sprite name, so art drops in as img/surface-<sprite>.webp alongside the
+ * canon surfaces.
+ */
+function shipAsBody(rec) {
+  return {
+    id: rec.id,
+    name: rec.name || '',
+    surface: rec.sprite || null,
+    tag: rec.tag || t('fleet.vessel'),
+    blurb: rec.blurb || '',
+    article: null
+  };
 }
 
 function beginTargeting() {
@@ -1290,6 +1411,7 @@ function updateChrome() {
   }
   if (view.level === 'location') html += `<span class="crumb-sep">/</span><span class="crumb current">${t('crumb.place')}</span>`;
   crumbs.innerHTML = html;
+  updateFleetHint();
   crumbs.querySelectorAll('.crumb[data-go]').forEach(c => {
     c.addEventListener('click', () => {
       const g = c.dataset.go;
@@ -1356,7 +1478,7 @@ document.addEventListener('keydown', e => {
     // Escape backs out one step at a time: first cancel a pending move,
     // then a selection, and only then leave the view.
     if (targeting) return endTargeting();
-    if (selectedShipId) return selectShip(selectedShipId);
+    if (selectedShipId && view.level !== 'location') return deselectShip();
     if (view.level === 'location') closeLocation();
     else if (view.level === 'system') backToSector();
     return;
@@ -1365,6 +1487,11 @@ document.addEventListener('keydown', e => {
   if ((e.key === 'm' || e.key === 'M') && selectedShipId && !targeting) {
     e.preventDefault();
     beginTargeting();
+  }
+
+  if ((e.key === 'j' || e.key === 'J') && selectedShipId && !targeting) {
+    e.preventDefault();
+    jumpShip(selectedShipId);
   }
 });
 
@@ -1454,6 +1581,9 @@ window.addEventListener('langchange', () => {
       document.querySelectorAll('[data-i18n]').forEach(el => {
         el.textContent = t(el.dataset.i18n);
       });
+      /* The hint carries a data-i18n default but is overwritten while a
+         vessel is selected, so restore that state after the bulk repaint. */
+      updateFleetHint();
     };
     langSwitch.addEventListener('click', e => {
       if (e.target.dataset.lang) setLang(e.target.dataset.lang);
