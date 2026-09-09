@@ -32,6 +32,20 @@
   <div id="about-content" class="loc-info-content"></div>
 </div>
 
+<!-- Player fleet: add vessels, place them, pick one to move. -->
+<div id="fleet-panel" class="loc-info-panel" hidden>
+  <div class="loc-info-content fleet-content">
+    <button id="fleet-close" class="loc-info-close" aria-label="Close">×</button>
+    <h3 data-i18n="fleet.title">Flotta</h3>
+    <p class="fleet-hint" data-i18n="fleet.hint">Välj ett skepp, tryck M och klicka för att flytta.</p>
+    <div id="fleet-list"></div>
+    <datalist id="fleet-sprite-names">
+      <option value="cerberus"><option value="stardancer"><option value="firedrake">
+    </datalist>
+    <button id="fleet-add" class="loc-info-btn" data-i18n="fleet.add">Nytt skepp</button>
+  </div>
+</div>
+
 <!-- Location level: full-bleed surface view. -->
 <div id="location-view"></div>
 
@@ -43,6 +57,7 @@
       <button data-lang="sv">SV</button>
       <button data-lang="en">EN</button>
       <button data-lang="debug" title="Debug — show i18n keys">⚙</button>
+      <button id="fleet-btn" data-i18n="fleet.button">Flotta</button>
       <button id="about-btn" data-i18n="about.button">Om</button>
     </div>
   </div>

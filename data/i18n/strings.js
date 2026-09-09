@@ -10,6 +10,26 @@
 
 export const STRINGS = {
 
+
+  /* --------------- player fleet ----------------------------------------- */
+  'fleet.button':  { sv: 'Flotta',      en: 'Fleet' },
+  'fleet.title':   { sv: 'Flotta',      en: 'Fleet' },
+  'fleet.hint':    { sv: 'Välj ett skepp, tryck M och klicka i systemet för att flytta det.',
+                     en: 'Select a ship, press M, then click in the system to move it.' },
+  'fleet.add':     { sv: 'Nytt skepp',  en: 'New ship' },
+  'fleet.empty':   { sv: 'Inga skepp än. Lägg till ett för att sätta det på kartan.',
+                     en: 'No ships yet. Add one to put it on the chart.' },
+  'fleet.name':    { sv: 'Namn',        en: 'Name' },
+  'fleet.sprite':  { sv: 'Bild',        en: 'Sprite' },
+  'fleet.place':   { sv: 'Placera',     en: 'Place' },
+  'fleet.hold':    { sv: 'fri bana',    en: 'free orbit' },
+  'fleet.select':  { sv: 'Visa & flytta', en: 'Show & move' },
+  'fleet.delete':  { sv: 'Ta bort',     en: 'Delete' },
+  'fleet.confirmDelete': { sv: 'Ta bort %s? Detta kan inte ångras.',
+                           en: 'Delete %s? This cannot be undone.' },
+  'fleet.unplaced':{ sv: 'Inte utplacerad', en: 'Not placed' },
+  'fleet.moving':  { sv: 'Klicka på ett mål i systemet', en: 'Click a destination in the system' },
+
   /* --------------- systems ---------------------------------------------- */
   'sys.rin.name':   { sv: 'Rin',   en: 'Rin' },
   'sys.rin.tag':    { sv: 'Inkörsport · Förvaltning',   en: 'Gateway · Administration' },

@@ -18,6 +18,7 @@ import { t, has as hasKey, getLang, setLang, LANGS } from '../data/i18n.js';
 import { SOURCEBOOK } from '../data/sourcebook.js';
 import { FACTIONS } from '../data/factions-data.js';
 import * as store from './store.js';
+import { mountFleetPanel } from './fleet-ui.js';
 import { setBodyPos, clearPositions, bodyPos, bodyAt, anchorTargets,
          resolveAnchor, defaultAnchor, parkRadius, makeTransit,
          describeAnchor } from './fleet.js';
@@ -528,7 +529,11 @@ async function rebuildFleet() {
 
 async function makeFleetShip(rec, sysId) {
   const K = SYS_R / Math.max(...SECTOR.systems[sysId].bodies.map(b => b.orbit));
-  const r = Math.max(5.4, (rec.size || 7) * K / 4.375);
+  /* Vessels are drawn much smaller than the canon-body formula would give.
+     A ship parked at a moon has to read as a craft beside a world, not as a
+     second world: at the planetary scale the hull swamps whatever it is
+     orbiting. Capped as well as scaled, so a wide system cannot inflate it. */
+  const r = Math.min(3.4, Math.max(1.8, (rec.size || 7) * K / 14));
 
   const el = svgEl('g', { class: 'o-body o-fleet', 'data-ship': rec.id });
   const inner = svgEl('g');
@@ -558,7 +563,7 @@ async function makeFleetShip(rec, sysId) {
     }
   }
 
-  const lab = svgEl('text', { y: r + 3.2, class: 'o-label o-label-fleet' });
+  const lab = svgEl('text', { y: r + 2.4, class: 'o-label o-label-fleet' });
   lab.textContent = rec.name || '—';
   inner.appendChild(lab);
   inner.appendChild(svgEl('circle', { r: Math.max(r * 1.35, 7), class: 'o-hit' }));
@@ -611,9 +616,14 @@ function tickFleet(t) {
     f.y = p.y;
     f.inner.setAttribute('transform',
       `translate(${p.x.toFixed(2)} ${p.y.toFixed(2)}) rotate(${f.heading.toFixed(1)})`);
-    /* Counter-rotate the label so it stays readable however the hull points. */
+    /* Counter-rotate the label so it stays readable however the hull points.
+       The rotation is about the label's own anchor, not the hull origin —
+       rotating about the origin would swing the text around the ship. */
     const lab = f.inner.querySelector('.o-label-fleet');
-    if (lab) lab.setAttribute('transform', `rotate(${(-f.heading).toFixed(1)})`);
+    if (lab) {
+      const ly = lab.getAttribute('y') || 0;
+      lab.setAttribute('transform', `rotate(${(-f.heading).toFixed(1)} 0 ${ly})`);
+    }
   }
 }
 
@@ -1354,6 +1364,16 @@ window.addEventListener('langchange', () => {
   updateChrome();
   renderFactions();
   await renderFleet();
+  // The fleet panel owns no render state: it writes anchors to the store and
+  // reaches back through these hooks for the two things only the chart knows.
+  mountFleetPanel({
+    onSelect: id => { selectedShipId = null; selectShip(id); },
+    onFocus:  sysId => {
+      locView.classList.remove('active');
+      startOrbits();
+      if (view.level !== 'system' || view.id !== sysId) enterSystem(sysId);
+    }
+  });
   // Vessels are rebuilt whenever the store changes, so a sheet edit in the
   // creator shows up on the chart without a reload.
   store.subscribe(() => { if (!suppressFleetRebuild) renderFleet(); }, ['ships']);

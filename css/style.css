@@ -653,3 +653,60 @@ body.in-system .orbit-layer .o-body { pointer-events: auto; }
 #world.is-targeting { cursor: crosshair; }
 #world.is-targeting .o-body .o-globe { stroke-width: 2.2; }
 #world.is-targeting .o-fleet { pointer-events: none; }
+
+/* ------------------------------------------------------------ fleet panel */
+.fleet-content { max-width: 34rem; }
+.fleet-hint {
+  font-family: var(--mono); font-size: 1.3vmin; color: var(--ink-soft);
+  text-transform: uppercase; letter-spacing: .1em; margin: 0 0 1.4vmin;
+}
+.fleet-empty { color: var(--ink-soft); font-style: italic; }
+.fleet-row {
+  border: max(1px, .12vmin) solid var(--ink);
+  padding: 1.2vmin 1.4vmin; margin: 0 0 1.1vmin;
+  display: flex; flex-direction: column; gap: .7vmin;
+}
+.fleet-row-top { display: flex; gap: .6vmin; align-items: center; }
+.fleet-name {
+  flex: 1; font-family: var(--mono); font-size: 1.6vmin; font-weight: 700;
+  letter-spacing: .08em; text-transform: uppercase;
+  color: var(--ink); background: transparent;
+  border: 0; border-bottom: max(1px, .1vmin) solid transparent; padding: .2vmin 0;
+}
+.fleet-name:hover, .fleet-name:focus {
+  border-bottom-color: var(--ink); outline: none;
+}
+.fleet-x {
+  width: 2.6vmin; height: 2.6vmin; flex: none; line-height: 1;
+  font-family: var(--mono); font-size: 1.8vmin; font-weight: 700;
+  color: var(--ink); background: transparent;
+  border: max(1px, .1vmin) solid var(--ink); cursor: pointer;
+}
+.fleet-x:hover { background: var(--ink); color: var(--paper); }
+.fleet-where {
+  font-family: var(--mono); font-size: 1.2vmin; letter-spacing: .09em;
+  text-transform: uppercase; color: var(--ink-soft);
+}
+.fleet-unplaced { font-style: italic; }
+/* An anchor pointing at a body that is no longer in the sector data. The ship
+   is kept, not dropped, so the stale placement has to be visible. */
+.fleet-orphan { color: #a4442e; }
+.fleet-row-controls { display: flex; gap: .6vmin; }
+.fleet-place { flex: 2; min-width: 0; }
+.fleet-sprite { flex: 1; min-width: 0; }
+.fleet-place, .fleet-sprite {
+  font-family: var(--mono); font-size: 1.25vmin;
+  color: var(--ink); background: var(--paper);
+  border: max(1px, .1vmin) solid var(--ink); padding: .45vmin .5vmin;
+}
+.fleet-row-actions { display: flex; gap: .6vmin; }
+.fleet-go {
+  font-family: var(--mono); font-size: 1.15vmin; font-weight: 700;
+  letter-spacing: .14em; text-transform: uppercase;
+  color: var(--ink); background: transparent;
+  border: max(1px, .1vmin) solid var(--ink);
+  padding: .55vmin 1.2vmin; cursor: pointer;
+}
+.fleet-go:hover:not([disabled]) { background: var(--ink); color: var(--paper); }
+.fleet-go[disabled] { opacity: .35; cursor: default; }
+#fleet-add { margin-top: .6vmin; }
