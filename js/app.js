@@ -1264,6 +1264,7 @@ async function openLocation(sysId, b, notePath = null) {
   locView.innerHTML = `
     ${hasImage ? `<div class="loc-image" style="background-image:url(${surface})"></div>`
           : `<div class="loc-placeholder">${t('loc.placeholder').replace('{id}', b.surface || b.id)}</div>`}
+    <button class="loc-back" aria-label="${t('sheet.back')}">‹</button>
     <div class="loc-body">
       <div class="loc-kicker">${sysId ? t(SECTOR.systems[sysId].key + '.name') : t('crumb.sector')}</div>
       <h2 class="loc-title">${b.key ? t(b.key + '.name') : (b.name || '?')}</h2>
@@ -1279,6 +1280,7 @@ async function openLocation(sysId, b, notePath = null) {
       <div class="loc-info-content"></div>
     </div>` : ''}`;
   locView.classList.add('active');
+  locView.querySelector('.loc-back')?.addEventListener('click', () => closeLocation());
   renderFactions();
 
   // Wire the info panel open/close.
@@ -1647,6 +1649,26 @@ window.addEventListener('langchange', () => {
     if (selectedShipId && !targeting) jumpShip(selectedShipId);
   });
   document.getElementById('ship-cancel')?.addEventListener('click', () => endTargeting());
+  /* The hamburger only exists on phones (CSS reveals it); it folds the
+     language row away so the crumbs own the top of the screen. Choosing
+     anything in the menu closes it. */
+  const menuBtn = document.getElementById('menu-btn');
+  const langSw = document.getElementById('lang-switch');
+  if (menuBtn && langSw) {
+    menuBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      langSw.classList.toggle('open');
+    });
+    langSw.addEventListener('click', () => langSw.classList.remove('open'));
+    /* The menu's Import/Export is the same panel as the corner button's. */
+    document.getElementById('share-btn-menu')?.addEventListener('click',
+      () => document.getElementById('share-btn')?.click());
+    document.addEventListener('click', e => {
+      if (!langSw.contains(e.target) && e.target !== menuBtn) {
+        langSw.classList.remove('open');
+      }
+    });
+  }
   mountFleetPanel({
     onSelect: id => { selectedShipId = null; selectShip(id); },
     onFocus:  sysId => {

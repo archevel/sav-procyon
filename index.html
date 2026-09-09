@@ -97,11 +97,16 @@
   <div class="hud-top">
     <span class="hud-title" data-i18n="hud.title">Procyonsektorn</span>
     <span class="hud-sub" data-i18n="hud.subtitle">IE-21 · Hegemonins utkant</span>
+    <!-- On a phone the language row folds behind this; desktop never sees it. -->
+    <button id="menu-btn" aria-label="Meny" hidden>☰</button>
     <div id="lang-switch">
       <button data-lang="sv">SV</button>
       <button data-lang="en">EN</button>
       <button data-lang="debug" title="Debug — show i18n keys">⚙</button>
       <button id="about-btn" data-i18n="about.button">Om</button>
+      <!-- Phone only: on desktop Import/Export lives bottom-right with the
+           other player panels; in the hamburger it joins the settings. -->
+      <button id="share-btn-menu" data-i18n="share.button">Import/Export</button>
     </div>
   </div>
   <div id="breadcrumb"></div>

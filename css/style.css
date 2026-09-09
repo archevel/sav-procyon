@@ -447,6 +447,11 @@ body.in-system .orbit-layer .o-body { pointer-events: auto; }
 #lang-switch button:hover { background: var(--ink); color: var(--paper); }
 #lang-switch button.current { background: var(--ink); color: var(--paper); }
 
+/* The hamburger exists only for phones; the mobile block reveals it. */
+#menu-btn[hidden] { display: none; }
+/* Likewise the menu copy of Import/Export — the desktop has the corner one. */
+#share-btn-menu { display: none; }
+
 /* About sits in the same row as the language buttons and inherits their
    styling from #lang-switch button; it just needs a little separation and
    must not take the .current highlight. */
@@ -1103,22 +1108,44 @@ body.in-system .orbit-layer .o-body { pointer-events: auto; }
    44px is the usual floor for a tap target. */
 @media (max-width: 760px) {
   /* Sector chrome ------------------------------------------------------- */
-  /* The header is two rows on a phone: title, then the buttons under it.
-     Grown to a tappable size they no longer fit beside the title, and
-     shrinking the title to make room defeats the point. */
-  .hud-top { flex-wrap: wrap; padding: 2.5vmin 3vmin 2vmin; row-gap: 2vmin; }
-  .hud-title { font-size: 4.4vmin; width: 100%; }
-  .hud-sub   { display: none; }        /* the subtitle is the first thing to go */
-  #lang-switch {
-    position: static; gap: 1vmin; width: 100%;
+  /* One slim row: title left, hamburger right. The language buttons fold
+     behind the hamburger so the crumbs — the actual navigation — own the top
+     of the screen instead of a row of settings. */
+  .hud-top {
+    position: static; align-items: center; justify-content: space-between;
+    padding: 2.2vmin 3vmin;
   }
-  #lang-switch button {
-    flex: 1; font-size: 3vmin; padding: 2.6vmin 1vmin; min-width: 0;
+  .hud-title { font-size: 4.4vmin; }
+  .hud-sub   { display: none; }        /* the subtitle is the first thing to go */
+  #menu-btn {
+    display: block; pointer-events: auto;
+    font-size: 5vmin; line-height: 1; padding: 1.6vmin 2.4vmin;
+    color: var(--ink); background: var(--paper);
+    border: max(1px, .14vmin) solid var(--ink); cursor: pointer;
+  }
+  #menu-btn[hidden] { display: block; }   /* the hidden attr is for desktop */
+  #lang-switch { display: none; }
+  #lang-switch.open {
+    display: flex; flex-direction: column; gap: 1vmin;
+    position: fixed; top: 13vmin; right: 3vmin; width: 46vmin;
+    padding: 2vmin; background: var(--paper);
+    border: max(1px, .14vmin) solid var(--ink);
+    box-shadow: 0 0 4vmin rgba(16,16,14,.35); z-index: 70;
+  }
+  #lang-switch.open button {
+    font-size: 3.2vmin; padding: 2.8vmin 1vmin; min-width: 0;
   }
   #about-btn { margin-left: 0; }
-  .hud-hint  { font-size: 2.4vmin; left: 3vmin; right: 3vmin; bottom: 14vmin; }
+  /* The hint names keyboard keys a phone does not have, and it sat on top
+     of the faction row and the surface text. The order bar and the crumbs
+     carry its duties here. */
+  .hud-hint  { display: none; }
 
   #player-switch { left: 3vmin; right: 3vmin; bottom: 3vmin; gap: 1.4vmin; }
+  /* Import/Export moves into the hamburger on a phone; the corner keeps the
+     two panels a session actually lives in. */
+  #player-switch #share-btn { display: none; }
+  #lang-switch.open #share-btn-menu { display: block; }
   #player-switch button {
     flex: 1; font-size: 2.8vmin; padding: 3vmin 1vmin; letter-spacing: .08em;
   }
@@ -1222,7 +1249,7 @@ body.in-system .orbit-layer .o-body { pointer-events: auto; }
      becomes a wrapping row along the top instead, where it reads as a legend
      rather than as something in the way. */
   #factions {
-    top: auto; bottom: 14vmin; left: 3vmin; right: 3vmin;
+    top: auto; bottom: 13vmin; left: 3vmin; right: 3vmin;
     width: auto; flex-direction: row; flex-wrap: wrap; gap: 1.2vmin;
     max-height: 22vh; overflow-y: auto;
   }
@@ -1254,4 +1281,50 @@ body.in-system .orbit-layer .o-body { pointer-events: auto; }
      is selected the factions step up out of its way rather than showing
      through between the buttons. */
   body:has(#ship-actions:not([hidden])) #factions { bottom: 36vmin; }
+}
+
+/* The way back from a surface view. Esc always worked, but it was invisible
+   and a phone has no such key. Top-left, mirroring the close buttons. */
+.loc-back {
+  position: absolute; top: 3vmin; left: 3vmin;
+  width: 4vmin; height: 4vmin;
+  font-family: var(--mono); font-size: 2.4vmin; font-weight: 700;
+  color: var(--paper); background: var(--ink);
+  border: max(1px, .14vmin) solid var(--ink);
+  cursor: pointer; z-index: 45;
+  display: grid; place-items: center; line-height: 1;
+}
+.loc-back:hover { background: var(--paper); color: var(--ink); }
+
+@media (max-width: 760px) {
+  /* The surface view's text was PINNED to the bottom, which is the band the
+     fixed hint and player buttons own — so the blurb, Läs mer and the notes
+     rendered behind them. The view scrolls instead: art as a fixed backdrop,
+     text flowing over it, with enough tail padding to clear the chrome. */
+  #location-view.active { overflow-y: auto; }
+  #location-view .loc-image { position: fixed; }
+  .loc-body {
+    /* Relative, not static: the backdrop image is position:fixed, and a
+       static body paints UNDERNEATH a positioned sibling — the art's white
+       fade sat exactly over the text and hid every word of it. */
+    position: relative; z-index: 1; margin-top: 52vh;
+    left: auto; right: auto; bottom: auto;
+    padding: 4vmin 4vmin 34vmin; max-width: none;
+  }
+  .loc-back { width: 11vmin; height: 11vmin; font-size: 5.5vmin;
+              top: 26vmin; left: 3vmin; }
+
+  /* The crumbs were absolutely placed for the desktop header row and landed
+     tiny on top of the stacked mobile title. The header goes static so the
+     crumbs flow naturally below it, whatever height the wrapped rows come
+     to — they are the back navigation and have to be reachable. */
+  #breadcrumb {
+    position: static; margin: 2vmin 3vmin 0; flex-wrap: wrap; gap: 1vmin;
+  }
+  .crumb { font-size: 3vmin; padding: 2.2vmin 2.8vmin; }
+  .crumb-sep { font-size: 3vmin; }
+
+  /* While a surface view is open the vessel order bar says nothing useful,
+     and sat on top of the text. */
+  body:has(#location-view.active) #ship-actions { display: none; }
 }
