@@ -640,14 +640,14 @@ body.in-system .orbit-layer .o-body { pointer-events: auto; }
   font-size: 1.35px; letter-spacing: .2px;
   fill: var(--ink); font-style: italic;
 }
-/* A vessel awaiting orders is ringed rather than recoloured, so the sprite
-   art itself is never obscured. */
-.o-fleet.is-selected .o-globe { stroke-width: 3.4; }
-.o-fleet.is-selected .fleet-hull::after { content: ''; }
-.o-fleet.is-selected .o-hit {
-  stroke: var(--ink); stroke-width: .5; stroke-dasharray: 1.6 1.2;
-  vector-effect: non-scaling-stroke; fill: transparent;
-}
+/* A vessel's own orbit, drawn like the canon rings but fainter — it is the
+   player's addition to the chart, not part of the surveyed system. */
+.o-ring-fleet { opacity: .3; stroke-dasharray: 2 2.6; }
+.o-fleet.is-selected .o-ring-fleet { opacity: .62; stroke-dasharray: none; }
+
+/* Selection reuses the body hover treatment — a slightly heavier marker —
+   rather than inventing a second visual language for the same idea. */
+.o-fleet.is-selected .o-globe { stroke-width: 3; }
 /* While a destination is awaited the whole chart takes a crosshair, and the
    bodies that can be parked at lift slightly so they read as targets. */
 #world.is-targeting { cursor: crosshair; }

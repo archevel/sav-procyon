@@ -207,6 +207,42 @@ export function describeAnchor(anchor, tr = k => k) {
   return { system: sysName, detail: null, orphan: false };
 }
 
+/**
+ * Ellipse geometry for an anchor's orbit, in the frame it is drawn in.
+ *
+ * Mirrors how the canon rings are built in buildSystemGroup: the focus sits at
+ * the centre of the thing being orbited, so the ellipse is offset along its
+ * major axis by a*e (Kepler I), and the semi-minor axis is a*sqrt(1-e^2)
+ * before the viewing-plane squash.
+ *
+ * `rotate` is the bearing the orbit was placed on plus any argp offset, in
+ * degrees, matching what resolveAnchor applies to the position itself — so
+ * the drawn ring is the path the vessel actually travels rather than an
+ * idealised one.
+ *
+ * Returns null for an anchor that cannot be drawn.
+ */
+export function anchorEllipse(anchor, K, TILT) {
+  if (!anchor || !anchor.system) return null;
+  if (anchor.mode !== 'star' && anchor.mode !== 'body') return null;
+
+  const a   = (anchor.orbit || (anchor.mode === 'star' ? 20 : 6)) * K;
+  const ecc = anchor.ecc ?? 0.28;
+  return {
+    rx: a,
+    ry: a * Math.sqrt(1 - ecc * ecc) * TILT,
+    /* Shift the ellipse so its FOCUS — the star, or the body being orbited —
+       sits at the origin of the frame the ring is drawn in (Kepler I).
+       Negative because resolveAnchor puts periapsis at +x, unlike tick()
+       which flips px; verified against the ellipse equation rather than
+       assumed from the canon ring code. */
+    cx: -a * ecc,
+    /* Anchors store both angles in degrees; resolveAnchor converts them to
+       radians internally, so the ring uses them as-is. */
+    rotate: (anchor.phase || 0) + (anchor.argp || 0)
+  };
+}
+
 /* --------------------------------------------------------------- transit */
 
 /**

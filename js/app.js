@@ -21,7 +21,7 @@ import * as store from './store.js';
 import { mountFleetPanel } from './fleet-ui.js';
 import { setBodyPos, clearPositions, bodyPos, bodyAt, anchorTargets,
          resolveAnchor, defaultAnchor, parkRadius, makeTransit,
-         describeAnchor } from './fleet.js';
+         describeAnchor, anchorEllipse } from './fleet.js';
 
 /* Sourcebook text is authored per map key in both languages, and takes
    precedence over the hand-written strings in strings.js.
@@ -536,6 +536,13 @@ async function makeFleetShip(rec, sysId) {
   const r = Math.min(3.4, Math.max(1.8, (rec.size || 7) * K / 14));
 
   const el = svgEl('g', { class: 'o-body o-fleet', 'data-ship': rec.id });
+  /* The vessel's own orbit, drawn like the canon rings. It lives in its own
+     group because a body-anchored orbit has to be re-centred on that body
+     every frame, while the hull is positioned independently. */
+  const ring = svgEl('ellipse', { class: 'o-ring o-ring-fleet', rx: 0, ry: 0 });
+  const ringG = svgEl('g', { class: 'fleet-ring-g' });
+  ringG.appendChild(ring);
+  el.appendChild(ringG);
   const inner = svgEl('g');
   el.appendChild(inner);
 
@@ -576,7 +583,7 @@ async function makeFleetShip(rec, sysId) {
     selectShip(rec.id);
   });
 
-  return { rec, el, inner, sysId, K, r, transit: null, prev: null };
+  return { rec, el, inner, ring, ringG, sysId, K, r, transit: null, prev: null };
 }
 
 /** Position every vessel. Called from tick(), after canon bodies have
@@ -614,7 +621,43 @@ function tickFleet(t) {
        different class of object and drew the eye for no reason. */
     f.inner.setAttribute('transform',
       `translate(${p.x.toFixed(2)} ${p.y.toFixed(2)})`);
+
+    /* The orbit ring is centred on whatever the vessel is anchored TO, not on
+       the vessel: a ship parked at a moon traces its little ellipse around
+       that moon, which is itself moving. A ring is meaningless mid-flight, so
+       it is hidden while a transit runs. */
+    updateFleetRing(f);
   }
+}
+
+/**
+ * Place a vessel's orbit ring for this frame.
+ *
+ * The ring is centred on the FOCUS of the orbit — the star for a free hold,
+ * the body itself for a parked vessel — so it shows the path actually
+ * travelled rather than a circle drawn around the ship. A parked ring
+ * therefore has to be re-centred every frame, because the body it belongs to
+ * is moving.
+ */
+function updateFleetRing(f) {
+  const anchor = f.rec.location;
+  const geo = f.transit ? null : anchorEllipse(anchor, f.K, TILT);
+  if (!geo) { f.ringG.style.display = 'none'; return; }
+  f.ringG.style.display = '';
+
+  let cx = 0, cy = 0;
+  if (anchor.mode === 'body') {
+    const base = bodyPos(anchor.system, anchor.bodyPath);
+    if (!base) { f.ringG.style.display = 'none'; return; }
+    cx = base.x; cy = base.y;
+  }
+  /* Translate to the focus first, then rotate the ellipse about it — the
+     reverse order would swing the whole orbit around the system centre. */
+  f.ringG.setAttribute('transform',
+    `translate(${cx.toFixed(2)} ${cy.toFixed(2)}) rotate(${geo.rotate.toFixed(1)})`);
+  f.ring.setAttribute('rx', geo.rx.toFixed(2));
+  f.ring.setAttribute('ry', geo.ry.toFixed(2));
+  f.ring.setAttribute('cx', geo.cx.toFixed(2));
 }
 
 /** Land a vessel: adopt the anchor it was flying to and persist it.
