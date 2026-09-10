@@ -323,7 +323,8 @@ function contactsSection(rec, save) {
   inp.placeholder = t('sheet.searchContact');
   inp.maxLength = 40;
   addRow.appendChild(inp);
-  const create = el('button', 'loc-info-btn sheet-contact-create', t('sheet.createContact'));
+  const create = el('button', 'sheet-add sheet-contact-create',
+                    '+ ' + t('sheet.createContact'));
   create.type = 'button';
   create.disabled = true;
   addRow.appendChild(create);

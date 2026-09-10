@@ -1340,8 +1340,13 @@ body.in-system .orbit-layer .o-body { pointer-events: auto; }
 .sheet-disposition-sel { width: auto; }
 .sheet-contact-addrow { display: flex; gap: .6vmin; width: 100%; margin-top: .6vmin; }
 .sheet-contact-add { flex: 1; }
-.sheet-contact-create { flex: none; }
+/* Same dashed add-button as clocks and notes; it sits inline with the
+   search field, so the sheet-add top margin goes. */
+.sheet-contact-create { flex: none; margin: 0; }
 .sheet-contact-create[disabled] { opacity: .4; cursor: default; }
+.sheet-contact-create[disabled]:hover {
+  background: transparent; color: var(--ink); border-style: dashed;
+}
 .sheet-contact-suggest { display: flex; flex-direction: column; width: 100%; }
 .sheet-contact-option {
   text-align: left; font-family: var(--mono); font-size: 1.3vmin;
