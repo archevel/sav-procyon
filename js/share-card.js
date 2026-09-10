@@ -151,10 +151,13 @@ export async function shipCard(rec) {
 export async function shareCard(items) {
   const ships = items.filter(i => i.store === 'ships');
   const chars = items.filter(i => i.store === 'characters');
-  const crew = [...ships, ...chars];
+  const npcs  = items.filter(i => i.store === 'npcs');
+  const crew = [...ships, ...chars, ...npcs];
 
   if (!crew.length) return sectorCard(items);
   if (crew.length === 1) {
+    /* An NPC alone gets the character layout: name, portrait, blurb — the
+       action rows simply have nothing to draw. */
     return crew[0].store === 'ships' ? shipCard(crew[0].record)
                                      : characterCard(crew[0].record);
   }
@@ -197,6 +200,7 @@ async function crewCard(crew, items) {
        a character. */
     const kind = it.store === 'ships'
       ? (it.record.frame ? savName(it.record.frame) : null)
+      : it.store === 'npcs' ? t('npc.title').replace(/:er$|s$/, '')
       : (it.record.playbook ? savName(it.record.playbook) : null);
     if (kind) {
       g.fillStyle = SOFT;
@@ -275,6 +279,7 @@ function contents(g, items) {
   const n = k => items.filter(i => i.store === k).length;
   if (n('ships'))      counts.push(`${n('ships')} ${t('share.ships')}`);
   if (n('characters')) counts.push(`${n('characters')} ${t('share.characters')}`);
+  if (n('npcs'))       counts.push(`${n('npcs')} ${t('share.npcs')}`);
   if (n('notes'))      counts.push(`${n('notes')} ${t('share.notes')}`);
   if (n('factions'))   counts.push(`${n('factions')} ${t('share.factions')}`);
   if (!counts.length) return;

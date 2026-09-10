@@ -26,9 +26,9 @@
  */
 
 const DB_NAME = 'procyon';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
-export const RECORD_STORES = ['characters', 'ships', 'notes', 'factions'];
+export const RECORD_STORES = ['characters', 'ships', 'notes', 'factions', 'npcs'];
 const ALL_STORES = [...RECORD_STORES, 'imports', 'assets'];
 
 /** Current shape of a record. Bump when a migration becomes necessary; the
@@ -73,6 +73,13 @@ function open() {
          same record in every browser and imports line up on it naturally. */
       if (e.oldVersion < 2) {
         const s = db.createObjectStore('factions', { keyPath: 'id' });
+        s.createIndex('originId', 'originId', { unique: false });
+        s.createIndex('updatedAt', 'updatedAt', { unique: false });
+      }
+      /* v3 — NPCs: the GM's stakeholders. Ordinary uid-keyed records like
+         characters; a contact on a player sheet references one by id. */
+      if (e.oldVersion < 3) {
+        const s = db.createObjectStore('npcs', { keyPath: 'id' });
         s.createIndex('originId', 'originId', { unique: false });
         s.createIndex('updatedAt', 'updatedAt', { unique: false });
       }
@@ -223,7 +230,7 @@ function assertRecordStore(store) {
 }
 
 const singular = s => ({ characters: 'character', ships: 'ship', notes: 'note',
-                         factions: 'faction' }[s] || s);
+                         factions: 'faction', npcs: 'npc' }[s] || s);
 
 /* --------------------------------------------------------------- assets */
 

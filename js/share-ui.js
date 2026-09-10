@@ -58,7 +58,7 @@ async function showExport() {
   body.appendChild(el('p', 'fleet-hint', t('share.exportHint')));
 
   const rows = [];
-  for (const s of ['ships', 'characters', 'notes', 'factions']) {
+  for (const s of ['ships', 'characters', 'npcs', 'notes', 'factions']) {
     for (const rec of await store.all(s)) rows.push({ store: s, record: rec });
   }
   if (!rows.length) {
@@ -76,8 +76,22 @@ async function showExport() {
     cb.checked = true;
     cb.addEventListener('change', () => {
       cb.checked ? chosen.add(row.record.id) : chosen.delete(row.record.id);
+      /* Ticking a character pulls in the NPCs their contacts point at, so
+         the recipient gets working links instead of dangling names. Only
+         ever ticks — unticking is the sender's call to make by hand. */
+      if (cb.checked && row.store === 'characters') {
+        for (const c of (row.record.contacts || [])) {
+          const npcRow = rows.find(r => r.store === 'npcs' && r.record.id === c.npcId);
+          if (npcRow && !chosen.has(npcRow.record.id)) {
+            chosen.add(npcRow.record.id);
+            const box = list.querySelector(`input[data-id="${npcRow.record.id}"]`);
+            if (box) box.checked = true;
+          }
+        }
+      }
       refresh();
     });
+    cb.dataset.id = row.record.id;
     line.appendChild(cb);
     line.appendChild(el('span', 'share-kind', t('share.' + row.store)));
     line.appendChild(el('span', 'share-label', describeRow(row)));

@@ -353,7 +353,7 @@ body.in-system .orbit-layer .o-body { pointer-events: auto; }
    each its own box. Only the boxes take pointer events, so the map stays
    draggable through the gaps between them. */
 #index {
-  /* Mirrors #factions on the other side: same top edge, same box metrics. */
+  /* Same top edge and box metrics as the panel column once opposite it. */
   position: fixed; left: 3vmin; top: 12vmin;
   pointer-events: none;
   display: flex; flex-direction: column; align-items: stretch;
@@ -511,16 +511,6 @@ body.in-system .orbit-layer .o-body { pointer-events: auto; }
 .loc-info-close:hover { background: var(--paper); color: var(--ink); }
 
 
-/* Faction sidebar — always-visible right column when a system is open. */
-#factions {
-  position: fixed; top: 12vmin; right: 3vmin;
-  display: flex; flex-direction: column; align-items: stretch;
-  gap: var(--menu-gap);
-  width: var(--menu-w);
-  z-index: 15;
-  pointer-events: auto;
-}
-#factions[hidden] { display: none; }
 .factions-title {
   font-family: var(--mono); font-size: var(--menu-font); font-weight: 700;
   letter-spacing: .24em; text-transform: uppercase;
@@ -1244,17 +1234,6 @@ body.in-system .orbit-layer .o-body { pointer-events: auto; }
   .loc-notes-title { font-size: 2.8vmin; }
   .loc-actions { flex-wrap: wrap; }
 
-  /* The faction sidebar is a fixed column on the right, which on a phone
-     covers the system it is describing and reaches the player buttons. It
-     becomes a wrapping row along the top instead, where it reads as a legend
-     rather than as something in the way. */
-  #factions {
-    top: auto; bottom: 13vmin; left: 3vmin; right: 3vmin;
-    width: auto; flex-direction: row; flex-wrap: wrap; gap: 1.2vmin;
-    max-height: 22vh; overflow-y: auto;
-  }
-  .factions-title { width: 100%; font-size: 2.6vmin; padding: 1.6vmin 2vmin; }
-  .faction-pill { font-size: 2.6vmin; padding: 2vmin 2.4vmin; }
 }
 
 /* Orders for the selected vessel — shown only while one is selected. */
@@ -1277,10 +1256,6 @@ body.in-system .orbit-layer .o-body { pointer-events: auto; }
   #ship-actions { bottom: 22vmin; left: 3vmin; right: 3vmin;
                   transform: none; }
   #ship-actions button { flex: 1; font-size: 3vmin; padding: 3.2vmin 1vmin; }
-  /* The faction row and the order bar share the bottom band; while a vessel
-     is selected the factions step up out of its way rather than showing
-     through between the buttons. */
-  body:has(#ship-actions:not([hidden])) #factions { bottom: 36vmin; }
 }
 
 /* The way back from a surface view. Esc always worked, but it was invisible
@@ -1328,4 +1303,30 @@ body.in-system .orbit-layer .o-body { pointer-events: auto; }
   /* While a surface view is open the vessel order bar says nothing useful,
      and sat on top of the text. */
   body:has(#location-view.active) #ship-actions { display: none; }
+}
+
+/* ----------------------------------------------------------- stakeholders */
+.stakeholder-pills { display: flex; flex-wrap: wrap; gap: .6vmin; margin: 0 0 1vmin; }
+.stakeholder-pills .faction-pill { flex: 0 1 auto; }
+#stakeholders-list .factions-title { margin: 1.2vmin 0 .6vmin; }
+#stakeholder-detail[hidden] { display: none; }
+.stakeholder-canon { max-height: none; overflow: visible; box-shadow: none;
+                     border: 0; padding: 1vmin 0; font-size: inherit; }
+
+/* Contact chips on a character sheet. */
+.sheet-contacts { display: flex; flex-wrap: wrap; gap: .6vmin; align-items: center; }
+.sheet-contact {
+  display: inline-flex; align-items: center; gap: .4vmin;
+  border: max(1px, .1vmin) solid var(--ink); padding: .3vmin .3vmin .3vmin 1vmin;
+}
+.sheet-contact-name {
+  font-family: var(--mono); font-size: 1.3vmin; font-weight: 700;
+  letter-spacing: .06em; color: var(--ink); background: none;
+  border: 0; cursor: pointer; padding: .4vmin 0;
+}
+.sheet-contact-name:hover:not([disabled]) { text-decoration: underline; }
+.sheet-contact-name[disabled] { color: var(--ink-soft); cursor: default; }
+.sheet-contact-add { flex: 1 1 14rem; }
+@media (max-width: 760px) {
+  .sheet-contact-name { font-size: 3vmin; padding: 1.6vmin 0; }
 }

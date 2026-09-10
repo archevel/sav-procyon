@@ -42,6 +42,11 @@ export function closeTopUi() {
       && click('#ship-cancel'))                        return 'targeting';
   if (open('#about-panel') && click('#about-close'))   return 'about';
   if (open('#share-panel') && click('#share-close'))   return 'share';
+  if (open('#stakeholders-panel')) {
+    if (open('#stakeholder-detail')
+        && click('#stakeholder-detail .sheet-back'))   return 'stakeholder-detail';
+    if (click('#stakeholders-close'))                  return 'stakeholders';
+  }
   if (open('#crew-panel')) {
     /* A sheet steps back to the roster; the roster closes the panel. */
     if (open('#crew-sheet') && click('#crew-sheet .sheet-back')) return 'crew-sheet';
@@ -50,10 +55,6 @@ export function closeTopUi() {
   if (open('#fleet-panel')) {
     if (open('#fleet-sheet') && click('#fleet-sheet .sheet-back')) return 'fleet-sheet';
     if (click('#fleet-close'))                         return 'fleet';
-  }
-  {
-    const fp = document.querySelector('.faction-info-panel');
-    if (fp && !fp.hidden && click('.faction-info-close')) return 'faction';
   }
   if (document.getElementById('location-view')?.classList.contains('active')
       && click('.loc-back'))                           return 'location';

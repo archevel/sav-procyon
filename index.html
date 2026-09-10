@@ -46,8 +46,17 @@
   </svg>
 </div>
 
-<!-- Faction sidebar (shows only in system view). -->
-<aside id="factions" hidden></aside>
+<!-- Stakeholders: the factions, and the GM's own NPCs. Replaced the
+     always-visible faction sidebar. -->
+<div id="stakeholders-panel" class="loc-info-panel" hidden>
+  <div class="loc-info-content fleet-content">
+    <button id="stakeholders-close" class="loc-info-close" aria-label="Close">×</button>
+    <h3 data-i18n="stakeholders.title">Intressenter</h3>
+    <div id="stakeholders-list"></div>
+    <div id="stakeholder-detail" hidden></div>
+    <button id="npc-add" class="loc-info-btn" data-i18n="npc.add">Ny NPC</button>
+  </div>
+</div>
 
 <!-- Credits for the material this map is built from. -->
 <div id="about-panel" class="loc-info-panel" hidden>
@@ -123,6 +132,7 @@
   </div>
   <div id="player-switch">
     <button id="crew-btn" data-i18n="crew.button">Besättning</button>
+    <button id="stakeholders-btn" data-i18n="stakeholders.button">Intressenter</button>
     <button id="fleet-btn" data-i18n="fleet.button">Flotta</button>
     <button id="share-btn" data-i18n="share.button">Dela</button>
   </div>

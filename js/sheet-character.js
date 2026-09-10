@@ -17,6 +17,7 @@ import * as SAV from '../data/sav.js';
 import { el, dots, track, clock, newClock, note, newNote, imageStrip,
          field, choice, picks, section, portraitField } from './sheet-parts.js';
 import { PORTRAITS, portraitById, randomPortrait } from '../data/portraits.js';
+import { ensureNpc, openNpc } from './stakeholders-ui.js';
 
 /**
  * The art a character uses, as a URL, or null.
@@ -47,7 +48,7 @@ export function blankCharacter(name) {
     /* A new character starts with a face, picked at random from the shipped
        art; the player changes it if they want another. */
     portrait: null, portraitId: randomPortrait()?.id ?? null,
-    clocks: [], notes: [], fields: []
+    contacts: [], clocks: [], notes: [], fields: []
   };
 }
 
@@ -82,6 +83,7 @@ export function renderCharacterSheet(host, rec, { onBack } = {}) {
   host.appendChild(actionsSection(rec, save));
   host.appendChild(conditionSection(rec, save));
   host.appendChild(kitSection(rec, save));
+  host.appendChild(contactsSection(rec, save));
   host.appendChild(clocksSection(rec, save));
   host.appendChild(notesSection(rec, save));
   host.appendChild(extraFields(rec, save));
@@ -263,6 +265,63 @@ function kitSection(rec, save) {
       v => save({ abilities: v }), { note: true }));
   }
   return section(t('sheet.kit'), wrap);
+}
+
+/**
+ * Contacts — the people this character knows, as references into the
+ * Stakeholders panel.
+ *
+ * Typing a name links to the NPC with that exact name or creates one, so a
+ * player naming their fixer gives the GM a record to hang notes on without
+ * anyone doing bookkeeping. Removing a contact removes only the link; the
+ * NPC belongs to the table, not to this sheet. A contact whose NPC has been
+ * deleted keeps its name and is marked, rather than vanishing from the sheet.
+ */
+function contactsSection(rec, save) {
+  const wrap = el('div', 'sheet-contacts');
+
+  (rec.contacts || []).forEach(c => {
+    const chip = el('span', 'sheet-contact');
+    const openBtn = el('button', 'sheet-contact-name');
+    openBtn.type = 'button';
+    /* Resolved asynchronously: the chip shows the stored name at once, and
+       gains the removed-marker or the click-through once the store answers. */
+    openBtn.textContent = c.name || '…';
+    store.get('npcs', c.npcId).then(npc => {
+      if (npc) {
+        openBtn.textContent = npc.name;
+        openBtn.addEventListener('click', () => openNpc(npc.id));
+      } else {
+        openBtn.textContent = `${c.name || '?'} ${t('sheet.contactGone')}`;
+        openBtn.disabled = true;
+      }
+    });
+    chip.appendChild(openBtn);
+    const x = el('button', 'sheet-x', '×');
+    x.type = 'button';
+    x.title = t('sheet.remove');
+    x.addEventListener('click', () =>
+      save({ contacts: rec.contacts.filter(y => y.npcId !== c.npcId) }));
+    chip.appendChild(x);
+    wrap.appendChild(chip);
+  });
+
+  const inp = el('input', 'sheet-field-input sheet-contact-add');
+  inp.placeholder = t('sheet.addContact');
+  inp.maxLength = 40;
+  inp.addEventListener('keydown', async e => {
+    if (e.key !== 'Enter') return;
+    const npc = await ensureNpc(inp.value);
+    if (!npc) return;
+    inp.value = '';
+    if ((rec.contacts || []).some(c => c.npcId === npc.id)) return;
+    /* The name is stored alongside the id so a deleted NPC still leaves a
+       legible contact rather than a blank chip. */
+    save({ contacts: [...(rec.contacts || []), { npcId: npc.id, name: npc.name }] });
+  });
+  wrap.appendChild(inp);
+
+  return section(t('sheet.contacts'), wrap);
 }
 
 /* Clocks and notes are identical on both sheets, so they are written against

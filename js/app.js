@@ -30,6 +30,7 @@ import { renderPlaceNotes, placePath, notesIndex,
          splitPath, isFactionTarget } from './notes-ui.js';
 import { renderFactionExtras } from './factions-ui.js';
 import { pushUi, installBackHandler } from './nav.js';
+import { mountStakeholdersPanel } from './stakeholders-ui.js';
 
 /* Sourcebook text is authored per map key in both languages, and takes
    precedence over the hand-written strings in strings.js.
@@ -1389,64 +1390,26 @@ function factionsFor(sysId) {
 /* Faction sidebar: shown only when viewing a specific system (not sector,
    not a body location). Lists the system's active factions as names;
    clicking one opens a details-style overlay via the shared info panel. */
-function renderFactions() {
-  const el = document.getElementById('factions');
-  if (!el) return;
-  if (view.level !== 'system' || !view.id) { el.hidden = true; el.innerHTML = ''; return; }
-  const { local, wide } = factionsFor(view.id);
-  if (!local.length && !wide.length) { el.hidden = true; el.innerHTML = ''; return; }
-  el.hidden = false;
+/* The faction sidebar is gone — factions live in the Stakeholders panel now
+   (js/stakeholders-ui.js), which renders their sourcebook half through
+   renderFactionDetail below. The call sites survive as no-ops so view
+   transitions need not know the sidebar ever existed. */
+function renderFactions() {}
 
-  const pill = f => `<button class="faction-pill" data-faction="${f.slug}">${
-    esc(factionText(f, 'title'))}</button>`;
-
-  el.innerHTML = `
-    <div class="factions-title">${t('panel.factions.title')}</div>
-    ${local.map(pill).join('')}
-    ${wide.length ? `<div class="factions-subtitle">${t('panel.factions.wide')}</div>
-                     ${wide.map(pill).join('')}` : ''}
-    <div class="faction-info-panel" hidden>
-      <button class="faction-info-close" aria-label="${t('loc.close')}">×</button>
-      <div class="faction-info-content"></div>
-    </div>`;
-
-  const panel = el.querySelector('.faction-info-panel');
-  const content = el.querySelector('.faction-info-content');
-  const closeBtn = el.querySelector('.faction-info-close');
-
-  el.querySelectorAll('.faction-pill').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const f = FACTIONS.find(x => x.slug === btn.dataset.faction);
-      if (!f) return;
-      if (panel.hidden) pushUi('faction');
-      content.innerHTML = factionHTML(f, view.id);
-      /* The player's own clocks and notes for this faction, rendered below
-         the sourcebook text. Async, so the panel opens at once and the
-         player section fills in as the store answers. */
-      const extras = document.createElement('div');
-      content.appendChild(extras);
-      renderFactionExtras(extras, f);
-      // Cross-links jump to another system and re-open this faction there.
-      content.querySelectorAll('.faction-elsewhere').forEach(link => {
-        link.addEventListener('click', () => {
-          const to = link.dataset.system;
-          panel.hidden = true;
-          travelTo(to);
-          setTimeout(() => {
-            const host = document.getElementById('factions');
-            host?.querySelector(`.faction-pill[data-faction="${f.slug}"]`)?.click();
-          }, 900);
-        });
-      });
-      panel.hidden = false;
+/** The sourcebook half of a faction, rendered into a host the Stakeholders
+    panel owns. Wires the cross-links that jump to another system. */
+function renderFactionDetail(host, f) {
+  host.innerHTML = factionHTML(f, view.id || view.sysId || null);
+  host.querySelectorAll('.faction-elsewhere').forEach(link => {
+    link.addEventListener('click', () => {
+      document.getElementById('stakeholders-panel').hidden = true;
+      locView.classList.remove('active');
+      startOrbits();
+      travelTo(link.dataset.system);
     });
   });
-  closeBtn.addEventListener('click', () => { panel.hidden = true; });
-  panel.addEventListener('click', e => { if (e.target === panel) panel.hidden = true; });
 }
 
-/* One faction article. The text is the same wherever it is read from; what
-   changes per system is the note about where else the faction is active. */
 function factionHTML(f, sysId) {
   const sec = k => {
     const v = f.sections[k];
@@ -1648,6 +1611,10 @@ window.addEventListener('langchange', () => {
   // The fleet panel owns no render state: it writes anchors to the store and
   // reaches back through these hooks for the two things only the chart knows.
   installBackHandler();
+  mountStakeholdersPanel({
+    currentSystem: () => (view.level === 'system' ? view.id : view.sysId) || null,
+    renderFactionDetail
+  });
   mountCrewPanel();
   mountSharePanel();
   document.getElementById('ship-move')?.addEventListener('click', () => {

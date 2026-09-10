@@ -312,6 +312,24 @@ export const STRINGS = {
   'ship.gambit':     { sv: 'Gambit',       en: 'Gambit' },
   'crew.noPlaybook': { sv: 'Ingen arketyp',en: 'No playbook' },
 
+  /* --------------- stakeholders ----------------------------------------- */
+  'stakeholders.button': { sv: 'Intressenter', en: 'Stakeholders' },
+  'stakeholders.title':  { sv: 'Intressenter', en: 'Stakeholders' },
+  'stakeholders.here':   { sv: 'I detta system', en: 'In this system' },
+  'stakeholders.elsewhere': { sv: 'Övriga fraktioner', en: 'Other factions' },
+  'npc.title':       { sv: 'NPC:er',        en: 'NPCs' },
+  'npc.add':         { sv: 'Ny NPC',        en: 'New NPC' },
+  'npc.blurb':       { sv: 'Kort beskrivning — visas när NPC:n delas.',
+                       en: 'Short description — shown when the NPC is shared.' },
+  'npc.delete':      { sv: 'Ta bort',       en: 'Delete' },
+  'npc.confirmDelete': { sv: 'Ta bort %s? Kontakter som pekar hit blir kvar som namn.',
+                         en: 'Delete %s? Contacts pointing here remain as names.' },
+  'sheet.contacts':  { sv: 'Kontakter',     en: 'Contacts' },
+  'sheet.addContact':{ sv: 'Lägg till kontakt — skriv ett namn',
+                       en: 'Add a contact — type a name' },
+  'sheet.contactGone': { sv: '(borttagen)', en: '(removed)' },
+  'share.npcs':      { sv: 'NPC:er',        en: 'NPCs' },
+
   /* --------------- crew ------------------------------------------------- */
   'crew.button':   { sv: 'Besättning', en: 'Crew' },
   'crew.title':    { sv: 'Besättning', en: 'Crew' },
