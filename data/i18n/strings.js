@@ -382,6 +382,7 @@ export const STRINGS = {
   'fleet.move':    { sv: 'Flytta',       en: 'Move' },
   'fleet.jump':    { sv: 'Hoppa genom porten', en: 'Jump the gate' },
   'fleet.cancel':  { sv: 'Avbryt',       en: 'Cancel' },
+  'fleet.deselect':{ sv: 'Avmarkera',    en: 'Deselect' },
 
   /* --------------- systems ---------------------------------------------- */
   'sys.rin.name':   { sv: 'Rin',   en: 'Rin' },

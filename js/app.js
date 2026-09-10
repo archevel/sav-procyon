@@ -736,9 +736,11 @@ function updateFleetHint() {
     bar.hidden = !selectedShipId;
     const move = document.getElementById('ship-move');
     const jump = document.getElementById('ship-jump');
+    const desel = document.getElementById('ship-deselect');
     const cancel = document.getElementById('ship-cancel');
     if (move)   move.hidden = targeting;
     if (jump)   jump.hidden = targeting || !canJump();
+    if (desel)  desel.hidden = targeting;
     if (cancel) cancel.hidden = !targeting;
   }
 }
@@ -1617,6 +1619,7 @@ window.addEventListener('langchange', () => {
     if (selectedShipId && !targeting) jumpShip(selectedShipId);
   });
   document.getElementById('ship-cancel')?.addEventListener('click', () => endTargeting());
+  document.getElementById('ship-deselect')?.addEventListener('click', () => deselectShip());
   /* The hamburger only exists on phones (CSS reveals it); it folds the
      language row away so the crumbs own the top of the screen. Choosing
      anything in the menu closes it. */
