@@ -1361,3 +1361,15 @@ body.in-system .orbit-layer .o-body { pointer-events: auto; }
   .sheet-contact-option { font-size: 3vmin; padding: 2.6vmin 2vmin; }
   .sheet-contact-create { font-size: 3vmin; }
 }
+
+/* Status rows in the faction view: vessel name left, number right, matching
+   the ship sheet's rows rather than a label crammed against a select. */
+.faction-status-row { border: max(1px, .1vmin) solid var(--ink); margin: 0 0 .6vmin; }
+.sheet-status-ship {
+  font-family: var(--mono); font-size: 1.3vmin; font-weight: 700;
+  letter-spacing: .06em; text-transform: uppercase;
+}
+.faction-player .loc-notes-title { margin-top: 1.6vmin; }
+@media (max-width: 760px) {
+  .sheet-status-ship { font-size: 3vmin; }
+}

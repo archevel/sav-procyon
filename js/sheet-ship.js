@@ -19,6 +19,7 @@ import { clocksSection, notesSection, extraFields,
 import { describeAnchor } from './fleet.js';
 import { FACTIONS } from '../data/factions-data.js';
 import { factionTitle } from './factions-ui.js';
+import { openFaction } from './stakeholders-ui.js';
 
 /**
  * The art a vessel uses, as a base name for img/ship-<n>.webp and
@@ -225,8 +226,13 @@ function statusSection(rec, save) {
 
   for (const slug of Object.keys(statuses)) {
     const row = el('div', 'sheet-contact');
-    row.appendChild(el('span', 'sheet-contact-name sheet-status-name',
-                       factionTitle(slug)));
+    /* The name opens the faction itself — it looked clickable from day one,
+       so it had better be. */
+    const openBtn = el('button', 'sheet-contact-name sheet-status-name',
+                       factionTitle(slug));
+    openBtn.type = 'button';
+    openBtn.addEventListener('click', () => openFaction(slug));
+    row.appendChild(openBtn);
     row.appendChild(statusSelect(statuses[slug] ?? 0, v =>
       save({ statuses: { ...statuses, [slug]: v } })));
     const x = el('button', 'sheet-x', '×');

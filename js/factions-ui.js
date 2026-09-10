@@ -73,14 +73,19 @@ export async function renderFactionExtras(host, faction) {
      the faction view lists every ship with its number. The same data is
      editable from the ship sheet; both write ship.statuses[slug]. */
   const ships = await store.all('ships');
+  wrap.appendChild(el('h4', 'loc-notes-title', t('faction.status')));
   if (ships.length) {
-    wrap.appendChild(el('h4', 'loc-notes-title', t('faction.status')));
     for (const ship of ships) {
-      wrap.appendChild(statusSelect(ship.statuses?.[faction.slug] ?? 0, async v => {
+      /* One row per vessel, laid out like the ship sheet's own status rows:
+         name left, number right. */
+      const row = el('div', 'sheet-contact faction-status-row');
+      row.appendChild(el('span', 'sheet-status-ship', ship.name));
+      row.appendChild(statusSelect(ship.statuses?.[faction.slug] ?? 0, async v => {
         const fresh = await store.get('ships', ship.id) || ship;
         await store.put('ships', { ...fresh,
           statuses: { ...(fresh.statuses || {}), [faction.slug]: v } });
-      }, { label: ship.name }));
+      }));
+      wrap.appendChild(row);
     }
   } else {
     wrap.appendChild(el('p', 'sheet-hint', t('faction.noShip')));

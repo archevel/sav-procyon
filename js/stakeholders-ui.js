@@ -123,23 +123,27 @@ export function mountStakeholdersPanel(opts = {}) {
   window.addEventListener('langchange', () => { if (!panel.hidden) render(); });
 }
 
-/** Open the panel directly on one NPC — the contact chips use this. */
-export function openNpc(id) {
+/* Opened from inside another panel (a contact chip, a ship's status row),
+   this one must surface ABOVE it — panels share a z-index and otherwise
+   resolve by DOM order, which puts this panel underneath. Cleared when it
+   closes so ordinary opens stack normally again. */
+function surfaceAt(kind, id, tag) {
   if (!panel) return;
   if (panel.hidden) { pushUi('stakeholders'); panel.hidden = false; }
-  /* Opened from inside another panel (a contact chip on a character sheet),
-     this one must surface ABOVE it — panels share a z-index and otherwise
-     resolve by DOM order, which puts this panel underneath. Cleared when it
-     closes so ordinary opens stack normally again. */
   panel.style.zIndex = 70;
-  const drop = () => { panel.style.zIndex = ''; };
   new MutationObserver((m, obs) => {
-    if (panel.hidden) { drop(); obs.disconnect(); }
+    if (panel.hidden) { panel.style.zIndex = ''; obs.disconnect(); }
   }).observe(panel, { attributes: true, attributeFilter: ['hidden'] });
-  pushUi('npc-sheet');
-  open = { kind: 'npc', id };
+  pushUi(tag);
+  open = { kind, id };
   render();
 }
+
+/** Open the panel directly on one NPC — the contact chips use this. */
+export function openNpc(id) { surfaceAt('npc', id, 'npc-sheet'); }
+
+/** Open the panel directly on one faction — the ship's status rows use it. */
+export function openFaction(slug) { surfaceAt('faction', slug, 'faction'); }
 
 async function addNpc() {
   const rows = await store.all('npcs');
