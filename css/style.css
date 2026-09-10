@@ -1417,3 +1417,11 @@ body.in-system .orbit-layer .o-body { pointer-events: auto; }
   .loc-person-desc { font-size: 2.8vmin; }
   .loc-person { padding: 2.6vmin 3vmin; }
 }
+
+/* System sub-groups inside the Individer list at sector view. */
+.stakeholder-subtitle {
+  font-family: var(--mono); font-size: 1.1vmin; font-weight: 700;
+  letter-spacing: .18em; text-transform: uppercase; color: var(--ink-soft);
+  margin: 1vmin 0 .4vmin;
+}
+@media (max-width: 760px) { .stakeholder-subtitle { font-size: 2.8vmin; } }

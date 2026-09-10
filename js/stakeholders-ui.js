@@ -20,6 +20,7 @@ import { el, esc, portraitField, section, clock, newClock } from './sheet-parts.
 import { clocksSection, notesSection } from './sheet-character.js';
 import { renderFactionExtras } from './factions-ui.js';
 import { describePlace } from './notes-ui.js';
+import { SOURCEBOOK } from '../data/sourcebook.js';
 import { pushUi } from './nav.js';
 
 let panel, listEl, detailEl, hooks = {};
@@ -160,6 +161,35 @@ export async function seedNotables(path, notables) {
   try { localStorage.setItem(guard, '1'); } catch (e) {}
 }
 
+/**
+ * Seed the whole sector's notables at once.
+ *
+ * Waiting for a surface to be visited meant Individer sat empty until the
+ * crew happened to fly somewhere — the people exist in the book regardless.
+ * Walks every body and moon, parses its details, and seeds through the same
+ * per-path guards, so it is cheap on every boot after the first and still
+ * respects deletions.
+ */
+export async function seedAllNotables() {
+  const lang = getLang() === 'debug' ? 'sv' : getLang();
+  const details = key => {
+    const rec = SOURCEBOOK[key];
+    if (rec?.details) return rec.details[lang] || rec.details.sv || '';
+    return '';
+  };
+  for (const [sysId, sys] of Object.entries(SECTOR.systems)) {
+    for (const b of sys.bodies) {
+      const jobs = [[`${sysId}/${b.id}`, b.key]];
+      for (const m of (b.moons || [])) jobs.push([`${sysId}/${b.id}/${m.id}`, m.key]);
+      for (const [path, key] of jobs) {
+        if (!key) continue;
+        const { notables } = splitDetails(details(key));
+        if (notables.length) await seedNotables(path, notables);
+      }
+    }
+  }
+}
+
 /** Every NPC placed at a path, for the surface's people section. */
 export async function npcsAt(path) {
   return (await store.all('npcs')).filter(n => n.place === path);
@@ -250,12 +280,11 @@ async function showList() {
   const here = sysId ? FACTIONS.filter(f => f.systems.includes(sysId)) : [];
   const rest = FACTIONS.filter(f => !here.includes(f));
   const npcs = await store.all('npcs');
-  /* An individual belongs to the system their place sits in; the unplaced —
-     contacts, mostly — travel with the crew and list with the local group. */
-  const inSystem = n => sysId && n.place
-    && (n.place === sysId || n.place.startsWith(sysId + '/'));
-  const npcsHere = sysId ? npcs.filter(n => inSystem(n) || !n.place) : npcs;
-  const npcsAway = sysId ? npcs.filter(n => !npcsHere.includes(n)) : [];
+  /* In a system view only ITS people show — another system's individuals are
+     noise there. The unplaced (contacts, mostly) travel with the crew and
+     always list. At sector view everyone shows, grouped by system. */
+  const inSys = (n, id) => n.place && (n.place === id || n.place.startsWith(id + '/'));
+  const npcsHere = sysId ? npcs.filter(n => inSys(n, sysId) || !n.place) : null;
 
   const factionRow = f => `<button class="faction-pill" data-faction="${f.slug}">${
     esc(factionName(f))}</button>`;
@@ -271,12 +300,29 @@ async function showList() {
     </div>`;
   };
 
+  let individuals;
+  if (sysId) {
+    individuals = `<div class="factions-title">${t('npc.title')}</div>
+      ${npcsHere.map(npcRow).join('')}`;
+  } else {
+    /* Sector view: one group per system, in chart order, unplaced last. */
+    const parts = [`<div class="factions-title">${t('npc.title')}</div>`];
+    for (const [id, sys] of Object.entries(SECTOR.systems)) {
+      const own = npcs.filter(n => inSys(n, id));
+      if (own.length) parts.push(
+        `<div class="stakeholder-subtitle">${esc(t(sys.key + '.name'))}</div>`
+        + own.map(npcRow).join(''));
+    }
+    const loose = npcs.filter(n => !n.place);
+    if (loose.length) parts.push(
+      `<div class="stakeholder-subtitle">${t('npc.unplaced')}</div>`
+      + loose.map(npcRow).join(''));
+    individuals = parts.join('');
+  }
+
   listEl.innerHTML = `
-    <div class="factions-title">${t('npc.title')}</div>
-    ${npcsHere.map(npcRow).join('')}
+    ${individuals}
     <button id="npc-add" class="sheet-add">+ ${esc(t('npc.add'))}</button>
-    ${npcsAway.length ? `<div class="factions-title">${t('npc.other')}</div>
-                         ${npcsAway.map(npcRow).join('')}` : ''}
     ${here.length ? `<div class="factions-title">${t('stakeholders.here')}</div>
                      <div class="stakeholder-pills">${here.map(factionRow).join('')}</div>` : ''}
     <div class="factions-title">${here.length ? t('stakeholders.elsewhere')

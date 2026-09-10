@@ -318,7 +318,7 @@ export const STRINGS = {
   'stakeholders.here':   { sv: 'I detta system', en: 'In this system' },
   'stakeholders.elsewhere': { sv: 'Övriga fraktioner', en: 'Other factions' },
   'npc.title':       { sv: 'Individer',     en: 'Individuals' },
-  'npc.other':       { sv: 'Övriga individer', en: 'Individuals elsewhere' },
+  'npc.unplaced':    { sv: 'Oplacerade',    en: 'Unplaced' },
   'npc.add':         { sv: 'Ny individ',    en: 'New individual' },
   'npc.blurb':       { sv: 'Kort beskrivning — visas när NPC:n delas.',
                        en: 'Short description — shown when the NPC is shared.' },

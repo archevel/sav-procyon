@@ -30,7 +30,7 @@ import { renderPlaceNotes, placePath, notesIndex,
          splitPath, isFactionTarget } from './notes-ui.js';
 import { renderFactionExtras } from './factions-ui.js';
 import { pushUi, installBackHandler } from './nav.js';
-import { mountStakeholdersPanel, splitDetails, seedNotables,
+import { mountStakeholdersPanel, splitDetails, seedAllNotables,
          npcsAt, openNpc } from './stakeholders-ui.js';
 
 /* Sourcebook text is authored per map key in both languages, and takes
@@ -1309,10 +1309,7 @@ async function openLocation(sysId, b, notePath = null, { push = true } = {}) {
      then everyone whose place is set here, whoever created them. */
   if (notePath) {
     const host = locView.querySelector('.loc-people-body');
-    if (host) {
-      await seedNotables(notePath, notables);
-      renderPeopleHere(host, notePath);
-    }
+    if (host) renderPeopleHere(host, notePath);
   }
 
   /* The player's own notes for this place, below the canon text and clearly
@@ -1615,6 +1612,9 @@ window.addEventListener('langchange', () => {
   await renderFleet();
   markNoteBadges();
   store.subscribe(() => markNoteBadges(), ['notes']);
+  /* The whole sector's notable persons exist from the first boot, not from
+     whenever a surface happens to be visited. */
+  seedAllNotables();
   // The fleet panel owns no render state: it writes anchors to the store and
   // reaches back through these hooks for the two things only the chart knows.
   installBackHandler();
