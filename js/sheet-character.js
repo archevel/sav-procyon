@@ -16,7 +16,7 @@ import * as store from './store.js';
 import * as SAV from '../data/sav.js';
 import { el, dots, track, clock, newClock, note, newNote, imageStrip,
          field, choice, picks, section, portraitField,
-         dispositionSelect } from './sheet-parts.js';
+         relationSelect } from './sheet-parts.js';
 import { PORTRAITS, portraitById, randomPortrait } from '../data/portraits.js';
 import { ensureNpc, openNpc, fuzzyNpcs } from './stakeholders-ui.js';
 
@@ -299,12 +299,15 @@ function contactsSection(rec, save) {
     });
     row.appendChild(openBtn);
 
-    /* How this contact stands toward the character — the faction-status
-       ladder, kept on the LINK: the same fixer can adore one crew member
-       and bill another. */
-    row.appendChild(dispositionSelect(c.disposition ?? 0, v =>
+    /* Friend, rival or neither — kept on the LINK: the same fixer can be
+       one character's close friend and another's rival. The book has each
+       character mark one of each among their contacts. Briefly this was a
+       numeric ladder; old numbers read as their sign. */
+    const rel = typeof c.relation === 'string' ? c.relation
+      : (c.disposition > 0 ? 'friend' : c.disposition < 0 ? 'rival' : 'neutral');
+    row.appendChild(relationSelect(rel, v =>
       save({ contacts: rec.contacts.map(y =>
-        y.npcId === c.npcId ? { ...y, disposition: v } : y) })));
+        y.npcId === c.npcId ? { ...y, relation: v, disposition: undefined } : y) })));
 
     const x = el('button', 'sheet-x', '×');
     x.type = 'button';
@@ -337,7 +340,7 @@ function contactsSection(rec, save) {
     /* The name rides beside the id so a deleted NPC still leaves a legible
        contact rather than a blank. Disposition starts neutral. */
     save({ contacts: [...(rec.contacts || []),
-                      { npcId: npc.id, name: npc.name, disposition: 0 }] });
+                      { npcId: npc.id, name: npc.name, relation: 'neutral' }] });
   };
 
   let matches = [];

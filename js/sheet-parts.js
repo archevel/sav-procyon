@@ -10,8 +10,8 @@
  */
 
 import { t } from '../data/i18n.js';
-import { CLOCK_SIZES, DEFAULT_CLOCK_SIZE,
-         DISPOSITIONS as SAV_DISPOSITIONS } from '../data/sav.js';
+import { CLOCK_SIZES, DEFAULT_CLOCK_SIZE, CONTACT_RELATIONS,
+         STATUS_MIN, STATUS_MAX } from '../data/sav.js';
 import * as store from './store.js';
 import { pushUi } from './nav.js';
 
@@ -358,19 +358,33 @@ function openChooser({ shipped, selectedId, asset, onPick, onUpload, onClear }) 
 }
 
 /**
- * Disposition — the faction-status ladder as a compact select.
- *
- * A select rather than seven buttons: it reads at a glance, costs one tap on
- * a phone, and carries the named rungs (war … allied) without eating a row.
+ * A contact's relation — friend, neutral or rival. The book has each
+ * character mark one close friend and one rival among their contacts;
+ * neutral is everyone else.
  */
-export function dispositionSelect(value, onChange, { label = null } = {}) {
+export function relationSelect(value, onChange) {
+  const wrap = el('label', 'sheet-disposition');
+  const sel = el('select', 'sheet-field-input sheet-disposition-sel');
+  for (const r of CONTACT_RELATIONS) {
+    const o = el('option', null, t('rel.' + r));
+    o.value = r;
+    if (r === (value || 'neutral')) o.selected = true;
+    sel.appendChild(o);
+  }
+  sel.addEventListener('change', () => onChange(sel.value));
+  wrap.appendChild(sel);
+  return wrap;
+}
+
+/** Faction status: a bare number the fiction pushes up and down. */
+export function statusSelect(value, onChange, { label = null } = {}) {
   const wrap = el('label', 'sheet-disposition');
   if (label) wrap.appendChild(el('span', 'sheet-field-label', label));
   const sel = el('select', 'sheet-field-input sheet-disposition-sel');
-  for (const d of SAV_DISPOSITIONS) {
-    const o = el('option', null, t('disp.' + d.id));
-    o.value = String(d.value);
-    if (d.value === (value ?? 0)) o.selected = true;
+  for (let v = STATUS_MAX; v >= STATUS_MIN; v--) {
+    const o = el('option', null, v > 0 ? `+${v}` : String(v));
+    o.value = String(v);
+    if (v === (value ?? 0)) o.selected = true;
     sel.appendChild(o);
   }
   sel.addEventListener('change', () => onChange(Number(sel.value)));

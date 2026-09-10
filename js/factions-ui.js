@@ -9,9 +9,20 @@
 
 import { t, getLang } from '../data/i18n.js';
 import * as store from './store.js';
+import { FACTIONS } from '../data/factions-data.js';
 import { goalClockSize } from '../data/faction-clocks.js';
-import { el, clock, newClock, dispositionSelect } from './sheet-parts.js';
+import { el, clock, newClock, statusSelect } from './sheet-parts.js';
 import { renderPlaceNotes, factionTarget } from './notes-ui.js';
+
+/** Display title for a faction record or slug, in the reader's language. */
+export function factionTitle(fOrSlug) {
+  const f = typeof fOrSlug === 'string'
+    ? FACTIONS.find(x => x.slug === fOrSlug) : fOrSlug;
+  if (!f) return String(fOrSlug);
+  const lang = getLang();
+  if (lang === 'debug') return `faction.${f.slug}.title`;
+  return f.title?.[lang] || f.title?.sv || f.title?.en || f.slug;
+}
 
 /**
  * The stored record for a faction, created on first touch.
@@ -58,10 +69,22 @@ export async function renderFactionExtras(host, faction) {
 
   const wrap = el('div', 'faction-player');
 
-  /* Where the faction stands toward the crew — the status ladder the book
-     tracks per faction, stored on the faction record so it shares. */
-  wrap.appendChild(dispositionSelect(rec.disposition ?? 0,
-    v => save({ disposition: v }), { label: t('faction.disposition') }));
+  /* Status is PER SHIP — the crew's standing belongs to their vessel — so
+     the faction view lists every ship with its number. The same data is
+     editable from the ship sheet; both write ship.statuses[slug]. */
+  const ships = await store.all('ships');
+  if (ships.length) {
+    wrap.appendChild(el('h4', 'loc-notes-title', t('faction.status')));
+    for (const ship of ships) {
+      wrap.appendChild(statusSelect(ship.statuses?.[faction.slug] ?? 0, async v => {
+        const fresh = await store.get('ships', ship.id) || ship;
+        await store.put('ships', { ...fresh,
+          statuses: { ...(fresh.statuses || {}), [faction.slug]: v } });
+      }, { label: ship.name }));
+    }
+  } else {
+    wrap.appendChild(el('p', 'sheet-hint', t('faction.noShip')));
+  }
 
   wrap.appendChild(el('h4', 'loc-notes-title', t('sheet.clocks')));
 

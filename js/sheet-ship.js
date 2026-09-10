@@ -13,10 +13,12 @@ import { t } from '../data/i18n.js';
 import * as store from './store.js';
 import * as SAV from '../data/sav.js';
 import { el, dots, track, imageStrip, field, choice, picks,
-         section } from './sheet-parts.js';
+         section, statusSelect } from './sheet-parts.js';
 import { clocksSection, notesSection, extraFields,
          restoreView } from './sheet-character.js';
 import { describeAnchor } from './fleet.js';
+import { FACTIONS } from '../data/factions-data.js';
+import { factionTitle } from './factions-ui.js';
 
 /**
  * The art a vessel uses, as a base name for img/ship-<n>.webp and
@@ -43,7 +45,7 @@ export function blankShip(name) {
     damaged: [], upgrades: [], crewUpgrades: [],
     gambit: 0, xp: 0,
     blurb: '', portrait: null,
-    location: null, clocks: [], notes: [], fields: []
+    statuses: {}, location: null, clocks: [], notes: [], fields: []
   };
 }
 
@@ -69,6 +71,7 @@ export function renderShipSheet(host, rec, { onBack } = {}) {
   host.appendChild(identity(rec, save));
   host.appendChild(systemsSection(rec, save));
   host.appendChild(upgradesSection(rec, save));
+  host.appendChild(statusSection(rec, save));
   host.appendChild(clocksSection(rec, save));
   host.appendChild(notesSection(rec, save));
   host.appendChild(extraFields(rec, save));
@@ -209,6 +212,55 @@ function upgradesSection(rec, save) {
 
   return section(t('sheet.upgrades'), wrap);
 }
+
+/**
+ * Standing with the factions, per the book: a number the fiction pushes up
+ * and down, belonging to the SHIP. Only tracked factions are listed — a row
+ * per faction times thirty-six would bury the sheet — and the same numbers
+ * are editable from each faction's own view.
+ */
+function statusSection(rec, save) {
+  const wrap = el('div', 'sheet-statuses');
+  const statuses = rec.statuses || {};
+
+  for (const slug of Object.keys(statuses)) {
+    const row = el('div', 'sheet-contact');
+    row.appendChild(el('span', 'sheet-contact-name sheet-status-name',
+                       factionTitle(slug)));
+    row.appendChild(statusSelect(statuses[slug] ?? 0, v =>
+      save({ statuses: { ...statuses, [slug]: v } })));
+    const x = el('button', 'sheet-x', '×');
+    x.type = 'button';
+    x.title = t('sheet.remove');
+    x.addEventListener('click', () => {
+      const next = { ...statuses };
+      delete next[slug];
+      save({ statuses: next });
+    });
+    row.appendChild(x);
+    wrap.appendChild(row);
+  }
+
+  const add = el('select', 'sheet-field-input');
+  const blank = el('option', null, t('ship.addStatus'));
+  blank.value = '';
+  add.appendChild(blank);
+  for (const f of FACTIONS) {
+    if (slugTracked(statuses, f.slug)) continue;
+    const o = el('option', null, factionTitle(f));
+    o.value = f.slug;
+    add.appendChild(o);
+  }
+  add.addEventListener('change', () => {
+    if (add.value) save({ statuses: { ...statuses, [add.value]: 0 } });
+  });
+  wrap.appendChild(add);
+
+  return section(t('ship.statusSection'), wrap);
+}
+
+const slugTracked = (statuses, slug) =>
+  Object.prototype.hasOwnProperty.call(statuses, slug);
 
 /**
  * Fold one area's picks back into the full list.

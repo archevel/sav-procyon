@@ -16,6 +16,7 @@ import * as SAV from '../data/sav.js';
 import { savName } from './sheet-parts.js';
 import { shipArt } from './sheet-ship.js';
 import { portraitById } from '../data/portraits.js';
+import { factionTitle } from './factions-ui.js';
 import { SECTOR } from '../data/sector.js';
 
 /* Proportions of the card. Shorter than it was: the old height left a band of
@@ -121,7 +122,21 @@ export async function shipCard(rec) {
                 value: v, max: SAV.MAX_SYSTEM_RATING,
                 colour: damaged.has(sys) ? WARN : INK });
   }
-  ratingColumns(g, rows, x, PAD + 108, W - x - PAD);
+  let y = ratingColumns(g, rows, x, PAD + 108, W - x - PAD);
+
+  /* Faction standing, strongest feelings first — the numbers a recipient
+     actually wants off a shared ship. Zeroes are tracked but say nothing. */
+  const statuses = Object.entries(rec.statuses || {}).filter(([, v]) => v)
+    .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]));
+  if (statuses.length) {
+    y = Math.max(y + 8, PAD + 108);
+    label(g, t('ship.statusSection'), x, y + 6);
+    const line = statuses.map(([slug, v]) =>
+      `${factionTitle(slug)} ${v > 0 ? '+' + v : v}`).join(' · ');
+    g.fillStyle = INK;
+    g.font = `13px ${MONO}`;
+    g.fillText(clip(g, line, W - x - PAD), x, y + 26);
+  }
 
   const footTop = footerTop();
   if (rec.blurb) paragraph(g, rec.blurb, PAD, BLURB_Y, W - PAD * 2, 2);

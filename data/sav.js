@@ -175,14 +175,16 @@ export const GAMBIT_MAX = 6;
 
 /* ------------------------------------------------------------- standing */
 
-/** The faction-status ladder, reused as disposition for NPCs and factions
-    alike: how someone stands toward the crew, from war to allied. Ids key
-    the display strings (`disp.m3` … `disp.p3`). */
-export const DISPOSITIONS = [
-  { value: -3, id: 'm3' }, { value: -2, id: 'm2' }, { value: -1, id: 'm1' },
-  { value: 0, id: 'z' },
-  { value: 1, id: 'p1' }, { value: 2, id: 'p2' }, { value: 3, id: 'p3' }
-];
+/** A contact is a friend, a rival, or neither — the book has each character
+    mark one close friend and one rival among their contacts, so those are
+    the only rungs a contact needs. */
+export const CONTACT_RELATIONS = ['friend', 'neutral', 'rival'];
+
+/** Faction status is just a number the fiction pushes up and down. Tracked
+    per SHIP: the crew's standing belongs to their vessel, not to any one
+    character. */
+export const STATUS_MIN = -5;
+export const STATUS_MAX = 5;
 
 /* ------------------------------------------------------------------ clocks */
 
