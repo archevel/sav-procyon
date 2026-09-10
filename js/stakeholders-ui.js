@@ -13,6 +13,8 @@
 import { t, getLang } from '../data/i18n.js';
 import * as store from './store.js';
 import { FACTIONS } from '../data/factions-data.js';
+import { SECTOR } from '../data/sector.js';
+import { anchorTargets, targetName } from './fleet.js';
 import { PORTRAITS } from '../data/portraits.js';
 import { el, esc, portraitField, section, clock, newClock } from './sheet-parts.js';
 import { clocksSection, notesSection } from './sheet-character.js';
@@ -27,7 +29,7 @@ let open = null;
     did not choose would be asserting something about someone they invented. */
 export function blankNpc(name) {
   return { name, blurb: '', portrait: null, portraitId: null,
-           clocks: [], notes: [] };
+           place: null, clocks: [], notes: [] };
 }
 
 /**
@@ -101,6 +103,65 @@ function editDistance(a, b) {
     prev = cur;
   }
   return prev[n];
+}
+
+/* ---------------------------------------------------- canon notables */
+
+const NOTABLE_HEADERS = ['Anmärkningsvärda personer', 'Notables',
+                         'Notable characters'];
+
+/**
+ * Split a location's details into prose and its notable-persons list.
+ *
+ * The sourcebook formats notables as a bold header followed by bullets of
+ * `**Name** — description`. The prose keeps everything before the header;
+ * the people go on to become NPC records rather than static text.
+ */
+export function splitDetails(text) {
+  const src = String(text || '');
+  let cut = -1;
+  for (const h of NOTABLE_HEADERS) {
+    const i = src.indexOf(`**${h}**`);
+    if (i >= 0 && (cut < 0 || i < cut)) cut = i;
+  }
+  if (cut < 0) return { body: src.trim(), notables: [] };
+
+  const tail = src.slice(cut);
+  const notables = [];
+  for (const line of tail.split('\n')) {
+    const m = line.match(/^[-*]\s+\*\*(.+?)\*\*\s*[—–-]\s*(.+)$/);
+    if (m) notables.push({ name: m[1].trim(), desc: m[2].trim() });
+  }
+  return { body: src.slice(0, cut).trim(), notables };
+}
+
+/**
+ * Seed a surface's notable persons as NPCs, once per browser.
+ *
+ * originId is `canon:<path>:<index>` — position, not name, because the names
+ * differ per language (Rakkniv is Razor) while the list order does not; two
+ * browsers seeding in different languages still import against each other.
+ * The localStorage guard means a GM who deletes a seeded NPC is not handed
+ * them back on the next visit.
+ */
+export async function seedNotables(path, notables) {
+  if (!notables.length) return;
+  const guard = 'procyon.notables.' + path;
+  try { if (localStorage.getItem(guard)) return; } catch (e) {}
+
+  const existing = await store.all('npcs');
+  for (let i = 0; i < notables.length; i++) {
+    const originId = `canon:${path}:${i}`;
+    if (existing.some(n => n.originId === originId)) continue;
+    await store.put('npcs', { ...blankNpc(notables[i].name),
+      originId, blurb: notables[i].desc, place: path }, { keepRev: true });
+  }
+  try { localStorage.setItem(guard, '1'); } catch (e) {}
+}
+
+/** Every NPC placed at a path, for the surface's people section. */
+export async function npcsAt(path) {
+  return (await store.all('npcs')).filter(n => n.place === path);
 }
 
 export function mountStakeholdersPanel(opts = {}) {
@@ -292,6 +353,29 @@ function showNpc(rec) {
   blurb.placeholder = t('npc.blurb');
   blurb.addEventListener('blur', () => save({ blurb: blurb.value }));
 
+  /* Where this person is. An NPC with a place appears in that surface's
+     people section; the options are the same places notes pin to. */
+  const placeWrap = el('label', 'sheet-field');
+  placeWrap.appendChild(el('span', 'sheet-field-label', t('npc.place')));
+  const placeSel = el('select', 'sheet-field-input');
+  const none = el('option', null, '—'); none.value = '';
+  placeSel.appendChild(none);
+  for (const [sysId, sys] of Object.entries(SECTOR.systems)) {
+    const so = el('option', null, t(sys.key + '.name'));
+    so.value = sysId;
+    if (rec.place === sysId) so.selected = true;
+    placeSel.appendChild(so);
+    for (const { path, body, depth } of anchorTargets(sysId)) {
+      const full = `${sysId}/${path}`;
+      const o = el('option', null, '  '.repeat(depth + 1) + targetName(body, t));
+      o.value = full;
+      if (rec.place === full) o.selected = true;
+      placeSel.appendChild(o);
+    }
+  }
+  placeSel.addEventListener('change', () => save({ place: placeSel.value || null }));
+  placeWrap.appendChild(placeSel);
+
   const portrait = el('div', 'sheet-portrait');
   portrait.appendChild(el('span', 'sheet-field-label', t('sheet.portrait')));
   portrait.appendChild(portraitField({
@@ -306,7 +390,7 @@ function showNpc(rec) {
     onClear: () => save({ portrait: null })
   }));
 
-  detailEl.appendChild(section(t('sheet.identity'), blurb, portrait));
+  detailEl.appendChild(section(t('sheet.identity'), blurb, placeWrap, portrait));
   /* The same clocks and notes every other sheet carries. */
   detailEl.appendChild(clocksSection(rec, save));
   detailEl.appendChild(notesSection(rec, save));

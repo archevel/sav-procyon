@@ -30,7 +30,8 @@ import { renderPlaceNotes, placePath, notesIndex,
          splitPath, isFactionTarget } from './notes-ui.js';
 import { renderFactionExtras } from './factions-ui.js';
 import { pushUi, installBackHandler } from './nav.js';
-import { mountStakeholdersPanel } from './stakeholders-ui.js';
+import { mountStakeholdersPanel, splitDetails, seedNotables,
+         npcsAt, openNpc } from './stakeholders-ui.js';
 
 /* Sourcebook text is authored per map key in both languages, and takes
    precedence over the hand-written strings in strings.js.
@@ -1240,6 +1241,23 @@ function diveTo(sysId, b, node, notePath = null) {
 
 /* ------------------------------------------------------------- location */
 
+/** The NPCs placed at a path, as rows that open their sheets. */
+async function renderPeopleHere(host, path) {
+  const people = await npcsAt(path);
+  host.innerHTML = '';
+  if (!people.length) { host.parentElement.style.display = 'none'; return; }
+  host.parentElement.style.display = '';
+  for (const npc of people) {
+    const row = document.createElement('button');
+    row.type = 'button';
+    row.className = 'loc-person';
+    row.innerHTML = `<span class="loc-person-name">${esc(npc.name)}</span>` +
+      (npc.blurb ? `<span class="loc-person-desc">${esc(npc.blurb)}</span>` : '');
+    row.addEventListener('click', () => openNpc(npc.id));
+    host.appendChild(row);
+  }
+}
+
 async function openLocation(sysId, b, notePath = null, { push = true } = {}) {
   /* A language switch re-renders the open location; that must not grow the
      back stack. */
@@ -1256,11 +1274,14 @@ async function openLocation(sysId, b, notePath = null, { push = true } = {}) {
   else if (b.key) prose = t(b.key + '.tag');
   else prose = b.tag || '';
 
-  // Details come from the sourcebook where the book has a full entry for
-  // this body, and otherwise from the hand-written strings.
+  // Details render inline on the surface now — no Läs mer overlay. The
+  // notable-persons section is CUT from the prose: those people are NPC
+  // records, listed live below, canon and GM-added alike.
   const sbDetails = b.key ? sb(b.key, 'details') : null;
   const detailsKey = b.key ? b.key + '.details' : null;
-  const hasDetails = !!sbDetails || (!!detailsKey && hasKey(detailsKey));
+  const rawDetails = sbDetails
+    || (detailsKey && hasKey(detailsKey) ? t(detailsKey) : '');
+  const { body: detailsBody, notables } = splitDetails(rawDetails);
 
   locView.innerHTML = `
     ${hasImage ? `<div class="loc-image" style="background-image:url(${surface})"></div>`
@@ -1270,38 +1291,29 @@ async function openLocation(sysId, b, notePath = null, { push = true } = {}) {
       <div class="loc-kicker">${sysId ? t(SECTOR.systems[sysId].key + '.name') : t('crumb.sector')}</div>
       <h2 class="loc-title">${b.key ? t(b.key + '.name') : (b.name || '?')}</h2>
       <p class="loc-text">${prose || ''}</p>
-      ${hasDetails ? `<div class="loc-actions"><button class="loc-info-btn">${t('loc.details')}</button></div>` : ''}
-      ${notePath ? `<div class="loc-notes">
+      ${detailsBody ? `<div class="loc-details">${mdBlocks(detailsBody)}</div>` : ''}
+      ${notePath ? `<div class="loc-people">
+        <h3 class="loc-notes-title">${t('npc.here')}</h3>
+        <div class="loc-people-body"></div>
+      </div>
+      <div class="loc-notes">
         <h3 class="loc-notes-title">${t('notes.yours')}</h3>
         <div class="loc-notes-body"></div>
       </div>` : ''}
-    </div>
-    ${hasDetails ? `<div class="loc-info-panel" hidden>
-      <button class="loc-info-close" aria-label="${t('loc.close')}">×</button>
-      <div class="loc-info-content"></div>
-    </div>` : ''}`;
+    </div>`;
   locView.classList.add('active');
   locView.querySelector('.loc-back')?.addEventListener('click', () => closeLocation());
   renderFactions();
 
-  // Wire the info panel open/close.
-  // Info panel is shared between the body's Details button and each faction pill.
-  let panel = locView.querySelector('.loc-info-panel');
-  let content = locView.querySelector('.loc-info-content');
-  let closeBtn = locView.querySelector('.loc-info-close');
-  const openInfo = (title, body) => {
-    if (!panel || !content) return;
-    content.innerHTML = (title ? `<h3>${title}</h3>` : '') + mdBlocks(body);
-    pushUi('loc-info');
-    panel.hidden = false;
-  };
-  if (hasDetails) {
-    const openBtn = locView.querySelector('.loc-info-btn');
-    openBtn?.addEventListener('click', () =>
-      openInfo('', sbDetails || (detailsKey ? t(detailsKey) : '') || ''));
+  /* The people of this place: canon notables seeded as NPCs on first visit,
+     then everyone whose place is set here, whoever created them. */
+  if (notePath) {
+    const host = locView.querySelector('.loc-people-body');
+    if (host) {
+      await seedNotables(notePath, notables);
+      renderPeopleHere(host, notePath);
+    }
   }
-  closeBtn?.addEventListener('click', () => { panel.hidden = true; });
-  panel?.addEventListener('click', e => { if (e.target === panel) panel.hidden = true; });
 
   /* The player's own notes for this place, below the canon text and clearly
      separated from it — what the group wrote must never read as sourcebook. */

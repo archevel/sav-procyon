@@ -322,6 +322,8 @@ export const STRINGS = {
   'npc.blurb':       { sv: 'Kort beskrivning — visas när NPC:n delas.',
                        en: 'Short description — shown when the NPC is shared.' },
   'npc.delete':      { sv: 'Ta bort',       en: 'Delete' },
+  'npc.place':       { sv: 'Plats',         en: 'Location' },
+  'npc.here':        { sv: 'Anmärkningsvärda personer', en: 'Notable characters' },
   'npc.confirmDelete': { sv: 'Ta bort %s? Kontakter som pekar hit blir kvar som namn.',
                          en: 'Delete %s? Contacts pointing here remain as names.' },
   'sheet.contacts':  { sv: 'Kontakter',     en: 'Contacts' },

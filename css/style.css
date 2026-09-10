@@ -267,11 +267,18 @@ body.in-system .orbit-layer .o-body { pointer-events: auto; }
     rgba(244,241,233,.72) 70%, rgba(244,241,233,.97) 100%);
 }
 
+/* The body FLOWS below a fixed backdrop rather than pinning to the bottom:
+   with the sourcebook details inline the text can be long, and the view
+   scrolls on every width. Tail padding keeps the last lines clear of the
+   corner buttons. */
 .loc-body {
-  position: absolute; left: 22vmin; right: 5vmin; bottom: 0;
-  padding: 4vmin 5vmin 5vmin;
+  position: relative; z-index: 1;
+  margin: 52vh 5vmin 0 22vmin;
+  padding: 4vmin 5vmin 12vmin;
   max-width: 64rem;
 }
+#location-view.active { overflow-y: auto; }
+#location-view .loc-image { position: fixed; }
 .loc-kicker {
   display: inline-block; padding: .2vmin .6vmin;
   font-family: var(--mono); font-size: 1vmin; font-weight: 700;
@@ -1268,9 +1275,10 @@ body.in-system .orbit-layer .o-body { pointer-events: auto; }
   .loc-body {
     /* Relative, not static: the backdrop image is position:fixed, and a
        static body paints UNDERNEATH a positioned sibling — the art's white
-       fade sat exactly over the text and hid every word of it. */
-    position: relative; z-index: 1; margin-top: 52vh;
-    left: auto; right: auto; bottom: auto;
+       fade sat exactly over the text and hid every word of it. The full
+       margin shorthand matters: the desktop rule indents 22vmin left, which
+       on a phone would eat a fifth of the width. */
+    position: relative; z-index: 1; margin: 52vh 0 0;
     padding: 4vmin 4vmin 34vmin; max-width: none;
   }
   /* On a phone the system back gesture does this job (see js/nav.js); the
@@ -1291,16 +1299,6 @@ body.in-system .orbit-layer .o-body { pointer-events: auto; }
      and sat on top of the text. */
   body:has(#location-view.active) #ship-actions { display: none; }
 
-  /* The Läs mer overlay lives INSIDE #location-view, whose stacking context
-     traps it beneath the fixed header — the first lines of text and the ×
-     rendered behind the top bar. While it is open the header and crumbs bow
-     out; the overlay's own × carries the dismissal. */
-  body:has(#location-view .loc-info-panel:not([hidden])) .hud-top,
-  body:has(#location-view .loc-info-panel:not([hidden])) #breadcrumb {
-    visibility: hidden;
-  }
-  #location-view .loc-info-content { padding-top: 8vmin; }
-  #location-view .loc-info-close { top: 3vmin; right: 3vmin; }
 }
 
 /* ----------------------------------------------------------- stakeholders */
@@ -1390,4 +1388,32 @@ body.in-system .orbit-layer .o-body { pointer-events: auto; }
   .factions-title { font-size: 3vmin; padding: 2vmin 2.4vmin; }
   .faction-pill { font-size: 3vmin; padding: 2.6vmin 3vmin; }
   #stakeholders-list .crew-open { font-size: 3.4vmin; }
+}
+
+
+/* Inline sourcebook details on the surface. */
+.loc-details { margin-top: 2vmin; font-size: 1.6vmin; line-height: 1.65; }
+.loc-details p { margin: 0 0 1.2vmin; }
+.loc-details ul { margin: .4vmin 0 1.2vmin; padding-left: 2.2vmin; }
+
+/* The people of a place: canon notables and placed NPCs, one live list. */
+.loc-people-body { display: flex; flex-direction: column; gap: .6vmin; }
+.loc-person {
+  text-align: left; cursor: pointer;
+  font-family: var(--mono);
+  color: var(--ink); background: transparent;
+  border: max(1px, .1vmin) solid var(--ink);
+  padding: 1.2vmin 1.6vmin;
+}
+.loc-person:hover { background: var(--ink); color: var(--paper); }
+.loc-person:hover .loc-person-desc { color: var(--paper); }
+.loc-person-name { display: block; font-weight: 700; font-size: 1.4vmin;
+                   letter-spacing: .08em; text-transform: uppercase; }
+.loc-person-desc { display: block; font-size: 1.25vmin; color: var(--ink-soft);
+                   margin-top: .3vmin; }
+@media (max-width: 760px) {
+  .loc-details { font-size: 3.2vmin; }
+  .loc-person-name { font-size: 3.2vmin; }
+  .loc-person-desc { font-size: 2.8vmin; }
+  .loc-person { padding: 2.6vmin 3vmin; }
 }
