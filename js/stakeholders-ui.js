@@ -19,6 +19,7 @@ import { PORTRAITS } from '../data/portraits.js';
 import { el, esc, portraitField, section, clock, newClock } from './sheet-parts.js';
 import { clocksSection, notesSection } from './sheet-character.js';
 import { renderFactionExtras } from './factions-ui.js';
+import { describePlace } from './notes-ui.js';
 import { pushUi } from './nav.js';
 
 let panel, listEl, detailEl, hooks = {};
@@ -177,7 +178,6 @@ export function mountStakeholdersPanel(opts = {}) {
   });
   document.getElementById('stakeholders-close')
     ?.addEventListener('click', () => { panel.hidden = true; });
-  document.getElementById('npc-add')?.addEventListener('click', addNpc);
   panel.addEventListener('click', e => { if (e.target === panel) panel.hidden = true; });
 
   store.subscribe(() => { if (!panel.hidden) render(); }, ['npcs', 'factions']);
@@ -243,32 +243,47 @@ async function showList() {
   detailEl.hidden = true;
   detailEl.innerHTML = '';
   listEl.hidden = false;
-  document.getElementById('npc-add').hidden = false;
 
-  /* Factions near the current system first, when there is one — the old
-     sidebar's one virtue, kept. */
+  /* Both kinds group around the system being viewed, re-read on every
+     render so travelling and reopening always reflects where you are. */
   const sysId = hooks.currentSystem?.() || null;
   const here = sysId ? FACTIONS.filter(f => f.systems.includes(sysId)) : [];
   const rest = FACTIONS.filter(f => !here.includes(f));
   const npcs = await store.all('npcs');
+  /* An individual belongs to the system their place sits in; the unplaced —
+     contacts, mostly — travel with the crew and list with the local group. */
+  const inSystem = n => sysId && n.place
+    && (n.place === sysId || n.place.startsWith(sysId + '/'));
+  const npcsHere = sysId ? npcs.filter(n => inSystem(n) || !n.place) : npcs;
+  const npcsAway = sysId ? npcs.filter(n => !npcsHere.includes(n)) : [];
 
   const factionRow = f => `<button class="faction-pill" data-faction="${f.slug}">${
     esc(factionName(f))}</button>`;
-  const npcRow = n => `<div class="fleet-row" data-id="${n.id}">
+  const npcRow = n => {
+    const at = n.place ? describePlace(n.place) : null;
+    const where = at ? `${at.system}${at.detail ? ' · ' + at.detail : ''}` : '';
+    return `<div class="fleet-row" data-id="${n.id}">
       <div class="fleet-row-top">
         <button class="crew-open" data-npc="${n.id}">${esc(n.name)}</button>
         <button class="fleet-x" data-del="${n.id}" title="${esc(t('npc.delete'))}">×</button>
       </div>
+      ${where ? `<span class="fleet-where">${esc(where)}</span>` : ''}
     </div>`;
+  };
 
   listEl.innerHTML = `
-    ${npcs.length ? `<div class="factions-title">${t('npc.title')}</div>
-                     ${npcs.map(npcRow).join('')}` : ''}
+    <div class="factions-title">${t('npc.title')}</div>
+    ${npcsHere.map(npcRow).join('')}
+    <button id="npc-add" class="sheet-add">+ ${esc(t('npc.add'))}</button>
+    ${npcsAway.length ? `<div class="factions-title">${t('npc.other')}</div>
+                         ${npcsAway.map(npcRow).join('')}` : ''}
     ${here.length ? `<div class="factions-title">${t('stakeholders.here')}</div>
                      <div class="stakeholder-pills">${here.map(factionRow).join('')}</div>` : ''}
     <div class="factions-title">${here.length ? t('stakeholders.elsewhere')
                                               : t('panel.factions.title')}</div>
     <div class="stakeholder-pills">${rest.map(factionRow).join('')}</div>`;
+
+  listEl.querySelector('#npc-add').addEventListener('click', addNpc);
 
   listEl.querySelectorAll('[data-faction]').forEach(btn =>
     btn.addEventListener('click', () => {
@@ -307,7 +322,6 @@ function backRow(label) {
 
 async function showFaction(f) {
   listEl.hidden = true;
-  document.getElementById('npc-add').hidden = true;
   detailEl.hidden = false;
   detailEl.innerHTML = '';
   detailEl.appendChild(backRow(''));
@@ -325,7 +339,6 @@ async function showFaction(f) {
 
 function showNpc(rec) {
   listEl.hidden = true;
-  document.getElementById('npc-add').hidden = true;
   detailEl.hidden = false;
   detailEl.innerHTML = '';
 
