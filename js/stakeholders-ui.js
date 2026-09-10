@@ -48,6 +48,61 @@ export async function ensureNpc(name) {
   return store.put('npcs', blankNpc(clean));
 }
 
+/**
+ * Fuzzy match a query against NPC names, best first.
+ *
+ * Three tiers, so behaviour is explainable at the table:
+ *   substring   — 'rl' finds 'Karl Holm', earlier and tighter is better
+ *   subsequence — letters in order with gaps, 'khm' finds 'Karl Holm'
+ *   edit slack  — up to two typos against any single word, 'Kral' finds Karl
+ *
+ * Pure, so it can be tested without a panel.
+ */
+export function fuzzyNpcs(query, npcs, limit = 5) {
+  const q = String(query || '').trim().toLowerCase();
+  if (!q) return [];
+  const scored = [];
+  for (const n of npcs) {
+    const name = String(n.name || '').toLowerCase();
+    let score = 0;
+    const at = name.indexOf(q);
+    if (at >= 0) {
+      score = 100 - at - (name.length - q.length) * 0.2;
+      /* Matching the start of a word beats matching mid-word. */
+      if (at === 0 || name[at - 1] === ' ') score += 10;
+    } else if (isSubsequence(q, name)) {
+      score = 55 - (name.length - q.length) * 0.2;
+    } else {
+      let best = Infinity;
+      for (const w of name.split(/\s+/)) best = Math.min(best, editDistance(q, w));
+      if (best <= 2 && q.length >= 3) score = 40 - best * 10;
+    }
+    if (score > 0) scored.push({ npc: n, score });
+  }
+  return scored.sort((a, b) => b.score - a.score).slice(0, limit).map(x => x.npc);
+}
+
+function isSubsequence(q, name) {
+  let i = 0;
+  for (const ch of name) if (ch === q[i]) i++;
+  return i === q.length;
+}
+
+function editDistance(a, b) {
+  const m = a.length, n = b.length;
+  if (Math.abs(m - n) > 2) return 3;             // cannot be within reach
+  let prev = Array.from({ length: n + 1 }, (_, j) => j);
+  for (let i = 1; i <= m; i++) {
+    const cur = [i];
+    for (let j = 1; j <= n; j++) {
+      cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1,
+                        prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    }
+    prev = cur;
+  }
+  return prev[n];
+}
+
 export function mountStakeholdersPanel(opts = {}) {
   hooks = opts;
   panel = document.getElementById('stakeholders-panel');
@@ -72,6 +127,15 @@ export function mountStakeholdersPanel(opts = {}) {
 export function openNpc(id) {
   if (!panel) return;
   if (panel.hidden) { pushUi('stakeholders'); panel.hidden = false; }
+  /* Opened from inside another panel (a contact chip on a character sheet),
+     this one must surface ABOVE it — panels share a z-index and otherwise
+     resolve by DOM order, which puts this panel underneath. Cleared when it
+     closes so ordinary opens stack normally again. */
+  panel.style.zIndex = 70;
+  const drop = () => { panel.style.zIndex = ''; };
+  new MutationObserver((m, obs) => {
+    if (panel.hidden) { drop(); obs.disconnect(); }
+  }).observe(panel, { attributes: true, attributeFilter: ['hidden'] });
   pushUi('npc-sheet');
   open = { kind: 'npc', id };
   render();

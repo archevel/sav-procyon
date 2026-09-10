@@ -15,9 +15,10 @@ import { t } from '../data/i18n.js';
 import * as store from './store.js';
 import * as SAV from '../data/sav.js';
 import { el, dots, track, clock, newClock, note, newNote, imageStrip,
-         field, choice, picks, section, portraitField } from './sheet-parts.js';
+         field, choice, picks, section, portraitField,
+         dispositionSelect } from './sheet-parts.js';
 import { PORTRAITS, portraitById, randomPortrait } from '../data/portraits.js';
-import { ensureNpc, openNpc } from './stakeholders-ui.js';
+import { ensureNpc, openNpc, fuzzyNpcs } from './stakeholders-ui.js';
 
 /**
  * The art a character uses, as a URL, or null.
@@ -281,10 +282,10 @@ function contactsSection(rec, save) {
   const wrap = el('div', 'sheet-contacts');
 
   (rec.contacts || []).forEach(c => {
-    const chip = el('span', 'sheet-contact');
+    const row = el('div', 'sheet-contact');
     const openBtn = el('button', 'sheet-contact-name');
     openBtn.type = 'button';
-    /* Resolved asynchronously: the chip shows the stored name at once, and
+    /* Resolved asynchronously: the row shows the stored name at once, and
        gains the removed-marker or the click-through once the store answers. */
     openBtn.textContent = c.name || '…';
     store.get('npcs', c.npcId).then(npc => {
@@ -296,30 +297,77 @@ function contactsSection(rec, save) {
         openBtn.disabled = true;
       }
     });
-    chip.appendChild(openBtn);
+    row.appendChild(openBtn);
+
+    /* How this contact stands toward the character — the faction-status
+       ladder, kept on the LINK: the same fixer can adore one crew member
+       and bill another. */
+    row.appendChild(dispositionSelect(c.disposition ?? 0, v =>
+      save({ contacts: rec.contacts.map(y =>
+        y.npcId === c.npcId ? { ...y, disposition: v } : y) })));
+
     const x = el('button', 'sheet-x', '×');
     x.type = 'button';
     x.title = t('sheet.remove');
     x.addEventListener('click', () =>
       save({ contacts: rec.contacts.filter(y => y.npcId !== c.npcId) }));
-    chip.appendChild(x);
-    wrap.appendChild(chip);
+    row.appendChild(x);
+    wrap.appendChild(row);
   });
 
+  /* Finding an NPC is fuzzy — 'rl' surfaces Karl Holm, a typo or two is
+     forgiven — but CREATING one is always the explicit button, so a
+     misspelling can never quietly mint a duplicate. */
+  const addRow = el('div', 'sheet-contact-addrow');
   const inp = el('input', 'sheet-field-input sheet-contact-add');
-  inp.placeholder = t('sheet.addContact');
+  inp.placeholder = t('sheet.searchContact');
   inp.maxLength = 40;
-  inp.addEventListener('keydown', async e => {
-    if (e.key !== 'Enter') return;
-    const npc = await ensureNpc(inp.value);
-    if (!npc) return;
-    inp.value = '';
+  addRow.appendChild(inp);
+  const create = el('button', 'loc-info-btn sheet-contact-create', t('sheet.createContact'));
+  create.type = 'button';
+  create.disabled = true;
+  addRow.appendChild(create);
+  wrap.appendChild(addRow);
+  const suggest = el('div', 'sheet-contact-suggest');
+  wrap.appendChild(suggest);
+
+  const link = npc => {
     if ((rec.contacts || []).some(c => c.npcId === npc.id)) return;
-    /* The name is stored alongside the id so a deleted NPC still leaves a
-       legible contact rather than a blank chip. */
-    save({ contacts: [...(rec.contacts || []), { npcId: npc.id, name: npc.name }] });
+    /* The name rides beside the id so a deleted NPC still leaves a legible
+       contact rather than a blank. Disposition starts neutral. */
+    save({ contacts: [...(rec.contacts || []),
+                      { npcId: npc.id, name: npc.name, disposition: 0 }] });
+  };
+
+  let matches = [];
+  const refresh = async () => {
+    const q = inp.value.trim();
+    create.disabled = !q;
+    suggest.innerHTML = '';
+    matches = q ? fuzzyNpcs(q, await store.all('npcs')) : [];
+    const linked = new Set((rec.contacts || []).map(c => c.npcId));
+    for (const npc of matches.filter(n => !linked.has(n.id))) {
+      const b = el('button', 'sheet-contact-option', npc.name);
+      b.type = 'button';
+      /* mousedown, not click: it fires before the input's blur can empty
+         the dropdown out from under the press. */
+      b.addEventListener('mousedown', e => { e.preventDefault(); link(npc); });
+      suggest.appendChild(b);
+    }
+  };
+  inp.addEventListener('input', refresh);
+  inp.addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    const linked = new Set((rec.contacts || []).map(c => c.npcId));
+    const first = matches.find(n => !linked.has(n.id));
+    /* Enter picks the best match; it never creates — that is the button's
+       job alone. */
+    if (first) link(first);
   });
-  wrap.appendChild(inp);
+  create.addEventListener('click', async () => {
+    const npc = await ensureNpc(inp.value);
+    if (npc) link(npc);
+  });
 
   return section(t('sheet.contacts'), wrap);
 }

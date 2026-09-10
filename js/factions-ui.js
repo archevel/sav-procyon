@@ -10,7 +10,7 @@
 import { t, getLang } from '../data/i18n.js';
 import * as store from './store.js';
 import { goalClockSize } from '../data/faction-clocks.js';
-import { el, clock, newClock } from './sheet-parts.js';
+import { el, clock, newClock, dispositionSelect } from './sheet-parts.js';
 import { renderPlaceNotes, factionTarget } from './notes-ui.js';
 
 /**
@@ -57,6 +57,12 @@ export async function renderFactionExtras(host, faction) {
   };
 
   const wrap = el('div', 'faction-player');
+
+  /* Where the faction stands toward the crew — the status ladder the book
+     tracks per faction, stored on the faction record so it shares. */
+  wrap.appendChild(dispositionSelect(rec.disposition ?? 0,
+    v => save({ disposition: v }), { label: t('faction.disposition') }));
+
   wrap.appendChild(el('h4', 'loc-notes-title', t('sheet.clocks')));
 
   const clocks = el('div', 'sheet-clocks');

@@ -1330,3 +1330,29 @@ body.in-system .orbit-layer .o-body { pointer-events: auto; }
 @media (max-width: 760px) {
   .sheet-contact-name { font-size: 3vmin; padding: 1.6vmin 0; }
 }
+
+/* Contact rows: name, standing, remove — and the finder beneath them. */
+.sheet-contact {
+  display: flex; align-items: center; gap: .8vmin; width: 100%;
+  padding: .4vmin .4vmin .4vmin 1vmin;
+}
+.sheet-contact .sheet-disposition { margin-left: auto; }
+.sheet-disposition-sel { width: auto; }
+.sheet-contact-addrow { display: flex; gap: .6vmin; width: 100%; margin-top: .6vmin; }
+.sheet-contact-add { flex: 1; }
+.sheet-contact-create { flex: none; }
+.sheet-contact-create[disabled] { opacity: .4; cursor: default; }
+.sheet-contact-suggest { display: flex; flex-direction: column; width: 100%; }
+.sheet-contact-option {
+  text-align: left; font-family: var(--mono); font-size: 1.3vmin;
+  color: var(--ink); background: var(--paper);
+  border: max(1px, .1vmin) solid var(--ink); border-top: 0;
+  padding: 1vmin 1.2vmin; cursor: pointer;
+}
+.sheet-contact-option:first-child { border-top: max(1px, .1vmin) solid var(--ink); }
+.sheet-contact-option:hover { background: var(--ink); color: var(--paper); }
+@media (max-width: 760px) {
+  .sheet-contact { flex-wrap: wrap; }
+  .sheet-contact-option { font-size: 3vmin; padding: 2.6vmin 2vmin; }
+  .sheet-contact-create { font-size: 3vmin; }
+}

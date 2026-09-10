@@ -10,7 +10,8 @@
  */
 
 import { t } from '../data/i18n.js';
-import { CLOCK_SIZES, DEFAULT_CLOCK_SIZE } from '../data/sav.js';
+import { CLOCK_SIZES, DEFAULT_CLOCK_SIZE,
+         DISPOSITIONS as SAV_DISPOSITIONS } from '../data/sav.js';
 import * as store from './store.js';
 import { pushUi } from './nav.js';
 
@@ -354,6 +355,27 @@ function openChooser({ shipped, selectedId, asset, onPick, onUpload, onClear }) 
   }).observe(document.body, { childList: true, subtree: true });
 
   document.body.appendChild(back);
+}
+
+/**
+ * Disposition — the faction-status ladder as a compact select.
+ *
+ * A select rather than seven buttons: it reads at a glance, costs one tap on
+ * a phone, and carries the named rungs (war … allied) without eating a row.
+ */
+export function dispositionSelect(value, onChange, { label = null } = {}) {
+  const wrap = el('label', 'sheet-disposition');
+  if (label) wrap.appendChild(el('span', 'sheet-field-label', label));
+  const sel = el('select', 'sheet-field-input sheet-disposition-sel');
+  for (const d of SAV_DISPOSITIONS) {
+    const o = el('option', null, t('disp.' + d.id));
+    o.value = String(d.value);
+    if (d.value === (value ?? 0)) o.selected = true;
+    sel.appendChild(o);
+  }
+  sel.addEventListener('change', () => onChange(Number(sel.value)));
+  wrap.appendChild(sel);
+  return wrap;
 }
 
 /** A labelled text input. */

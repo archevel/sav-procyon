@@ -173,6 +173,17 @@ export const SHIP_XP_TRACK = 8;
 /** Gambit pips a crew banks to boost rolls. */
 export const GAMBIT_MAX = 6;
 
+/* ------------------------------------------------------------- standing */
+
+/** The faction-status ladder, reused as disposition for NPCs and factions
+    alike: how someone stands toward the crew, from war to allied. Ids key
+    the display strings (`disp.m3` … `disp.p3`). */
+export const DISPOSITIONS = [
+  { value: -3, id: 'm3' }, { value: -2, id: 'm2' }, { value: -1, id: 'm1' },
+  { value: 0, id: 'z' },
+  { value: 1, id: 'p1' }, { value: 2, id: 'p2' }, { value: 3, id: 'p3' }
+];
+
 /* ------------------------------------------------------------------ clocks */
 
 /** Segment counts a clock may have. Anything else is not a Blades clock. */
