@@ -56,6 +56,11 @@ export function closeTopUi() {
     if (open('#fleet-sheet') && click('#fleet-sheet .sheet-back')) return 'fleet-sheet';
     if (click('#fleet-close'))                         return 'fleet';
   }
+  {
+    const info = document.querySelector('#location-view .loc-info-panel');
+    if (info && !info.hidden
+        && click('#location-view .loc-info-close'))    return 'loc-info';
+  }
   if (document.getElementById('location-view')?.classList.contains('active')
       && click('.loc-back'))                           return 'location';
   /* System view -> sector, via the crumb that already does it. */

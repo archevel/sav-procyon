@@ -729,16 +729,8 @@ async function jumpShip(id) {
    'm' and 'j' are otherwise invisible. It replaces the standing navigation
    hint only while a vessel is selected. */
 function updateFleetHint() {
-  const hint = document.querySelector('.hud-hint');
-  if (hint) {
-    if (targeting)            hint.textContent = t('fleet.moving');
-    else if (selectedShipId)  hint.textContent = canJump() ? t('fleet.hintJump')
-                                                           : t('fleet.hintMove');
-    else                      hint.textContent = t('hud.hint');
-  }
-  /* The action bar carries the same state as buttons. Keys still work on a
-     desktop, but a phone has none, and even with one the keys were invisible
-     until this hint was read. */
+  /* The hint line is gone — buttons exist for every interaction and the
+     keys are a hidden extra. Only the order bar reflects selection now. */
   const bar = document.getElementById('ship-actions');
   if (bar) {
     bar.hidden = !selectedShipId;
@@ -1298,6 +1290,7 @@ async function openLocation(sysId, b, notePath = null, { push = true } = {}) {
   const openInfo = (title, body) => {
     if (!panel || !content) return;
     content.innerHTML = (title ? `<h3>${title}</h3>` : '') + mdBlocks(body);
+    pushUi('loc-info');
     panel.hidden = false;
   };
   if (hasDetails) {
@@ -1665,8 +1658,6 @@ window.addEventListener('langchange', () => {
       document.querySelectorAll('[data-i18n]').forEach(el => {
         el.textContent = t(el.dataset.i18n);
       });
-      /* The hint carries a data-i18n default but is overwritten while a
-         vessel is selected, so restore that state after the bulk repaint. */
       updateFleetHint();
     };
     langSwitch.addEventListener('click', e => {

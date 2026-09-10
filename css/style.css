@@ -401,15 +401,6 @@ body.in-system .orbit-layer .o-body { pointer-events: auto; }
 }
 .index-item:hover { background: var(--ink); color: var(--paper); }
 
-.hud-hint {
-  /* Inset on the right so the centred hint cannot run under the player
-     buttons in that corner; the left inset keeps the text optically centred
-     between the index column and the buttons. */
-  position: absolute; bottom: 2.2vmin; left: 22vmin; right: 30vmin;
-  text-align: center;
-  font-family: var(--mono); font-size: .95vmin;
-  letter-spacing: .18em; text-transform: uppercase; color: var(--ink-soft);
-}
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
@@ -1126,10 +1117,6 @@ body.in-system .orbit-layer .o-body { pointer-events: auto; }
     font-size: 3.2vmin; padding: 2.8vmin 1vmin; min-width: 0;
   }
   #about-btn { margin-left: 0; }
-  /* The hint names keyboard keys a phone does not have, and it sat on top
-     of the faction row and the surface text. The order bar and the crumbs
-     carry its duties here. */
-  .hud-hint  { display: none; }
 
   #player-switch { left: 3vmin; right: 3vmin; bottom: 3vmin; gap: 1.4vmin; }
   /* Import/Export moves into the hamburger on a phone; the corner keeps the
@@ -1303,6 +1290,17 @@ body.in-system .orbit-layer .o-body { pointer-events: auto; }
   /* While a surface view is open the vessel order bar says nothing useful,
      and sat on top of the text. */
   body:has(#location-view.active) #ship-actions { display: none; }
+
+  /* The Läs mer overlay lives INSIDE #location-view, whose stacking context
+     traps it beneath the fixed header — the first lines of text and the ×
+     rendered behind the top bar. While it is open the header and crumbs bow
+     out; the overlay's own × carries the dismissal. */
+  body:has(#location-view .loc-info-panel:not([hidden])) .hud-top,
+  body:has(#location-view .loc-info-panel:not([hidden])) #breadcrumb {
+    visibility: hidden;
+  }
+  #location-view .loc-info-content { padding-top: 8vmin; }
+  #location-view .loc-info-close { top: 3vmin; right: 3vmin; }
 }
 
 /* ----------------------------------------------------------- stakeholders */
@@ -1383,4 +1381,13 @@ body.in-system .orbit-layer .o-body { pointer-events: auto; }
 #fleet-panel:has(#fleet-sheet:not([hidden])) #fleet-close,
 #stakeholders-panel:has(#stakeholder-detail:not([hidden])) #stakeholders-close {
   display: none;
+}
+
+@media (max-width: 760px) {
+  /* The faction pills fell back to the desktop menu scale after the sidebar
+     went — 9px next to 14px NPC rows, reading as another interface entirely.
+     Sized to sit beside the rows in the same list. */
+  .factions-title { font-size: 3vmin; padding: 2vmin 2.4vmin; }
+  .faction-pill { font-size: 3vmin; padding: 2.6vmin 3vmin; }
+  #stakeholders-list .crew-open { font-size: 3.4vmin; }
 }
