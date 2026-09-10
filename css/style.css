@@ -1373,3 +1373,14 @@ body.in-system .orbit-layer .o-body { pointer-events: auto; }
 @media (max-width: 760px) {
   .sheet-status-ship { font-size: 3vmin; }
 }
+
+/* One corner control per view: × closes a panel from its root; a level deep
+   the ‹ back button is the only corner control, since "back then close" is a
+   tap away and backdrop, Esc and the system gesture all still dismiss. The
+   close buttons stay in the DOM — the back-gesture ladder and Escape click
+   them regardless of visibility. */
+#crew-panel:has(#crew-sheet:not([hidden])) #crew-close,
+#fleet-panel:has(#fleet-sheet:not([hidden])) #fleet-close,
+#stakeholders-panel:has(#stakeholder-detail:not([hidden])) #stakeholders-close {
+  display: none;
+}
