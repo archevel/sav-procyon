@@ -138,6 +138,18 @@ export function splitDetails(text) {
 }
 
 /**
+ * A canon-seeded individual the table has never edited. Seeding writes with
+ * keepRev, so the record still sits at the seed's own rev 1; the first real
+ * edit bumps it past that. Every browser grows the same seeds itself, so an
+ * untouched one carries nothing of the players' worth exporting.
+ */
+export function untouchedSeed(npc) {
+  return typeof npc.originId === 'string'
+      && npc.originId.startsWith('canon:')
+      && (npc.rev ?? 1) <= 1;
+}
+
+/**
  * Seed a surface's notable persons as NPCs, once per browser.
  *
  * originId is `canon:<path>:<index>` — position, not name, because the names

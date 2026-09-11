@@ -343,7 +343,7 @@ export const STRINGS = {
   'sheet.addContact':{ sv: 'Lägg till kontakt — skriv ett namn',
                        en: 'Add a contact — type a name' },
   'sheet.contactGone': { sv: '(borttagen)', en: '(removed)' },
-  'share.npcs':      { sv: 'NPC:er',        en: 'NPCs' },
+  'share.npcs':      { sv: 'individer',     en: 'individuals' },
 
   /* --------------- crew ------------------------------------------------- */
   'crew.button':   { sv: 'Besättning', en: 'Crew' },

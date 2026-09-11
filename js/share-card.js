@@ -160,19 +160,18 @@ export async function shipCard(rec) {
  * One item gets the detailed card above; several get a portrait grid, since
  * no useful amount of any one sheet survives being divided. A ship leads the
  * grid because the crew's vessel is the thing they share an identity through.
- * A share with neither — notes only — falls back to the sector itself, which
- * is at least honestly what is being sent.
+ * NPCs travel in the payload but never onto the card — the picture shows the
+ * crew, and the footer line already counts what else rides along. A share
+ * with neither ship nor character falls back to the sector itself, which is
+ * at least honestly what is being sent.
  */
 export async function shareCard(items) {
   const ships = items.filter(i => i.store === 'ships');
   const chars = items.filter(i => i.store === 'characters');
-  const npcs  = items.filter(i => i.store === 'npcs');
-  const crew = [...ships, ...chars, ...npcs];
+  const crew = [...ships, ...chars];
 
   if (!crew.length) return sectorCard(items);
   if (crew.length === 1) {
-    /* An NPC alone gets the character layout: name, portrait, blurb — the
-       action rows simply have nothing to draw. */
     return crew[0].store === 'ships' ? shipCard(crew[0].record)
                                      : characterCard(crew[0].record);
   }
@@ -215,7 +214,6 @@ async function crewCard(crew, items) {
        a character. */
     const kind = it.store === 'ships'
       ? (it.record.frame ? savName(it.record.frame) : null)
-      : it.store === 'npcs' ? t('npc.title').replace(/:er$|s$/, '')
       : (it.record.playbook ? savName(it.record.playbook) : null);
     if (kind) {
       g.fillStyle = SOFT;

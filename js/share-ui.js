@@ -12,6 +12,7 @@ import * as store from './store.js';
 import * as share from './share.js';
 import { el } from './sheet-parts.js';
 import { describePlace } from './notes-ui.js';
+import { untouchedSeed } from './stakeholders-ui.js';
 import { pushUi } from './nav.js';
 
 let panel, body;
@@ -59,7 +60,12 @@ async function showExport() {
 
   const rows = [];
   for (const s of ['ships', 'characters', 'npcs', 'notes', 'factions']) {
-    for (const rec of await store.all(s)) rows.push({ store: s, record: rec });
+    for (const rec of await store.all(s)) {
+      /* Canon-seeded individuals exist in every browser already; only ones
+         the table has actually touched are worth offering. */
+      if (s === 'npcs' && untouchedSeed(rec)) continue;
+      rows.push({ store: s, record: rec });
+    }
   }
   if (!rows.length) {
     body.appendChild(el('p', 'fleet-empty', t('share.nothing')));
