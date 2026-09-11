@@ -183,6 +183,7 @@ export const STRINGS = {
   'share.pickFile':  { sv: 'Importera…',   en: 'Import…' },
   'share.nothing':   { sv: 'Inget att dela än.', en: 'Nothing to share yet.' },
   'share.pickSomething': { sv: 'Välj minst en sak.', en: 'Select at least one item.' },
+  'share.selectAll': { sv: 'Välj alla', en: 'Select all' },
   'share.ships':     { sv: 'skepp',         en: 'ships' },
   'share.characters':{ sv: 'rollpersoner',  en: 'characters' },
   'share.notes':     { sv: 'anteckningar',  en: 'notes' },

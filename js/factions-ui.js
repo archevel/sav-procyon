@@ -43,7 +43,11 @@ export async function factionState(faction) {
   const lang = getLang() === 'debug' ? 'sv' : getLang();
   const objective = faction.sections?.['Current Objective']?.[lang]
     || faction.sections?.['Current Objective']?.sv || '';
-  const goal = { ...newClock(objective), segments: goalClockSize(faction.slug) };
+  /* The id is deterministic so two browsers that both seed this faction
+     produce byte-identical records: imports then read as identical and are
+     skipped, instead of conflicting over a random uid. */
+  const goal = { ...newClock(objective), id: 'goal',
+                 segments: goalClockSize(faction.slug) };
 
   return store.put('factions', {
     id: faction.slug,

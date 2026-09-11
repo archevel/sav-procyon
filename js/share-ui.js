@@ -64,6 +64,10 @@ async function showExport() {
       /* Canon-seeded individuals exist in every browser already; only ones
          the table has actually touched are worth offering. */
       if (s === 'npcs' && untouchedSeed(rec)) continue;
+      /* Same for faction records: merely viewing a faction seeds one (rev 1,
+         empty goal clock). Sending that shell could only overwrite a
+         recipient's real progress with nothing. */
+      if (s === 'factions' && (rec.rev ?? 1) <= 1) continue;
       rows.push({ store: s, record: rec });
     }
   }
@@ -72,14 +76,31 @@ async function showExport() {
     return;
   }
 
-  const chosen = new Set(rows.map(r => r.record.id));   // default to everything
+  const chosen = new Set();       // nothing preselected; sharing is opt-in
   const list = el('div', 'share-list');
+
+  const allRow = el('label', 'share-row share-row-all');
+  const allCb = el('input');
+  allCb.type = 'checkbox';
+  const syncAll = () => {
+    allCb.checked = chosen.size === rows.length;
+    allCb.indeterminate = chosen.size > 0 && chosen.size < rows.length;
+  };
+  allCb.addEventListener('change', () => {
+    for (const box of list.querySelectorAll('input[data-id]')) box.checked = allCb.checked;
+    chosen.clear();
+    if (allCb.checked) for (const r of rows) chosen.add(r.record.id);
+    syncAll();
+    refresh();
+  });
+  allRow.appendChild(allCb);
+  allRow.appendChild(el('span', 'share-label', t('share.selectAll')));
+  list.appendChild(allRow);
 
   for (const row of rows) {
     const line = el('label', 'share-row');
     const cb = el('input');
     cb.type = 'checkbox';
-    cb.checked = true;
     cb.addEventListener('change', () => {
       cb.checked ? chosen.add(row.record.id) : chosen.delete(row.record.id);
       /* Ticking a character pulls in the NPCs their contacts point at, so
@@ -95,6 +116,7 @@ async function showExport() {
           }
         }
       }
+      syncAll();
       refresh();
     });
     cb.dataset.id = row.record.id;

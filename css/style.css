@@ -962,6 +962,7 @@ body.in-system .orbit-layer .o-body { pointer-events: auto; }
   display: flex; align-items: center; gap: .7vmin;
   padding: .5vmin 0; border-bottom: max(1px, .08vmin) solid rgba(16,16,14,.15);
 }
+.share-row-all .share-label { font-weight: bold; }
 .share-kind {
   font-family: var(--mono); font-size: .95vmin; letter-spacing: .12em;
   text-transform: uppercase; color: var(--ink-soft);
