@@ -13,7 +13,7 @@ import { t } from '../data/i18n.js';
 import * as store from './store.js';
 import * as SAV from '../data/sav.js';
 import { el, dots, track, imageStrip, field, choice, picks,
-         section, statusSelect } from './sheet-parts.js';
+         section, statusSelect, draft, saveBar } from './sheet-parts.js';
 import { clocksSection, notesSection, extraFields,
          restoreView } from './sheet-character.js';
 import { describeAnchor } from './fleet.js';
@@ -43,7 +43,8 @@ export function blankShip(name) {
   return {
     name, sprite: '', size: 7, frame: '', look: '',
     systems: Object.fromEntries(SAV.SHIP_SYSTEMS.map(s => [s, 0])),
-    damaged: [], upgrades: [], crewUpgrades: [],
+    damaged: [], modules: [], auxiliary: [], gear: [],
+    upgrades: [], crewUpgrades: [],
     gambit: 0, xp: 0,
     blurb: '', portrait: null,
     statuses: {}, location: null, clocks: [], notes: [], fields: []
@@ -67,20 +68,25 @@ export function renderShipSheet(host, rec, { onBack } = {}) {
       .filter(d => !d.open)
       .map(d => d.querySelector('.sheet-section-title')?.textContent));
 
+  /* Free text commits through the Save button — see draft() in sheet-parts.js. */
+  const d = draft();
+  host.dirty = () => d.dirty();
+
   host.innerHTML = '';
-  host.appendChild(header(rec, save, onBack));
-  host.appendChild(identity(rec, save));
+  host.appendChild(header(rec, save, onBack, d));
+  host.appendChild(identity(rec, save, d));
   host.appendChild(systemsSection(rec, save));
   host.appendChild(upgradesSection(rec, save));
   host.appendChild(statusSection(rec, save));
   host.appendChild(clocksSection(rec, save));
-  host.appendChild(notesSection(rec, save));
-  host.appendChild(extraFields(rec, save));
+  host.appendChild(notesSection(rec, save, d));
+  host.appendChild(extraFields(rec, save, d));
+  host.appendChild(saveBar(d, patch => save(patch)));
 
   restoreView(host, scroller, scrollTop, collapsed);
 }
 
-function header(rec, save, onBack) {
+function header(rec, save, onBack, d = null) {
   const h = el('div', 'sheet-head');
   if (onBack) {
     const back = el('button', 'sheet-back', '‹ ' + t('sheet.back'));
@@ -94,15 +100,19 @@ function header(rec, save, onBack) {
   name.maxLength = 40;
   name.value = rec.name || '';
   name.setAttribute('aria-label', t('fleet.name'));
-  name.addEventListener('blur', () => {
-    if (name.value.trim() && name.value.trim() !== rec.name) save({ name: name.value.trim() });
-  });
-  name.addEventListener('keydown', e => { if (e.key === 'Enter') name.blur(); });
+  if (d) {
+    d.watch('name', () => name.value.trim() || rec.name, rec.name || '', [name]);
+  } else {
+    name.addEventListener('blur', () => {
+      if (name.value.trim() && name.value.trim() !== rec.name) save({ name: name.value.trim() });
+    });
+    name.addEventListener('keydown', e => { if (e.key === 'Enter') name.blur(); });
+  }
   h.appendChild(name);
   return h;
 }
 
-function identity(rec, save) {
+function identity(rec, save, d = null) {
   const grid = el('div', 'sheet-grid');
   grid.appendChild(choice(t('sheet.frame'), rec.frame, SAV.FRAME_LIST,
     v => {
@@ -113,17 +123,34 @@ function identity(rec, save) {
       if (!f) return save({ frame: v });
       const systems = { ...rec.systems };
       for (const s of SAV.SHIP_SYSTEMS) {
-        if (f[s] != null) systems[s] = Math.max(systems[s] || 0, f[s]);
+        if (f.systems?.[s] != null) {
+          systems[s] = Math.max(systems[s] || 0, f.systems[s]);
+        }
       }
-      save({ frame: v, systems });
+      /* The frame's own modules come with the ship, so adopting one installs
+         them rather than leaving the crew to tick them off by hand. */
+      const modules = [...new Set([...(rec.modules || []), ...f.installed])];
+      const auxiliary = [...new Set([...(rec.auxiliary || []), ...f.auxiliary])];
+      save({ frame: v, systems, modules, auxiliary });
     }));
   /* Shown with the frame's own art as the placeholder, so it reads as an
      override rather than a required field. */
   grid.appendChild(field(t('sheet.spriteOverride'), rec.sprite,
     v => save({ sprite: v }),
     { list: 'fleet-sprite-names',
-      placeholder: rec.frame || t('sheet.spriteNone') }));
-  grid.appendChild(field(t('sheet.look'), rec.look, v => save({ look: v })));
+      placeholder: rec.frame || t('sheet.spriteNone'),
+      draft: d, key: 'sprite' }));
+  grid.appendChild(field(t('sheet.look'), rec.look, v => save({ look: v }),
+    { draft: d, key: 'look' }));
+
+  /* Size and starting gambits come with the frame and are never edited, so
+     they are stated rather than offered — the same treatment the position
+     gets below. */
+  const frame = SAV.FRAMES[rec.frame];
+  if (frame) {
+    grid.appendChild(readOnly(t('sheet.size'), t('sav.' + frame.size)));
+    grid.appendChild(readOnly(t('sheet.gambits'), String(frame.gambits)));
+  }
 
   const where = describeAnchor(rec.location, t);
   grid.appendChild(readOnly(t('sheet.position'),
@@ -134,7 +161,8 @@ function identity(rec, save) {
   blurb.value = rec.blurb || '';
   blurb.rows = 3;
   blurb.placeholder = t('sheet.blurb');
-  blurb.addEventListener('blur', () => save({ blurb: blurb.value }));
+  if (d) d.watch('blurb', () => blurb.value, rec.blurb || '', [blurb]);
+  else blurb.addEventListener('blur', () => save({ blurb: blurb.value }));
 
   const portrait = el('div', 'sheet-portrait');
   portrait.appendChild(imageStrip(rec.portrait ? [rec.portrait] : [], {
@@ -160,9 +188,14 @@ function systemsSection(rec, save) {
   const wrap = el('div', 'sheet-systems');
   const damaged = new Set(rec.damaged || []);
 
+  /* Each frame caps each system differently — the Cerberus never takes hull
+     past 2 — so the row is drawn to the frame's own ceiling, not one shared
+     maximum. With no frame chosen, the highest any frame allows. */
+  const frame = SAV.FRAMES[rec.frame];
   for (const s of SAV.SHIP_SYSTEMS) {
     const row = el('div', 'sheet-system' + (damaged.has(s) ? ' is-damaged' : ''));
-    row.appendChild(dots(rec.systems?.[s] || 0, SAV.MAX_SYSTEM_RATING,
+    const max = frame?.max?.[s] ?? SAV.MAX_SYSTEM_RATING;
+    row.appendChild(dots(rec.systems?.[s] || 0, max,
       v => save({ systems: { ...rec.systems, [s]: v } }),
       { label: t('ship.' + s) }));
 
@@ -193,23 +226,42 @@ function upgradesSection(rec, save) {
   const frame = SAV.FRAMES[rec.frame];
   const wrap = el('div', 'sheet-upgrades');
 
-  const taken = (rec.upgrades || []).length + (rec.crewUpgrades || []).length;
-  if (frame) {
-    wrap.appendChild(el('p', 'sheet-hint',
-      t('sheet.slotsUsed').replace('%a', taken).replace('%b', frame.slots)));
-  }
-
-  for (const [area, list] of Object.entries(SAV.SHIP_UPGRADES)) {
-    if (area === 'crew') continue;
-    wrap.appendChild(el('h4', 'sheet-sub', t('ship.' + area)));
-    wrap.appendChild(picks(list, rec.upgrades || [],
+  /* Modules, by system. A ship may carry no more in a system than it has
+     quality there, so each heading states the count against the rating —
+     the rule is easy to overrun and tedious to audit by eye. */
+  for (const [area, list] of Object.entries(SAV.SHIP_MODULES)) {
+    const rating = rec.systems?.[area] || 0;
+    const used = (rec.modules || []).filter(m => list.includes(m)).length;
+    const head = el('h4', 'sheet-sub' + (used > rating ? ' is-over' : ''),
+                    `${t('ship.' + area)} ${used}/${rating}`);
+    wrap.appendChild(head);
+    wrap.appendChild(picks(list, rec.modules || [],
       /* One list across all areas, so a pick in one does not clear another. */
-      v => save({ upgrades: mergePicks(rec.upgrades, list, v) })));
+      v => save({ modules: mergePicks(rec.modules, list, v) })));
   }
 
-  wrap.appendChild(el('h4', 'sheet-sub', t('sheet.crewUpgrades')));
-  wrap.appendChild(picks(SAV.SHIP_UPGRADES.crew, rec.crewUpgrades || [],
-    v => save({ crewUpgrades: v }), { note: true }));
+  /* Auxiliary modules are exempt from that rule — a ship may carry them all. */
+  wrap.appendChild(el('h4', 'sheet-sub', t('sheet.auxiliary')));
+  wrap.appendChild(picks(SAV.AUXILIARY_MODULES, rec.auxiliary || [],
+    v => save({ auxiliary: v })));
+
+  /* The vessel's own upgrades, then the ones any crew may buy. */
+  if (frame) {
+    wrap.appendChild(el('h4', 'sheet-sub', t('sheet.shipUpgrades')));
+    wrap.appendChild(picks(frame.upgrades, rec.upgrades || [],
+      v => save({ upgrades: mergePicks(rec.upgrades, frame.upgrades, v) })));
+  }
+
+  wrap.appendChild(el('h4', 'sheet-sub', t('sheet.gear')));
+  const gear = [...SAV.SHIP_UPGRADE_GEAR, ...SAV.CREW_GEAR];
+  wrap.appendChild(picks(gear, rec.gear || [],
+    v => save({ gear: v })));
+
+  if (frame) {
+    wrap.appendChild(el('h4', 'sheet-sub', t('sheet.shipAbilities')));
+    wrap.appendChild(picks(frame.abilities, rec.crewUpgrades || [],
+      v => save({ crewUpgrades: v }), { note: true }));
+  }
 
   return section(t('sheet.upgrades'), wrap);
 }
@@ -271,10 +323,17 @@ const slugTracked = (statuses, slug) =>
 /**
  * Fold one area's picks back into the full list.
  *
- * `picks` only ever reports the options it was shown, so replacing the stored
- * array wholesale would drop every pick made in the other areas.
+ * Replacing the stored array wholesale would drop every pick made in the
+ * other areas, so what this area did not show is carried through untouched.
+ *
+ * `chosen` is filtered to what was actually shown, and the result deduped:
+ * `picks` is handed the whole stored array as its chosen set, so it reports
+ * back ids from other areas too — appending those verbatim duplicated them on
+ * every edit, and a record carrying ids no area shows any more (a ship saved
+ * before the upgrade lists were rewritten) grew without bound.
  */
 function mergePicks(stored, shown, chosen) {
   const others = (stored || []).filter(x => !shown.includes(x));
-  return [...others, ...chosen];
+  const mine = (chosen || []).filter(x => shown.includes(x));
+  return [...new Set([...others, ...mine])];
 }

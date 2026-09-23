@@ -5,18 +5,21 @@
  * notes can be added freely to anything, and a spare "fields" list takes
  * whatever the group tracks that the rules do not.
  *
- * Every edit writes straight to the store. There is no save button and no
- * draft state: a sheet that can lose work is worse than one that saves too
- * eagerly, and rev only matters for import comparisons, where a few extra
- * bumps cost nothing.
+ * Mechanical edits — ratings, tracks, clocks, selects, portraits — write
+ * straight to the store: none of them can lose a half-typed value, and rev
+ * only matters for import comparisons, where a few extra bumps cost nothing.
+ *
+ * Free text does not. It commits through the Save button, because saving on
+ * blur rebuilt the sheet mid-edit and destroyed the field the player had just
+ * moved into. See draft() in sheet-parts.js.
  */
 
 import { t } from '../data/i18n.js';
 import * as store from './store.js';
 import * as SAV from '../data/sav.js';
-import { el, dots, track, clock, newClock, note, newNote, imageStrip,
+import { el, uid, dots, track, clock, newClock, note, newNote, imageStrip,
          field, choice, picks, section, portraitField,
-         relationSelect } from './sheet-parts.js';
+         relationSelect, draft, saveBar } from './sheet-parts.js';
 import { PORTRAITS, portraitById, randomPortrait } from '../data/portraits.js';
 import { ensureNpc, openNpc, fuzzyNpcs } from './stakeholders-ui.js';
 
@@ -78,16 +81,22 @@ export function renderCharacterSheet(host, rec, { onBack } = {}) {
       .filter(d => !d.open)
       .map(d => d.querySelector('.sheet-section-title')?.textContent));
 
+  /* Free text commits through the Save button rather than on blur — see
+     draft() in sheet-parts.js for why. */
+  const d = draft();
+  host.dirty = () => d.dirty();
+
   host.innerHTML = '';
-  host.appendChild(header(rec, save, onBack));
-  host.appendChild(identity(rec, save));
+  host.appendChild(header(rec, save, onBack, d));
+  host.appendChild(identity(rec, save, d));
   host.appendChild(actionsSection(rec, save));
-  host.appendChild(conditionSection(rec, save));
+  host.appendChild(conditionSection(rec, save, d));
   host.appendChild(kitSection(rec, save));
   host.appendChild(contactsSection(rec, save));
   host.appendChild(clocksSection(rec, save));
-  host.appendChild(notesSection(rec, save));
-  host.appendChild(extraFields(rec, save));
+  host.appendChild(notesSection(rec, save, d));
+  host.appendChild(extraFields(rec, save, d));
+  host.appendChild(saveBar(d, patch => save(patch)));
 
   restoreView(host, scroller, scrollTop, collapsed);
 }
@@ -111,7 +120,7 @@ export function restoreView(host, scroller, scrollTop, collapsed) {
   if (scroller && scrollTop) requestAnimationFrame(() => { scroller.scrollTop = scrollTop; });
 }
 
-function header(rec, save, onBack) {
+function header(rec, save, onBack, d = null) {
   const h = el('div', 'sheet-head');
   if (onBack) {
     const back = el('button', 'sheet-back', '‹ ' + t('sheet.back'));
@@ -125,27 +134,34 @@ function header(rec, save, onBack) {
   name.maxLength = 40;
   name.value = rec.name || '';
   name.setAttribute('aria-label', t('crew.name'));
-  name.addEventListener('blur', () => {
-    if (name.value.trim() && name.value.trim() !== rec.name) save({ name: name.value.trim() });
-  });
-  name.addEventListener('keydown', e => { if (e.key === 'Enter') name.blur(); });
+  if (d) {
+    /* A name may not be blanked, so an empty box reads as "unchanged". */
+    d.watch('name', () => name.value.trim() || rec.name, rec.name || '', [name]);
+  } else {
+    name.addEventListener('blur', () => {
+      if (name.value.trim() && name.value.trim() !== rec.name) save({ name: name.value.trim() });
+    });
+    name.addEventListener('keydown', e => { if (e.key === 'Enter') name.blur(); });
+  }
   h.appendChild(name);
   return h;
 }
 
-function identity(rec, save) {
+function identity(rec, save, d = null) {
   const pb = SAV.PLAYBOOKS[rec.playbook];
   const grid = el('div', 'sheet-grid');
   grid.appendChild(choice(t('sheet.playbook'), rec.playbook, SAV.PLAYBOOK_LIST,
     v => save({ playbook: v })));
-  grid.appendChild(field(t('sheet.alias'), rec.alias, v => save({ alias: v })));
+  grid.appendChild(field(t('sheet.alias'), rec.alias, v => save({ alias: v }),
+    { draft: d, key: 'alias' }));
   grid.appendChild(choice(t('sheet.heritage'), rec.heritage, SAV.HERITAGES,
     v => save({ heritage: v })));
   grid.appendChild(choice(t('sheet.background'), rec.background, SAV.BACKGROUNDS,
     v => save({ background: v })));
   grid.appendChild(choice(t('sheet.vice'), rec.vice, SAV.VICES,
     v => save({ vice: v })));
-  grid.appendChild(field(t('sheet.look'), rec.look, v => save({ look: v })));
+  grid.appendChild(field(t('sheet.look'), rec.look, v => save({ look: v }),
+    { draft: d, key: 'look' }));
 
   /* A line or two in the player's own words. It is the one part of a sheet
      that says who this person is rather than what they can do, which is why
@@ -154,7 +170,8 @@ function identity(rec, save) {
   blurb.value = rec.blurb || '';
   blurb.rows = 3;
   blurb.placeholder = t('sheet.blurbCharacter');
-  blurb.addEventListener('blur', () => save({ blurb: blurb.value }));
+  if (d) d.watch('blurb', () => blurb.value, rec.blurb || '', [blurb]);
+  else blurb.addEventListener('blur', () => save({ blurb: blurb.value }));
 
   const portrait = el('div', 'sheet-portrait');
   portrait.appendChild(el('span', 'sheet-field-label', t('sheet.portrait')));
@@ -209,7 +226,7 @@ function actionsSection(rec, save) {
   return section(t('sheet.actions'), wrap, pbXp);
 }
 
-function conditionSection(rec, save) {
+function conditionSection(rec, save, d = null) {
   const wrap = el('div', 'sheet-condition');
 
   wrap.appendChild(track(rec.stress || 0, SAV.STRESS_MAX,
@@ -219,6 +236,9 @@ function conditionSection(rec, save) {
     v => save({ trauma: v.slice(0, SAV.TRAUMA_MAX) })));
 
   const harm = el('div', 'sheet-harm');
+  /* Six adjacent text boxes: tabbing along them is exactly the case a
+     save-on-blur rebuild used to destroy, so they commit together. */
+  const slotInputs = [];
   for (const lvl of SAV.HARM_LEVELS) {
     const row = el('div', 'sheet-harm-row');
     row.appendChild(el('span', 'sheet-harm-level', String(lvl.level)));
@@ -226,15 +246,24 @@ function conditionSection(rec, save) {
       const inp = el('input', 'sheet-harm-slot');
       inp.value = rec.harm?.[lvl.id]?.[i] || '';
       inp.placeholder = t('sheet.harm' + lvl.level);
-      inp.addEventListener('blur', () => {
-        const slots = [...(rec.harm?.[lvl.id] || [])];
-        slots[i] = inp.value.trim();
-        save({ harm: { ...rec.harm, [lvl.id]: slots } });
-      });
+      if (!d) {
+        inp.addEventListener('blur', () => save({ harm: liveHarm() }));
+      }
+      slotInputs.push({ lvl: lvl.id, i, inp });
       row.appendChild(inp);
     }
     harm.appendChild(row);
   }
+  const liveHarm = () => {
+    const out = { ...rec.harm };
+    for (const { lvl, i, inp } of slotInputs) {
+      const slots = [...(out[lvl] || [])];
+      slots[i] = inp.value.trim();
+      out[lvl] = slots;
+    }
+    return out;
+  };
+  if (d) d.watch('harm', liveHarm, rec.harm || {}, slotInputs.map(x => x.inp));
   wrap.appendChild(harm);
   wrap.appendChild(track(rec.healing || 0, SAV.HEALING_CLOCK,
     v => save({ healing: v }), { label: t('sheet.healing') }));
@@ -261,6 +290,13 @@ function kitSection(rec, save) {
   wrap.appendChild(picks(items, rec.items || [], v => save({ items: v })));
 
   if (pb) {
+    /* The starting ability is stated rather than offered: every character of
+       the playbook has it, so a checkbox would imply a choice that is not
+       there. It is named because the sheet names it. */
+    if (pb.starting) {
+      wrap.appendChild(el('h4', 'sheet-sub', t('sheet.startingAbility')));
+      wrap.appendChild(el('p', 'sheet-starting', t('sav.' + pb.starting)));
+    }
     wrap.appendChild(el('h4', 'sheet-sub', t('sheet.abilities')));
     wrap.appendChild(picks(pb.abilities, rec.abilities || [],
       v => save({ abilities: v }), { note: true }));
@@ -398,56 +434,88 @@ export function clocksSection(rec, save) {
   return section(t('sheet.clocks'), wrap);
 }
 
-export function notesSection(rec, save) {
+export function notesSection(rec, save, d = null) {
   const wrap = el('div', 'sheet-notes');
   const put = next => save({ notes: next });
+  /* Every note's text nodes, so a deferred sheet can rebuild the whole notes
+     array from the DOM in one read at save time. */
+  const rows = [];
 
   for (const n of (rec.notes || [])) {
-    wrap.appendChild(note(n, {
+    const row = note(n, {
+      draft: d,
       onChange: v => put(rec.notes.map(x => x.id === n.id ? v : x)),
-      onDelete: () => put(rec.notes.filter(x => x.id !== n.id)),
+      onDelete: () => put(live().filter(x => x.id !== n.id)),
       onAddImage: async file => {
         const a = await store.putAsset(file);
-        put(rec.notes.map(x => x.id === n.id
+        put(live().map(x => x.id === n.id
           ? { ...x, images: [...(x.images || []), { assetId: a.id, caption: '' }] } : x));
       },
-      onRemoveImage: img => put(rec.notes.map(x => x.id === n.id
+      onRemoveImage: img => put(live().map(x => x.id === n.id
         ? { ...x, images: (x.images || []).filter(i => i.assetId !== img.assetId) } : x))
-    }));
+    });
+    rows.push({ id: n.id, nodes: row.textNodes });
+    wrap.appendChild(row);
   }
+
+  /* Read every note back from the DOM, so text typed but not yet saved
+     survives the immediate writes that adding or deleting still perform. */
+  const live = () => (rec.notes || []).map(n => {
+    const r = rows.find(x => x.id === n.id);
+    return r ? { ...n, title: r.nodes.title.value.trim(), body: r.nodes.body.value } : n;
+  });
+
   const add = el('button', 'sheet-add', '+ ' + t('sheet.addNote'));
   add.type = 'button';
-  add.addEventListener('click', () => put([...(rec.notes || []), newNote()]));
+  add.addEventListener('click', () => put([...live(), newNote()]));
   wrap.appendChild(add);
+
+  if (d) {
+    d.watch('notes', live, rec.notes || [],
+      rows.flatMap(r => [r.nodes.title, r.nodes.body]));
+  }
   return section(t('sheet.notes'), wrap);
 }
 
 /** Whatever the group tracks that the rules do not. */
-export function extraFields(rec, save) {
+export function extraFields(rec, save, d = null) {
   const wrap = el('div', 'sheet-extra');
+  const rows = [];
+
+  /* As with notes: the current text of every row, so adding or deleting one
+     does not throw away what has been typed into the others. */
+  const live = () => (rec.fields || []).map(f => {
+    const r = rows.find(x => x.id === f.id);
+    return r ? { ...f, label: r.k.value.trim(), value: r.v.value } : f;
+  });
+
   for (const f of (rec.fields || [])) {
     const row = el('div', 'sheet-extra-row');
     const k = el('input', 'sheet-extra-key');
     k.value = f.label || '';
     k.placeholder = t('sheet.fieldLabel');
-    k.addEventListener('blur', () => save({
-      fields: rec.fields.map(x => x.id === f.id ? { ...x, label: k.value.trim() } : x) }));
     const v = el('input', 'sheet-extra-val');
     v.value = f.value || '';
-    v.addEventListener('blur', () => save({
-      fields: rec.fields.map(x => x.id === f.id ? { ...x, value: v.value } : x) }));
+    if (!d) {
+      k.addEventListener('blur', () => save({
+        fields: live().map(x => x.id === f.id ? { ...x, label: k.value.trim() } : x) }));
+      v.addEventListener('blur', () => save({
+        fields: live().map(x => x.id === f.id ? { ...x, value: v.value } : x) }));
+    }
     const x = el('button', 'sheet-x', '×');
     x.type = 'button';
-    x.addEventListener('click', () => save({ fields: rec.fields.filter(y => y.id !== f.id) }));
+    x.addEventListener('click', () => save({ fields: live().filter(y => y.id !== f.id) }));
+    rows.push({ id: f.id, k, v });
     row.append(k, v, x);
     wrap.appendChild(row);
   }
   const add = el('button', 'sheet-add', '+ ' + t('sheet.addField'));
   add.type = 'button';
   add.addEventListener('click', () => save({
-    fields: [...(rec.fields || []),
-             { id: crypto.randomUUID?.() || String(Math.random()).slice(2),
-               label: '', value: '' }] }));
+    fields: [...live(), { id: uid(), label: '', value: '' }] }));
   wrap.appendChild(add);
+
+  if (d) d.watch('fields', live, rec.fields || [],
+    rows.flatMap(r => [r.k, r.v]));
   return section(t('sheet.extra'), wrap);
 }

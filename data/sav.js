@@ -39,57 +39,85 @@ export const STARTING_DOTS = 7;       // dots to spend at creation, beyond the
 /**
  * Playbooks.
  *
- * `startingAction` is the single dot the playbook begins with; `abilities`
- * and `items` are the ids to choose from. Names live in the string catalogue,
- * descriptions in the book.
+ * `startingAction` is the single dot the playbook begins with. `starting` is
+ * the ability every character of the playbook has from the outset — it is not
+ * chosen, so it is kept apart from `abilities`, the list one is picked from.
+ *
+ * `veteran` closes every playbook's ability list in the book ("choose a
+ * special ability from another source"). It is a real choice on the sheet, so
+ * it is listed like the rest.
+ *
+ * `items` are the playbook's own gear, offered alongside COMMON_ITEMS. Names
+ * live in the string catalogue, the rules text in the book.
  */
 export const PLAYBOOKS = {
   muscle: {
     id: 'muscle', startingAction: 'scrap',
-    abilities: ['battle-hardened', 'bodyguard', 'ghost-fighter', 'mule',
-                'not-to-be-trifled-with', 'savage', 'vigorous'],
-    items: ['blade-or-baton', 'heavy-pistol', 'scary-weapon', 'armor',
-            'heavy-armor', 'breaching-charge']
+    starting: 'unstoppable',
+    abilities: ['wrecking-crew', 'backup', 'battleborn', 'bodyguard',
+                'flesh-wound', 'predator', 'ready-for-anything', 'scary',
+                'veteran'],
+    items: ['krieger-blaster-pistol', 'vera-sniper-rifle', 'zmei-flamethrower',
+            'sunder-vibro-blade', 'zarathustra-detonator-launcher',
+            'martial-arts-style', 'mystic-ammunition']
   },
   pilot: {
     id: 'pilot', startingAction: 'helm',
-    abilities: ['ace', 'born-to-the-black', 'hard-burn', 'reflexes',
-                'sixth-sense', 'wingman', 'fly-casual'],
-    items: ['flight-suit', 'toolkit', 'lucky-charm', 'spare-parts',
-            'docking-clamps', 'nav-charts']
+    starting: 'ace-pilot',
+    abilities: ['keen-eye', 'side-job', 'exceed-specs', 'leaf-on-the-wind',
+                'hedonist', 'commander', 'traveler', 'punch-it',
+                'veteran'],
+    items: ['customized-spacesuit', 'small-urbot', 'mechanics-kit',
+            'grappling-hook', 'guild-license', 'victory-cigars']
   },
   speaker: {
     id: 'speaker', startingAction: 'consort',
-    abilities: ['like-part-of-the-family', 'mesmerism', 'subterfuge',
-                'trust-me', 'well-connected', 'jaded', 'weird-contacts'],
-    items: ['fine-clothes', 'documents', 'credit-chits', 'recorder',
-            'disguise-kit', 'gift']
+    starting: 'air-of-respectability',
+    abilities: ['favors-owed', 'player', 'infiltrator', 'subterfuge',
+                'heart-to-heart', 'old-friends', 'disarming', 'purpose',
+                'veteran'],
+    items: ['fine-clothes', 'legitimate-id', 'luxury-item', 'large-luxury-item',
+            'memento-past-encounter']
   },
   scoundrel: {
     id: 'scoundrel', startingAction: 'skulk',
-    abilities: ['ghost-echo', 'infiltrator', 'shadow', 'slippery',
-                'cloak-and-dagger', 'scout', 'thief'],
-    items: ['climbing-gear', 'lockpicks', 'silenced-pistol', 'stealth-suit',
-            'scanner', 'smoke-grenade']
+    starting: 'serendipitous',
+    abilities: ['never-tell-me-the-odds', 'i-know-a-guy', 'tenacious',
+                'when-the-chips-are-down', 'devils-own-luck', 'daredevil',
+                'shoot-first', 'ask-questions-later',
+                'veteran'],
+    items: ['fine-blaster-pistol', 'fine-coat', 'loaded-dice',
+            'forged-documents', 'mystic-ammunition', 'personal-memento']
   },
   stitch: {
     id: 'stitch', startingAction: 'doctor',
-    abilities: ['alchemist', 'battlefield-medic', 'physicker', 'surgeon',
-                'bedside-manner', 'chemist', 'ghost-ward'],
-    items: ['medkit', 'surgical-kit', 'drugs', 'sedatives',
-            'bio-scanner', 'stim-injector']
+    starting: 'im-a-doctor-not-a',
+    abilities: ['physicker', 'patch', 'welcome-anywhere', 'under-pressure',
+                'combat-medic', 'moral-compass', 'dr-strange', 'book-learning',
+                'veteran'],
+    items: ['fine-medkit', 'fine-bedside-manner', 'fine-clothing',
+            'recognizable-medic-garb', 'candies-and-treats',
+            'syringes-and-applicators']
   },
   mechanic: {
     id: 'mechanic', startingAction: 'rig',
-    abilities: ['ancient-interface', 'artificer', 'bantam', 'functional',
-                'grease-monkey', 'tinkerer', 'overclock'],
-    items: ['toolkit', 'heavy-tools', 'spare-parts', 'welding-gear',
-            'repair-drone', 'diagnostic-scanner']
+    starting: 'tinker',
+    abilities: ['bailing-wire-and-mech-tape', 'construct-whisperer',
+                'junkyard-hunter', 'hacker', 'fixed', 'mechanics-heart',
+                'overclock', 'analyst',
+                'veteran'],
+    items: ['fine-hacking-rig', 'fine-ship-repair-tools', 'small-drone',
+            'vision-enhancing-goggles', 'spare-parts', 'genius-pet']
   },
   mystic: {
     id: 'mystic', startingAction: 'attune',
-    abilities: ['ghost-voice', 'precognition', 'the-way', 'warded',
-                'ritual', 'compel', 'tempest']
+    starting: 'the-way',
+    abilities: ['kinetics', 'psy-blade', 'center', 'way-shield', 'warded',
+                'psy-dancing', 'visions', 'sundering',
+                'veteran'],
+    items: ['fine-melee-weapon', 'offerings', 'trappings-of-religion',
+            'outdated-religious-outfit', 'memento-of-your-travels',
+            'precursor-artifact']
   }
 };
 
@@ -128,10 +156,18 @@ export const LOADS = [
   { id: 'heavy',  slots: 6 }
 ];
 
-/** Gear every character can carry, independent of playbook. */
+/**
+ * Gear every character can carry, independent of playbook — the right-hand
+ * column of the sheet, in the book's own order.
+ *
+ * `slots` is what the item costs against load; the entries carrying 2 are the
+ * ones the sheet draws with a double box. Playbook items carry their own cost
+ * in the same way, and italic items on the sheet cost nothing.
+ */
 export const COMMON_ITEMS = [
-  'blaster', 'blade', 'throwing-blades', 'comms-unit', 'rebreather',
-  'armor', 'tools', 'rations', 'rope', 'med-patch'
+  'blaster-pistol', 'second-blaster-pistol', 'melee-weapon', 'heavy-blaster',
+  'detonator', 'hacking-tools', 'repair-tools', 'medkit', 'spy-gear',
+  'illicit-drugs', 'communicator', 'armor', 'spacesuit'
 ];
 
 export const XP_TRACKS = { playbook: 8, attribute: 6 };
@@ -141,33 +177,99 @@ export const XP_TRACKS = { playbook: 8, attribute: 6 };
 /**
  * Ship frames.
  *
- * `systems` are the modules a frame starts with; `slots` is how many upgrades
- * it can take. Numbers are the mechanical shape of the frame, not a
- * description of it.
+ * `systems` are the ratings the ship starts with, and `max` the ceiling each
+ * one can be raised to. The ceilings differ per ship and per system — the
+ * Cerberus can never take hull past 2, the Stardancer never weapons past 2 —
+ * so they are part of the frame rather than one constant for every vessel.
+ *
+ * `installed` are the modules the ship already carries at creation;
+ * `auxiliary` and `training` are its starting upgrades. `gambits` is what the
+ * crew banks at the start of every job.
  */
 export const FRAMES = {
-  cerberus: { id: 'cerberus', hull: 2, engines: 2,
-              comms: 1, weapons: 2, slots: 6 },
-  stardancer: { id: 'stardancer', hull: 2, engines: 2,
-                comms: 2, weapons: 1, slots: 6 },
-  firedrake: { id: 'firedrake', hull: 3, engines: 1,
-               comms: 1, weapons: 2, slots: 6 }
+  stardancer: {
+    id: 'stardancer', size: 'freighter', gambits: 2,
+    systems: { crew: 0, engines: 1, hull: 2, comms: 0, weapons: 0 },
+    max:     { crew: 3, engines: 4, hull: 4, comms: 3, weapons: 2 },
+    installed: ['jump-drive', 'cargo-hold', 'smuggling-compartments'],
+    auxiliary: ['galley'], training: 'insight',
+    upgrades: ['false-ship-papers', 'dark-hyperspace-lane-maps',
+               'smugglers-rigging', 'lucky-charm', 'thrillseekers'],
+    abilities: ['the-getaway', 'cargo-eye', 'field-repairs', 'leverage',
+                'just-passing-through', 'home-cooking', 'problem-solvers']
+  },
+  cerberus: {
+    id: 'cerberus', size: 'freighter', gambits: 1,
+    systems: { crew: 0, engines: 1, hull: 0, comms: 2, weapons: 1 },
+    max:     { crew: 3, engines: 4, hull: 2, comms: 4, weapons: 3 },
+    installed: ['jump-drive', 'long-range-scanner', 'grappling-hooks'],
+    auxiliary: ['brig'], training: 'prowess',
+    upgrades: ['tracers', 'stun-weapons', 'personal-vehicles', 'hard-knocks',
+               'smooth-criminals'],
+    abilities: ['licensed', 'on-the-trail', 'light-touch', 'snatch-n-grab',
+                'loaded-for-bear', 'play-both-sides', 'deadly']
+  },
+  firedrake: {
+    id: 'firedrake', size: 'corvette', gambits: 2,
+    systems: { crew: 0, engines: 1, hull: 1, comms: 0, weapons: 1 },
+    max:     { crew: 3, engines: 3, hull: 2, comms: 4, weapons: 3 },
+    installed: ['jump-drive', 'crew-quarters', 'particle-cannons'],
+    auxiliary: ['shields'], training: null, gear: ['shuttle'],
+    upgrades: ['black-market-contacts', 'secret-base', 'popular-support',
+               'way-blessed', 'driven'],
+    abilities: ['old-hands', 'forged-in-fire', 'sympathizers',
+                'natural-enemies', 'spark-of-rebellion', 'just-cause',
+                'hearts-and-minds']
+  }
 };
 export const FRAME_LIST = Object.values(FRAMES);
 
-/** Ship systems, each rated 0-3. Damage marks a system; repairs clear it. */
-export const SHIP_SYSTEMS = ['engines', 'hull', 'comms', 'weapons',
-                             'craft', 'gambit'];
-export const MAX_SYSTEM_RATING = 3;
+/** Ship sizes. A freighter can land on a planet; a corvette cannot. */
+export const SHIP_SIZES = ['freighter', 'corvette'];
 
-/** Upgrades a ship can take, by the area they belong to. */
-export const SHIP_UPGRADES = {
-  engines: ['superior-engines', 'bulk-fuel', 'silent-running', 'boost-thrusters'],
-  hull:    ['reinforced-hull', 'armor-plating', 'cargo-hold', 'hidden-hold'],
-  comms:   ['sensor-array', 'jamming-suite', 'encrypted-comms', 'long-range-array'],
-  weapons: ['turret', 'heavy-cannon', 'missiles', 'point-defence'],
-  crew:    ['medical-bay', 'workshop', 'galley', 'quarters', 'brig']
+/**
+ * The rated systems, in the order the sheet lists them. `crew` is the crew's
+ * own quality rather than a part of the vessel, but it is rated and rolled
+ * exactly like the rest, so it lives in the same list.
+ */
+export const SHIP_SYSTEMS = ['crew', 'engines', 'hull', 'comms', 'weapons'];
+
+/** The ceiling when no frame is chosen — the highest any frame allows. */
+export const MAX_SYSTEM_RATING = 4;
+
+/**
+ * Modules, by the system they belong to.
+ *
+ * A ship may carry no more modules in a system than it has quality in that
+ * system. Auxiliary modules are exempt from that rule, which is why they are
+ * kept apart rather than folded in as another area.
+ */
+export const SHIP_MODULES = {
+  hull:    ['cargo-hold', 'crew-quarters', 'landing-bay',
+            'smuggling-compartments'],
+  engines: ['afterburners', 'cloaking-device', 'gravitic-field-generator',
+            'jump-drive'],
+  comms:   ['fake-transponder', 'long-range-scanner', 'nexus-link',
+            'quantum-encryptor', 'targeting-computer'],
+  weapons: ['coherence-cannon', 'grappling-hooks', 'mining-drill', 'missiles',
+            'particle-cannons']
 };
+
+/** Auxiliary modules. Shields cost two upgrades rather than one. */
+export const AUXILIARY_MODULES = ['ai-module', 'armory', 'brig', 'galley',
+                                  'medical-bay', 'science-bay', 'shields'];
+
+/** Ship upgrades every crew may buy, whatever their vessel. */
+export const SHIP_UPGRADE_GEAR = ['holo-emitters', 'intruder-alarm',
+                                  'land-rover', 'power-reserves', 'shuttle',
+                                  'stasis-pods', 'vault'];
+
+/** Crew gear, bought the same way. */
+export const CREW_GEAR = ['alien-pet', 'land-transport', 'recon-drone',
+                          'survival-gear', 'workshop'];
+
+/** Training tracks. A Training upgrade earns 2 xp instead of 1. */
+export const TRAINING = ['insight', 'prowess', 'resolve', 'playbook'];
 
 export const SHIP_XP_TRACK = 8;
 /** Gambit pips a crew banks to boost rolls. */

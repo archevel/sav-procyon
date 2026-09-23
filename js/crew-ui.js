@@ -10,6 +10,7 @@ import { t } from '../data/i18n.js';
 import * as store from './store.js';
 import { savName } from './sheet-parts.js';
 import { renderCharacterSheet, blankCharacter } from './sheet-character.js';
+import { confirmDiscard } from './sheet-parts.js';
 import { pushUi } from './nav.js';
 
 let panel, listEl, sheetEl;
@@ -29,9 +30,18 @@ export function mountCrewPanel() {
     if (!panel.hidden) { pushUi('crew'); openId = null; render(); }
   });
   document.getElementById('crew-close')
-    ?.addEventListener('click', () => { panel.hidden = true; });
+    ?.addEventListener('click', () => {
+      if (!confirmDiscard(sheetEl)) return;
+      panel.hidden = true;
+      openId = null;
+    });
   document.getElementById('crew-add')?.addEventListener('click', addCharacter);
-  panel.addEventListener('click', e => { if (e.target === panel) panel.hidden = true; });
+  panel.addEventListener('click', e => {
+    if (e.target !== panel) return;
+    if (!confirmDiscard(sheetEl)) return;
+    panel.hidden = true;
+    openId = null;
+  });
 
   store.subscribe(() => { if (!panel.hidden) render(); }, ['characters']);
   window.addEventListener('langchange', () => { if (!panel.hidden) render(); });
@@ -73,7 +83,8 @@ function showSheet(rec) {
   listEl.hidden = true;
   sheetEl.hidden = false;
   document.getElementById('crew-add').hidden = true;
-  renderCharacterSheet(sheetEl, rec, { onBack: () => { openId = null; render(); } });
+  renderCharacterSheet(sheetEl, rec, {
+    onBack: () => { if (confirmDiscard(sheetEl)) { openId = null; render(); } } });
 }
 
 function showRoster(rows) {

@@ -794,6 +794,16 @@ body.in-system .orbit-layer .o-body { pointer-events: auto; }
   margin: 1.2vmin 0 .5vmin; color: var(--ink-soft);
 }
 
+/* The starting ability is stated, not chosen, so it is set in the body face
+   rather than styled like the checkbox rows beneath it. */
+.sheet-starting {
+  margin: 0 0 .4vmin; font-weight: 700;
+}
+
+/* A ship may carry no more modules in a system than it has quality there.
+   The heading counts them, and says so when the count is over. */
+.sheet-sub.is-over { color: #a4442e; }
+
 /* Dots and tracks. Both are click-to-set, click-again-to-clear. */
 .sheet-dots { display: flex; align-items: center; gap: .8vmin; margin: .3vmin 0; }
 .sheet-dots-label, .sheet-track-label {
@@ -909,6 +919,30 @@ body.in-system .orbit-layer .o-body { pointer-events: auto; }
   padding: .6vmin 1.2vmin; cursor: pointer; margin: .4vmin 0 0;
 }
 .sheet-add:hover { border-style: solid; background: var(--ink); color: var(--paper); }
+
+/* Free text commits here rather than on blur. Sticky was tried and is wrong:
+   these sheets are rendered into panels that are not always their own scroll
+   container, so it pinned the button mid-sheet with content sliding under it.
+   A plain bar at the end of the sheet behaves the same everywhere. */
+.sheet-savebar {
+  display: flex; justify-content: flex-end;
+  padding: .8vmin 0 .4vmin; margin-top: .8vmin;
+  border-top: max(1px, .1vmin) solid var(--ink-soft);
+}
+.sheet-save {
+  font-family: var(--mono); font-size: max(11px, 1.1vmin); font-weight: 700;
+  letter-spacing: .14em; text-transform: uppercase;
+  color: var(--paper); background: var(--ink);
+  border: max(1px, .1vmin) solid var(--ink);
+  padding: .7vmin 1.6vmin; cursor: pointer;
+  /* Committing is the one control a sheet cannot afford to have missed, so it
+     keeps a real tap target where vmin padding alone would collapse it. */
+  min-height: 34px; min-width: 96px;
+}
+.sheet-save:hover:not(:disabled) { background: var(--ink-soft); border-color: var(--ink-soft); }
+/* Nothing typed yet: visibly inert rather than hidden, so the sheet does not
+   reflow the moment a key is pressed. */
+.sheet-save:disabled { opacity: .35; cursor: default; }
 
 .sheet-system { display: flex; align-items: center; gap: .8vmin; }
 .sheet-system.is-damaged .sheet-dots-label { text-decoration: line-through; }
@@ -1178,7 +1212,9 @@ body.in-system .orbit-layer .o-body { pointer-events: auto; }
 
   .sheet-pick { padding: 1.4vmin 0; }
   .sheet-pick-label { font-size: 3.2vmin; }
-  .sheet-pick input[type=checkbox] { width: 26px; height: 26px; }
+  /* 30px is the smallest the mobile check accepts, and a playbook's item and
+     ability lists are the longest runs of these on any sheet. */
+  .sheet-pick input[type=checkbox] { width: 30px; height: 30px; }
   .sheet-pick { min-height: 44px; align-items: center; }
 
   .sheet-x { width: 8vmin; height: 8vmin; font-size: 4vmin; }

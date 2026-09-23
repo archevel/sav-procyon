@@ -114,12 +114,16 @@ export async function shipCard(rec) {
         .filter(Boolean).join(' · '), x, PAD + 70);
 
   const damaged = new Set(rec.damaged || []);
+  /* Not `frame` — that name is the card's own border-drawing helper. */
+  const hull = SAV.FRAMES[rec.frame];
   const rows = [];
   for (const sys of SAV.SHIP_SYSTEMS) {
     const v = rec.systems?.[sys] || 0;
     if (!v && !damaged.has(sys)) continue;
     rows.push({ name: t('ship.' + sys) + (damaged.has(sys) ? ' ✕' : ''),
-                value: v, max: SAV.MAX_SYSTEM_RATING,
+                /* The frame's own ceiling, so a card shows 2/2 rather than
+                   2/4 for a system the ship cannot raise further. */
+                value: v, max: hull?.max?.[sys] ?? SAV.MAX_SYSTEM_RATING,
                 colour: damaged.has(sys) ? WARN : INK });
   }
   let y = ratingColumns(g, rows, x, PAD + 108, W - x - PAD);

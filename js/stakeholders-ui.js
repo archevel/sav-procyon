@@ -16,7 +16,7 @@ import { FACTIONS } from '../data/factions-data.js';
 import { SECTOR } from '../data/sector.js';
 import { anchorTargets, targetName } from './fleet.js';
 import { PORTRAITS } from '../data/portraits.js';
-import { el, esc, portraitField, section, clock, newClock } from './sheet-parts.js';
+import { el, esc, portraitField, section, clock, newClock, draft, saveBar, confirmDiscard } from './sheet-parts.js';
 import { clocksSection, notesSection } from './sheet-character.js';
 import { renderFactionExtras } from './factions-ui.js';
 import { describePlace } from './notes-ui.js';
@@ -219,8 +219,15 @@ export function mountStakeholdersPanel(opts = {}) {
     if (!panel.hidden) { pushUi('stakeholders'); open = null; render(); }
   });
   document.getElementById('stakeholders-close')
-    ?.addEventListener('click', () => { panel.hidden = true; });
-  panel.addEventListener('click', e => { if (e.target === panel) panel.hidden = true; });
+    ?.addEventListener('click', () => {
+      if (!confirmDiscard(detailEl)) return;
+      panel.hidden = true;
+    });
+  panel.addEventListener('click', e => {
+    if (e.target !== panel) return;
+    if (!confirmDiscard(detailEl)) return;
+    panel.hidden = true;
+  });
 
   store.subscribe(() => { if (!panel.hidden) render(); }, ['npcs', 'factions']);
   window.addEventListener('langchange', () => { if (!panel.hidden) render(); });
@@ -372,7 +379,11 @@ function backRow(label) {
   const head = el('div', 'sheet-head');
   const back = el('button', 'sheet-back', '‹ ' + t('sheet.back'));
   back.type = 'button';
-  back.addEventListener('click', () => { open = null; render(); });
+  back.addEventListener('click', () => {
+    if (!confirmDiscard(detailEl)) return;
+    open = null;
+    render();
+  });
   head.appendChild(back);
   if (label) head.appendChild(el('span', 'stakeholder-head-label', label));
   return head;
@@ -406,23 +417,23 @@ function showNpc(rec) {
     showNpc(rec);
   };
 
+  /* Free text commits through the Save button — see draft() in sheet-parts.js. */
+  const d = draft();
+  detailEl.dirty = () => d.dirty();
+
   detailEl.appendChild(backRow(''));
 
   const name = el('input', 'sheet-name');
   name.maxLength = 40;
   name.value = rec.name || '';
-  name.addEventListener('blur', () => {
-    if (name.value.trim() && name.value.trim() !== rec.name)
-      save({ name: name.value.trim() });
-  });
-  name.addEventListener('keydown', e => { if (e.key === 'Enter') name.blur(); });
+  d.watch('name', () => name.value.trim() || rec.name, rec.name || '', [name]);
   detailEl.appendChild(name);
 
   const blurb = el('textarea', 'sheet-note-body');
   blurb.value = rec.blurb || '';
   blurb.rows = 3;
   blurb.placeholder = t('npc.blurb');
-  blurb.addEventListener('blur', () => save({ blurb: blurb.value }));
+  d.watch('blurb', () => blurb.value, rec.blurb || '', [blurb]);
 
   /* Where this person is. An NPC with a place appears in that surface's
      people section; the options are the same places notes pin to. */
@@ -464,5 +475,6 @@ function showNpc(rec) {
   detailEl.appendChild(section(t('sheet.identity'), blurb, placeWrap, portrait));
   /* The same clocks and notes every other sheet carries. */
   detailEl.appendChild(clocksSection(rec, save));
-  detailEl.appendChild(notesSection(rec, save));
+  detailEl.appendChild(notesSection(rec, save, d));
+  detailEl.appendChild(saveBar(d, patch => save(patch)));
 }

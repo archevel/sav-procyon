@@ -159,15 +159,17 @@ export function newClock(name = '') {
  * Notes hang off characters, ships and places alike, which is why this takes
  * a plain object and callbacks rather than knowing what owns it.
  */
-export function note(n, { onChange, onDelete, onAddImage, onRemoveImage }) {
+export function note(n, { onChange, onDelete, onAddImage, onRemoveImage, draft = null }) {
   const wrap = el('div', 'sheet-note');
 
   const head = el('div', 'sheet-note-head');
   const title = el('input', 'sheet-note-title');
   title.value = n.title || '';
   title.placeholder = t('sheet.noteTitle');
-  title.addEventListener('blur', () => onChange({ ...n, title: title.value.trim() }));
-  title.addEventListener('keydown', e => { if (e.key === 'Enter') title.blur(); });
+  if (!draft) {
+    title.addEventListener('blur', () => onChange({ ...n, title: title.value.trim() }));
+    title.addEventListener('keydown', e => { if (e.key === 'Enter') title.blur(); });
+  }
   head.appendChild(title);
 
   const del = el('button', 'sheet-x', '×');
@@ -181,10 +183,14 @@ export function note(n, { onChange, onDelete, onAddImage, onRemoveImage }) {
   body.value = n.body || '';
   body.rows = 3;
   body.placeholder = t('sheet.noteBody');
-  body.addEventListener('blur', () => onChange({ ...n, body: body.value }));
+  if (!draft) body.addEventListener('blur', () => onChange({ ...n, body: body.value }));
   wrap.appendChild(body);
 
   wrap.appendChild(imageStrip(n.images || [], { onAddImage, onRemoveImage }));
+  /* The text nodes are handed back so a deferred sheet can read them at save
+     time. Images and deletion still act immediately: neither can lose a
+     half-typed value, and an upload has nothing to defer. */
+  wrap.textNodes = { title, body };
   return wrap;
 }
 
@@ -393,15 +399,22 @@ export function statusSelect(value, onChange, { label = null } = {}) {
 }
 
 /** A labelled text input. */
-export function field(label, value, onChange, { list = null, placeholder = '' } = {}) {
+export function field(label, value, onChange,
+                      { list = null, placeholder = '', draft = null, key = null } = {}) {
   const wrap = el('label', 'sheet-field');
   wrap.appendChild(el('span', 'sheet-field-label', label));
   const inp = el('input', 'sheet-field-input');
   inp.value = value || '';
   inp.placeholder = placeholder;
   if (list) inp.setAttribute('list', list);
-  inp.addEventListener('blur', () => onChange(inp.value.trim()));
-  inp.addEventListener('keydown', e => { if (e.key === 'Enter') inp.blur(); });
+  if (draft && key) {
+    /* Deferred, like every other free-text control: blur must not write, or
+       it rebuilds the sheet under whatever the player moved into next. */
+    draft.watch(key, () => inp.value.trim(), value || '', [inp]);
+  } else {
+    inp.addEventListener('blur', () => onChange(inp.value.trim()));
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') inp.blur(); });
+  }
   wrap.appendChild(inp);
   return wrap;
 }
@@ -470,4 +483,89 @@ export function section(title, ...children) {
   for (const c of children) if (c) body.appendChild(c);
   d.appendChild(body);
   return d;
+}
+
+/* ------------------------------------------------- deferred text edits */
+
+/**
+ * A sheet's pending free-text edits.
+ *
+ * Free text used to save on blur, and that was the whole bug: a save rebuilds
+ * the sheet, so tabbing from a note's title to its body destroyed the textarea
+ * mid-edit and the body was never written. Worse, each handler built its patch
+ * from the `rec` its own render captured, so a second save could roll the first
+ * one back.
+ *
+ * So text no longer saves itself. Every text control registers a reader here;
+ * the Save button calls `collect()` once and writes every current DOM value in
+ * a single patch. One write, one rebuild, no stale snapshots.
+ *
+ * Non-text controls (ratings, clocks, selects, portraits) keep saving straight
+ * away — they do not lose a half-typed value to a rebuild, and deferring them
+ * would make the sheet feel broken in a different way.
+ */
+export function draft() {
+  /* Each entry contributes one key to the patch, read from live DOM at save
+     time. `was` is what the sheet rendered with, so dirtiness is a comparison
+     rather than a flag every handler has to remember to set. */
+  const parts = [];
+  let listener = null;
+
+  const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+
+  return {
+    /**
+     * Register one patch key. `read()` returns its current value built from
+     * the DOM, and `was` is the value the sheet was rendered with.
+     * `nodes` are watched so typing can enable the Save button.
+     */
+    watch(key, read, was, nodes) {
+      parts.push({ key, read, was });
+      for (const n of nodes) n.addEventListener('input', () => listener?.());
+    },
+    /** True when any registered key differs from what the sheet rendered. */
+    dirty() {
+      return parts.some(p => !same(p.read(), p.was));
+    },
+    /** One patch carrying every registered key's current value. */
+    collect() {
+      const patch = {};
+      for (const p of parts) patch[p.key] = p.read();
+      return patch;
+    },
+    /** Lets a Save button enable itself on typing rather than by polling. */
+    onChange(fn) { listener = fn; }
+  };
+}
+
+/**
+ * The Save button a sheet's text edits commit through.
+ *
+ * Disabled until something is actually dirty, so it never invites a pointless
+ * write, and it reports back through `onSave` with the collected patch.
+ */
+export function saveBar(d, onSave) {
+  const wrap = el('div', 'sheet-savebar');
+  const btn = el('button', 'sheet-save', t('sheet.save'));
+  btn.type = 'button';
+  btn.disabled = true;
+  const sync = () => { btn.disabled = !d.dirty(); };
+  d.onChange(sync);
+  btn.addEventListener('click', () => { btn.disabled = true; onSave(d.collect()); });
+  wrap.appendChild(btn);
+  return wrap;
+}
+
+/**
+ * Guard leaving a sheet that has unsaved text.
+ *
+ * Deferring text to a Save button means closing a panel can now throw work
+ * away, which saving on blur never could. `host.dirty` is installed by each
+ * sheet; anything that closes one asks here first.
+ *
+ * Returns true when it is safe to proceed.
+ */
+export function confirmDiscard(host) {
+  if (!host || typeof host.dirty !== 'function' || !host.dirty()) return true;
+  return confirm(t('sheet.unsaved'));
 }

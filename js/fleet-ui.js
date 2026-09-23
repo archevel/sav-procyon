@@ -13,6 +13,7 @@ import { SECTOR } from '../data/sector.js';
 import { t } from '../data/i18n.js';
 import * as store from './store.js';
 import { renderShipSheet, blankShip } from './sheet-ship.js';
+import { confirmDiscard } from './sheet-parts.js';
 import { FRAME_LIST } from '../data/sav.js';
 import { pushUi } from './nav.js';
 import { defaultAnchor, describeAnchor, anchorTargets, bodyAt,
@@ -54,7 +55,13 @@ export function mountFleetPanel(opts = {}) {
     if (!panel.hidden) { pushUi('fleet'); openId = null; render(); }
   });
   document.getElementById('fleet-close')
-    ?.addEventListener('click', () => { panel.hidden = true; });
+    ?.addEventListener('click', () => {
+      if (!confirmDiscard(sheetEl)) return;
+      panel.hidden = true;
+      /* Leaving the panel returns to the fleet list, so reopening does not
+         drop straight back into a sheet the player had closed. */
+      openId = null;
+    });
   document.getElementById('fleet-add')?.addEventListener('click', addShip);
 
   /* Keep the list honest when a vessel lands somewhere new, or when an
@@ -119,7 +126,8 @@ function showSheet(rec) {
   listEl.hidden = true;
   sheetEl.hidden = false;
   document.getElementById('fleet-add').hidden = true;
-  renderShipSheet(sheetEl, rec, { onBack: () => { openId = null; render(); } });
+  renderShipSheet(sheetEl, rec, {
+    onBack: () => { if (confirmDiscard(sheetEl)) { openId = null; render(); } } });
 }
 
 function showList(ships) {
