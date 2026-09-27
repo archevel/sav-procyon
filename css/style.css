@@ -270,13 +270,23 @@ body.in-system .orbit-layer .o-body { pointer-events: auto; }
 /* The body FLOWS below a fixed backdrop rather than pinning to the bottom:
    with the sourcebook details inline the text can be long, and the view
    scrolls on every width. Tail padding keeps the last lines clear of the
-   corner buttons. */
+   corner buttons.
+   The body carries its own paper veil: the ::after scrim above is fixed to
+   the viewport, so scrolled text rode up into its clear band and sat on
+   bare ink. The veil starts transparent, so the resting view shows the art
+   exactly as before and paper only rises as the reader scrolls. The body is
+   full width (indent by padding, width capped on the children) so the veil
+   spans the view without overflowing it sideways. */
 .loc-body {
   position: relative; z-index: 1;
-  margin: 52vh 5vmin 0 22vmin;
-  padding: 4vmin 5vmin 12vmin;
-  max-width: 64rem;
+  margin: 52vh 0 0;
+  padding: 4vmin 10vmin 12vmin 27vmin;
+  background: linear-gradient(180deg,
+    rgba(244,241,233,0) 0,
+    rgba(244,241,233,.85) 14vmin,
+    rgba(244,241,233,.96) 30vmin);
 }
+.loc-body > * { max-width: 64rem; }
 #location-view.active { overflow-y: auto; }
 #location-view .loc-image { position: fixed; }
 .loc-kicker {
